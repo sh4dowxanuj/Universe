@@ -292,11 +292,9 @@ class YouTubeServices {
           'count': e['compactStationRenderer']['videoCountText']['runs'][0]
               ['text'],
           'playlistId': e['compactStationRenderer']['navigationEndpoint']
-                  ['watchEndpoint']?['playlistId'] ??
-              e['compactStationRenderer']['navigationEndpoint']
-                  ['watchPlaylistEndpoint']['playlistId'],
+              ['watchEndpoint']['playlistId'],
           'firstItemId': e['compactStationRenderer']['navigationEndpoint']
-              ['watchEndpoint']?['videoId'],
+              ['watchEndpoint']['videoId'],
           'image': e['compactStationRenderer']['thumbnail']['thumbnails'][0]
               ['url'],
           'imageMedium': e['compactStationRenderer']['thumbnail']['thumbnails']

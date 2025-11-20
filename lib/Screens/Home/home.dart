@@ -46,7 +46,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:blackhole/Helpers/stubs.dart';
+import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -285,7 +285,6 @@ class _HomePageState extends State<HomePage> {
         extendBodyBehindAppBar: true,
         resizeToAvoidBottomInset: false,
         backgroundColor: Colors.transparent,
-        drawerEnableOpenDragGesture: false,
         drawer: Drawer(
           child: GradientContainer(
             child: CustomScrollView(
@@ -594,12 +593,7 @@ class _HomePageState extends State<HomePage> {
                 context,
                 controller: _controller,
                 itemCount: sectionsToShow.length,
-                navBarHeight: 60 +
-                    (rotated ? 0 : 70) +
-                    (useDense ? 0 : 10) +
-                    (rotated && useDense ? 10 : 0),
                 // confineInSafeArea: false,
-                onItemTapped: onItemTapped,
                 routeAndNavigatorSettings:
                     CustomWidgetRouteAndNavigatorSettings(
                   routes: namedRoutes,
