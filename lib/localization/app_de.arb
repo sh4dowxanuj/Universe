@@ -720,9 +720,5 @@
   "useLessDataImage": "Weniger Daten für Bilder verwenden",
   "@useLessDataImage": {},
   "useLessDataImageSub": "Dies reduziert die Qualität der Bilder in der Anwendung, speichert aber Ihre Daten",
-  "@useLessDataImageSub": {},
-  "restart": "Möglicherweise muss die Anwendung neu gestartet werden",
-  "@restart": {},
-  "restartRequired": "Die Anwendung muss neu gestartet werden",
-  "@restartRequired": {}
+  "@useLessDataImageSub": {}
 }

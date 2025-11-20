@@ -19,7 +19,8 @@
 
 import 'dart:io';
 
-import 'package:blackhole/Helpers/stubs.dart';
+import 'package:audiotagger/audiotagger.dart';
+import 'package:audiotagger/models/tag.dart';
 import 'package:blackhole/CustomWidgets/snackbar.dart';
 import 'package:blackhole/Helpers/lyrics.dart';
 import 'package:blackhole/Services/ext_storage_provider.dart';
@@ -514,7 +515,6 @@ class Download with ChangeNotifier {
         } else {
           // Set metadata to file
           if (data['language'].toString() == 'YouTube') {
-            Logger.root.info('Started tag editing');
             // skipping metadata for saavn for the time being as it corrupts the file
             await MetadataGod.writeMetadata(
               file: filepath!,
@@ -526,9 +526,7 @@ class Download with ChangeNotifier {
                     '',
                 album: data['album'].toString(),
                 genre: data['language'].toString(),
-                year: ['', 'null'].contains(data['year'].toString())
-                    ? null
-                    : int.parse(data['year'].toString()),
+                year: int.parse(data['year'].toString()),
                 // lyrics: lyrics,
                 // comment: 'BlackHole',
                 // trackNumber: 1,
