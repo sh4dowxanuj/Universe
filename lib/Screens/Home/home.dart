@@ -638,6 +638,17 @@ class _HomePageState extends State<HomePage> {
                       ),
                   ],
                 ),
+                onWillPop: (BuildContext? ctx) async {
+                  // Basic back-button behavior:
+                  // - If not on first tab, jump to first tab and consume back.
+                  // - Otherwise, allow the system to handle the back (exit app).
+                  if (_controller.index != 0) {
+                    _controller.jumpToTab(0);
+                    return false;
+                  }
+                  return true;
+                },
+
                 screens: sectionsToShow.map((e) {
                   switch (e) {
                     case 'Home':
