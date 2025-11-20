@@ -75,12 +75,24 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Strip native debug symbols from release builds to save size
+            ndk {
+                debugSymbolLevel 'NONE'
+            }
         }
     }
 
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
+    }
+    // Exclude some common metadata files from APK to reduce size
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/*.kotlin_module'
     }
     buildFeatures {
         viewBinding true
