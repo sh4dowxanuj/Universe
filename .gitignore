@@ -49,3 +49,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 build/
+
+# Ignore built artifacts
+artifacts/flutter-apk/
