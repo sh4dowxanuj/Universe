@@ -275,6 +275,16 @@ class _HomePageState extends State<HomePage> {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
     final miniplayer = MiniPlayer();
+    // If the user removed all sections from settings, fall back to defaults
+    // so the bottom navigation always has items to render.
+    final List visibleSections = (sectionsToShow.isEmpty)
+        ? ['Home', 'Top Charts', 'YouTube', 'Library']
+        : sectionsToShow;
+    // Ensure selected index is valid for the visible sections
+    if (_selectedIndex.value >= visibleSections.length) {
+      _selectedIndex.value = 0;
+      _controller.jumpToTab(0);
+    }
     return GradientContainer(
       child: Scaffold(
         appBar: AppBar(
@@ -552,7 +562,7 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       padding: const EdgeInsets.symmetric(vertical: 5.0),
                     ),
-                    destinations: sectionsToShow.map((e) {
+                    destinations: visibleSections.map((e) {
                       switch (e) {
                         case 'Home':
                           return NavigationRailDestination(
@@ -592,7 +602,7 @@ class _HomePageState extends State<HomePage> {
               child: PersistentTabView.custom(
                 context,
                 controller: _controller,
-                itemCount: sectionsToShow.length,
+                itemCount: visibleSections.length,
                 // confineInSafeArea: false,
                 routeAndNavigatorSettings:
                     CustomWidgetRouteAndNavigatorSettings(
@@ -600,7 +610,7 @@ class _HomePageState extends State<HomePage> {
                   onGenerateRoute: (RouteSettings settings) {
                     if (settings.name == '/player') {
                       return PageRouteBuilder(
-                        opaque: false,
+                        opaque: true,
                         pageBuilder: (_, __, ___) => const PlayScreen(),
                       );
                     }
@@ -633,14 +643,14 @@ class _HomePageState extends State<HomePage> {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 100),
                             height: 60,
-                            child: CustomBottomNavBar(
+                              child: CustomBottomNavBar(
                               currentIndex: indexValue,
                                 backgroundColor:
                                   Theme.of(context).cardColor.withOpacity(0.95),
                               onTap: (index) {
                                 onItemTapped(index);
                               },
-                              items: _navBarItems(context),
+                              items: _navBarItems(context, visibleSections),
                             ),
                           );
                         },
@@ -659,7 +669,7 @@ class _HomePageState extends State<HomePage> {
                   return true;
                 },
 
-                screens: sectionsToShow.map((e) {
+                screens: visibleSections.map((e) {
                   switch (e) {
                     case 'Home':
                       return const HomeScreen();
@@ -683,8 +693,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  List<CustomBottomNavBarItem> _navBarItems(BuildContext context) {
-    return sectionsToShow.map((section) {
+  List<CustomBottomNavBarItem> _navBarItems(BuildContext context, List sections) {
+    return sections.map((section) {
       switch (section) {
         case 'Home':
           return CustomBottomNavBarItem(
