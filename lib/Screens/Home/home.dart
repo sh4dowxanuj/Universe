@@ -607,18 +607,23 @@ class _HomePageState extends State<HomePage> {
                     return HandleRoute.handleRoute(settings.name);
                   },
                 ),
-                customWidget: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Reserve a fixed height for the mini player to avoid
-                    // overlapping the bottom navigation bar on small screens
-                    // or when the mini player expands.
-                    SizedBox(
-                      height: 80,
-                      child: miniplayer,
-                    ),
-                    if (!rotated)
-                      ValueListenableBuilder(
+                customWidget: SafeArea(
+                  bottom: true,
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Reserve a fixed height for the mini player to avoid
+                      // overlapping the bottom navigation bar on small screens
+                      // or when the mini player expands. Use the user's
+                      // `useDenseMini` setting to choose a slightly smaller
+                      // reserved height when requested.
+                      SizedBox(
+                        height: useDense ? 64 : 80,
+                        child: miniplayer,
+                      ),
+                      if (!rotated)
+                        ValueListenableBuilder(
                         valueListenable: _selectedIndex,
                         builder: (
                           BuildContext context,
@@ -633,7 +638,7 @@ class _HomePageState extends State<HomePage> {
                               backgroundColor: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? Colors.black.withOpacity(0.9)
-                                  : Colors.white.withOpacity(0.9),
+                                  : Colors.grey[200]!.withOpacity(0.95),
                               onTap: (index) {
                                 onItemTapped(index);
                               },
@@ -643,6 +648,7 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                   ],
+                  ),
                 ),
                 onWillPop: (BuildContext? ctx) async {
                   // Basic back-button behavior:
