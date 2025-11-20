@@ -82,20 +82,34 @@ class CustomBottomNavBar extends StatelessWidget {
                       unselectedItemColor ??
                       theme.iconTheme.color;
 
+                  // Determine effective colors and ensure adequate contrast
+                  final Color bg = backgroundColor ?? Colors.transparent;
+                  Color effectiveSelected =
+                      item.selectedColor ?? selectedItemColor ?? theme.primaryColor;
+                  Color effectiveUnselected =
+                      item.unselectedColor ?? unselectedItemColor ?? theme.iconTheme.color ?? Colors.grey[600]!;
+
+                  // If selected color is too close to background, pick a contrasting color
+                  final double bgLum = bg.computeLuminance();
+                  final double selLum = effectiveSelected.computeLuminance();
+                  if ((bgLum - selLum).abs() < 0.45) {
+                    effectiveSelected = selLum > 0.5 ? Colors.black : Colors.white;
+                  }
+
                   return Material(
                     color: Color.lerp(
-                      selectedColor.withOpacity(0.0),
-                      selectedColor.withOpacity(selectedColorOpacity ?? 0.1),
+                      effectiveSelected.withOpacity(0.0),
+                      effectiveSelected.withOpacity(selectedColorOpacity ?? 0.1),
                       t,
                     ),
                     shape: itemShape,
                     child: InkWell(
                       onTap: () => onTap?.call(items.indexOf(item)),
                       customBorder: itemShape,
-                      focusColor: selectedColor.withOpacity(0.1),
-                      highlightColor: selectedColor.withOpacity(0.1),
-                      splashColor: selectedColor.withOpacity(0.1),
-                      hoverColor: selectedColor.withOpacity(0.1),
+                      focusColor: effectiveSelected.withOpacity(0.1),
+                      highlightColor: effectiveSelected.withOpacity(0.1),
+                      splashColor: effectiveSelected.withOpacity(0.1),
+                      hoverColor: effectiveSelected.withOpacity(0.1),
                       child: Padding(
                         padding: itemPadding -
                             (Directionality.of(context) == TextDirection.ltr
@@ -106,8 +120,8 @@ class CustomBottomNavBar extends StatelessWidget {
                             IconTheme(
                               data: IconThemeData(
                                 color: Color.lerp(
-                                  unselectedColor,
-                                  selectedColor,
+                                  effectiveUnselected,
+                                  effectiveSelected,
                                   t,
                                 ),
                                 size: 24,
@@ -141,8 +155,8 @@ class CustomBottomNavBar extends StatelessWidget {
                                     child: DefaultTextStyle(
                                       style: TextStyle(
                                         color: Color.lerp(
-                                          selectedColor.withOpacity(0.0),
-                                          selectedColor,
+                                          effectiveSelected.withOpacity(0.0),
+                                          effectiveSelected,
                                           t,
                                         ),
                                         fontWeight: FontWeight.w600,

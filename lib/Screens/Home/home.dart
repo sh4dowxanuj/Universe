@@ -610,7 +610,13 @@ class _HomePageState extends State<HomePage> {
                 customWidget: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    miniplayer,
+                    // Reserve a fixed height for the mini player to avoid
+                    // overlapping the bottom navigation bar on small screens
+                    // or when the mini player expands.
+                    SizedBox(
+                      height: 80,
+                      child: miniplayer,
+                    ),
                     if (!rotated)
                       ValueListenableBuilder(
                         valueListenable: _selectedIndex,
