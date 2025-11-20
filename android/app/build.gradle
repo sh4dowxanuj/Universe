@@ -66,8 +66,15 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // replace with "debug" when running on debug version
-            signingConfig signingConfigs.release
-            shrinkResources false
+                // Only assign the release signing config if keystore properties are present
+                if (keystoreProperties['storeFile']) {
+                    signingConfig signingConfigs.release
+                }
+            // Enable code shrinking and resource shrinking for smaller APKs
+            // Note: minification may require additional ProGuard rules for some plugins.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
