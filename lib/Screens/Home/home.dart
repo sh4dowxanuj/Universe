@@ -635,10 +635,8 @@ class _HomePageState extends State<HomePage> {
                             height: 60,
                             child: CustomBottomNavBar(
                               currentIndex: indexValue,
-                              backgroundColor: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.black.withOpacity(0.9)
-                                  : Colors.grey[200]!.withOpacity(0.95),
+                                backgroundColor:
+                                  Theme.of(context).cardColor.withOpacity(0.95),
                               onTap: (index) {
                                 onItemTapped(index);
                               },
