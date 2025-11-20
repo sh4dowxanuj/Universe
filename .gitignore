@@ -52,3 +52,7 @@ build/
 
 # Ignore built artifacts
 artifacts/flutter-apk/
+
+# Ignore signing keystore and key properties
+/android/key.properties
+/android/*.jks
