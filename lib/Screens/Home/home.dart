@@ -83,10 +83,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void onItemTapped(int index) {
-    _selectedIndex.value = index;
-    _controller.jumpToTab(
-      index,
-    );
+    if (_selectedIndex.value != index) {
+      _selectedIndex.value = index;
+      _controller.jumpToTab(index);
+    }
   }
 
   // Future<bool> handleWillPop(BuildContext? context) async {
