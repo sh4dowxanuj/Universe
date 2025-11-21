@@ -611,7 +611,9 @@ class _HomePageState extends State<HomePage> {
                 customWidget: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    miniplayer,
+                    SafeArea(
+                      child: miniplayer,
+                    ),
                     if (!rotated)
                       ValueListenableBuilder(
                         valueListenable: _selectedIndex,
