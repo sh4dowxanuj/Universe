@@ -574,6 +574,37 @@ class YtMusicService {
           finalUrl = finalUrlData['url'].toString();
           expireAt = finalUrlData['expireAt'].toString();
           urls = urlsData.map((e) => e['url'].toString()).toList();
+        } else {
+          // Fallback: attempt refresh via youtube_explode direct video fetch
+          Logger.root.severe(
+            'No stream URLs found initially for videoId=$videoId, attempting fallback refresh',
+          );
+          try {
+            final Map? refreshed = await YouTubeServices.instance
+                .refreshLink(videoId, useYTM: false);
+            if (refreshed != null && (refreshed['url']?.toString() ?? '') != '') {
+              finalUrl = refreshed['url'].toString();
+              expireAt = refreshed['expire_at']?.toString() ?? '0';
+              urls = [finalUrl];
+              urlsData = (refreshed['urlsData'] is List)
+                  ? (refreshed['urlsData'] as List)
+                      .whereType<Map>()
+                      .toList()
+                  : [];
+              Logger.root.info(
+                'Fallback succeeded for videoId=$videoId, url length=${finalUrl.length}',
+              );
+            } else {
+              Logger.root.severe(
+                'Fallback refresh failed to obtain URL for videoId=$videoId',
+              );
+            }
+          } catch (e) {
+            Logger.root.severe(
+              'Exception during fallback refresh for videoId=$videoId',
+              e,
+            );
+          }
         }
       }
 
