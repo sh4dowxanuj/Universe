@@ -27,14 +27,11 @@ import 'package:blackhole/CustomWidgets/snackbar.dart';
 import 'package:blackhole/Helpers/backup_restore.dart';
 import 'package:blackhole/Helpers/downloads_checker.dart';
 import 'package:blackhole/Helpers/github.dart';
-import 'package:blackhole/Helpers/route_handler.dart';
 import 'package:blackhole/Helpers/update.dart';
-import 'package:blackhole/Screens/Common/routes.dart';
 import 'package:blackhole/Screens/Home/home_screen.dart';
 import 'package:blackhole/Screens/Library/library.dart';
 import 'package:blackhole/Screens/LocalMusic/downed_songs.dart';
 import 'package:blackhole/Screens/LocalMusic/downed_songs_desktop.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:blackhole/Screens/Settings/new_settings_page.dart';
 import 'package:blackhole/Screens/Top Charts/top.dart';
 import 'package:blackhole/Screens/YouTube/youtube_home.dart';
@@ -46,7 +43,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
+// Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -85,7 +82,7 @@ class _HomePageState extends State<HomePage> {
   void onItemTapped(int index) {
     if (_selectedIndex.value != index) {
       _selectedIndex.value = index;
-      _controller.jumpToTab(index);
+      setState(() {});
     }
   }
 
@@ -255,7 +252,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   final PageController _pageController = PageController();
-  final PersistentTabController _controller = PersistentTabController();
 
   @override
   void initState() {
@@ -265,7 +261,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _controller.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -358,41 +353,30 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                     Expanded(
-                      child: PersistentTabView.custom(
-                        context,
-                        controller: _controller,
-                        itemCount: sectionsToShow.length,
-                        handleAndroidBackButtonPress: false,
-                        routeAndNavigatorSettings:
-                            CustomWidgetRouteAndNavigatorSettings(
-                          routes: namedRoutes,
-                          onGenerateRoute: (RouteSettings settings) {
-                            if (settings.name == '/player') {
-                              return PageRouteBuilder(
-                                opaque: false,
-                                pageBuilder: (_, __, ___) => const PlayScreen(),
-                              );
+                      child: ValueListenableBuilder(
+                        valueListenable: _selectedIndex,
+                        builder: (context, indexValue, _) {
+                          final screens = sectionsToShow.map((e) {
+                            switch (e) {
+                              case 'Home':
+                                return const HomeScreen();
+                              case 'Top Charts':
+                                return TopCharts(
+                                  pageController: _pageController,
+                                );
+                              case 'YouTube':
+                                return const YouTube();
+                              case 'Library':
+                                return const LibraryPage();
+                              default:
+                                return NewSettingsPage(callback: callback);
                             }
-                            return HandleRoute.handleRoute(settings.name);
-                          },
-                        ),
-                        customWidget: const SizedBox.shrink(),
-                        screens: sectionsToShow.map((e) {
-                          switch (e) {
-                            case 'Home':
-                              return const HomeScreen();
-                            case 'Top Charts':
-                              return TopCharts(
-                                pageController: _pageController,
-                              );
-                            case 'YouTube':
-                              return const YouTube();
-                            case 'Library':
-                              return const LibraryPage();
-                            default:
-                              return NewSettingsPage(callback: callback);
-                          }
-                        }).toList(),
+                          }).toList();
+                          return IndexedStack(
+                            index: indexValue,
+                            children: screens,
+                          );
+                        },
                       ),
                     ),
                   ],
