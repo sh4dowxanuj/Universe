@@ -213,7 +213,7 @@ class _SearchPageState extends State<SearchPage> {
     return GradientContainer(
       child: SafeArea(
         child: Scaffold(
-          resizeToAvoidBottomInset: true,
+          resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           body: searchbar.SearchBar(
             controller: _controller,
