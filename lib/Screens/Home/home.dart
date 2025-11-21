@@ -593,6 +593,7 @@ class _HomePageState extends State<HomePage> {
                 context,
                 controller: _controller,
                 itemCount: sectionsToShow.length,
+                handleAndroidBackButtonPress: false,
                 // confineInSafeArea: false,
                 routeAndNavigatorSettings:
                     CustomWidgetRouteAndNavigatorSettings(
