@@ -275,16 +275,6 @@ class _HomePageState extends State<HomePage> {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
     final miniplayer = MiniPlayer();
-    // If the user removed all sections from settings, fall back to defaults
-    // so the bottom navigation always has items to render.
-    final List visibleSections = (sectionsToShow.isEmpty)
-        ? ['Home', 'Top Charts', 'YouTube', 'Library']
-        : sectionsToShow;
-    // Ensure selected index is valid for the visible sections
-    if (_selectedIndex.value >= visibleSections.length) {
-      _selectedIndex.value = 0;
-      _controller.jumpToTab(0);
-    }
     return GradientContainer(
       child: Scaffold(
         appBar: AppBar(
@@ -562,7 +552,7 @@ class _HomePageState extends State<HomePage> {
                       context: context,
                       padding: const EdgeInsets.symmetric(vertical: 5.0),
                     ),
-                    destinations: visibleSections.map((e) {
+                    destinations: sectionsToShow.map((e) {
                       switch (e) {
                         case 'Home':
                           return NavigationRailDestination(
@@ -602,7 +592,7 @@ class _HomePageState extends State<HomePage> {
               child: PersistentTabView.custom(
                 context,
                 controller: _controller,
-                itemCount: visibleSections.length,
+                itemCount: sectionsToShow.length,
                 // confineInSafeArea: false,
                 routeAndNavigatorSettings:
                     CustomWidgetRouteAndNavigatorSettings(
@@ -610,30 +600,19 @@ class _HomePageState extends State<HomePage> {
                   onGenerateRoute: (RouteSettings settings) {
                     if (settings.name == '/player') {
                       return PageRouteBuilder(
-                        opaque: true,
+                        opaque: false,
                         pageBuilder: (_, __, ___) => const PlayScreen(),
                       );
                     }
                     return HandleRoute.handleRoute(settings.name);
                   },
                 ),
-                customWidget: SafeArea(
-                  bottom: true,
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Reserve a fixed height for the mini player to avoid
-                      // overlapping the bottom navigation bar on small screens
-                      // or when the mini player expands. Use the user's
-                      // `useDenseMini` setting to choose a slightly smaller
-                      // reserved height when requested.
-                      SizedBox(
-                        height: useDense ? 64 : 80,
-                        child: miniplayer,
-                      ),
-                      if (!rotated)
-                        ValueListenableBuilder(
+                customWidget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    miniplayer,
+                    if (!rotated)
+                      ValueListenableBuilder(
                         valueListenable: _selectedIndex,
                         builder: (
                           BuildContext context,
@@ -643,33 +622,23 @@ class _HomePageState extends State<HomePage> {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 100),
                             height: 60,
-                              child: CustomBottomNavBar(
+                            child: CustomBottomNavBar(
                               currentIndex: indexValue,
-                                backgroundColor:
-                                  Theme.of(context).cardColor.withOpacity(0.95),
+                              backgroundColor: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.black.withOpacity(0.9)
+                                  : Colors.white.withOpacity(0.9),
                               onTap: (index) {
                                 onItemTapped(index);
                               },
-                              items: _navBarItems(context, visibleSections),
+                              items: _navBarItems(context),
                             ),
                           );
                         },
                       ),
                   ],
-                  ),
                 ),
-                onWillPop: (BuildContext? ctx) async {
-                  // Basic back-button behavior:
-                  // - If not on first tab, jump to first tab and consume back.
-                  // - Otherwise, allow the system to handle the back (exit app).
-                  if (_controller.index != 0) {
-                    _controller.jumpToTab(0);
-                    return false;
-                  }
-                  return true;
-                },
-
-                screens: visibleSections.map((e) {
+                screens: sectionsToShow.map((e) {
                   switch (e) {
                     case 'Home':
                       return const HomeScreen();
@@ -693,8 +662,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  List<CustomBottomNavBarItem> _navBarItems(BuildContext context, List sections) {
-    return sections.map((section) {
+  List<CustomBottomNavBarItem> _navBarItems(BuildContext context) {
+    return sectionsToShow.map((section) {
       switch (section) {
         case 'Home':
           return CustomBottomNavBarItem(

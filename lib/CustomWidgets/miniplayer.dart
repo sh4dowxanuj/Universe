@@ -71,19 +71,18 @@ class _MiniPlayerState extends State<MiniPlayer> {
               ) as bool ||
               rotated;
 
-          return GestureDetector(
-            onVerticalDragEnd: (DragEndDetails details) {
-              final double velocity = details.primaryVelocity ?? 0;
+          return Dismissible(
+            key: const Key('miniplayer'),
+            direction: DismissDirection.vertical,
+            confirmDismiss: (DismissDirection direction) {
               if (mediaItem != null) {
-                // Swipe down (positive velocity) -> stop playback
-                if (velocity > 300) {
+                if (direction == DismissDirection.down) {
                   audioHandler.stop();
-                }
-                // Swipe up (negative velocity) -> open full player
-                else if (velocity < -300) {
+                } else {
                   Navigator.pushNamed(context, '/player');
                 }
               }
+              return Future.value(false);
             },
             child: Dismissible(
               key: Key(mediaItem?.id ?? 'nothingPlaying'),
@@ -103,7 +102,6 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   vertical: 1.0,
                 ),
                 elevation: 0,
-                color: Colors.transparent,
                 child: SizedBox(
                   child: GradientContainer(
                     child: Column(
