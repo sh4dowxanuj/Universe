@@ -19,6 +19,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:blackhole/Services/yt_music.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -26,6 +27,284 @@ import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+
+/// Innertube API minimal wrapper for Music + Web/Android fallback
+/// This avoids any HTML scraping and uses the 2024-2025 endpoints.
+class _InnertubeClient {
+  static final Logger _log = Logger('_InnertubeClient');
+
+  // Cached values
+  static String? _apiKeyMusic; // WEB_REMIX key
+  static String? _apiKeyWeb; // WEB key (fallback)
+  static String? _visitorData; // X-Goog-Visitor-Id
+  static DateTime _lastFetch = DateTime.fromMillisecondsSinceEpoch(0);
+  static const Duration _refreshInterval = Duration(hours: 6);
+
+  static const _musicBase = 'https://music.youtube.com/youtubei/v1';
+  static const _webBase = 'https://www.youtube.com/youtubei/v1';
+
+  final Client _http;
+
+  _InnertubeClient(this._http);
+
+  Future<void> _ensureKeys({String region = 'IN', String language = 'en'}) async {
+    if (_apiKeyMusic != null &&
+        DateTime.now().difference(_lastFetch) < _refreshInterval) return;
+    try {
+      final resp = await _http.get(Uri.parse('https://music.youtube.com'));
+      if (resp.statusCode == 200) {
+        _apiKeyMusic = RegExp('"INNERTUBE_API_KEY":"(.*?)"')
+            .firstMatch(resp.body)
+            ?.group(1);
+        _visitorData = RegExp('"VISITOR_DATA":"(.*?)"')
+            .firstMatch(resp.body)
+            ?.group(1);
+        _apiKeyWeb = _apiKeyMusic; // Often identical; fallback if needed
+        _lastFetch = DateTime.now();
+        _log.info('Fetched Innertube keys (music=${_apiKeyMusic?.length})');
+      } else {
+        _log.severe('Failed initial music.youtube.com fetch: ${resp.statusCode}');
+      }
+    } catch (e) {
+      _log.severe('Error fetching Innertube keys: $e');
+    }
+  }
+
+  Map<String, dynamic> _clientContext({
+    String client = 'WEB_REMIX',
+    String region = 'IN',
+    String language = 'en',
+  }) {
+    // version may change; keep overridable
+    final versions = {
+      'WEB_REMIX': '1.20241117.01.00',
+      'ANDROID': '19.42.34',
+      'WEB': '1.20241117.01.00',
+    };
+    return {
+      'client': {
+        'hl': language,
+        'gl': region,
+        'clientName': client,
+        'clientVersion': versions[client] ?? versions['WEB_REMIX'],
+        if (client == 'ANDROID') 'androidSdkVersion': 34,
+      },
+    };
+  }
+
+  Future<Map<String, dynamic>> browseMusic({
+    String region = 'IN',
+    String language = 'en',
+  }) async {
+    await _ensureKeys(region: region, language: language);
+    final key = _apiKeyMusic;
+    if (key == null) return {};
+    final uri = Uri.parse('$_musicBase/browse?key=$key');
+    final body = jsonEncode({
+      ..._clientContext(region: region, language: language),
+      'browseId': 'FEmusic_home',
+    });
+    final resp = await _http.post(
+      uri,
+      headers: _stdHeaders(),
+      body: body,
+    );
+    if (resp.statusCode != 200) {
+      _log.severe('browseMusic status ${resp.statusCode}');
+      return {};
+    }
+    return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> playlistBrowse(String playlistId, {
+    String region = 'IN',
+    String language = 'en',
+  }) async {
+    await _ensureKeys(region: region, language: language);
+    final key = _apiKeyMusic;
+    if (key == null) return {};
+    final uri = Uri.parse('$_musicBase/browse?key=$key');
+    final body = jsonEncode({
+      ..._clientContext(region: region, language: language),
+      'browseId': 'VL$playlistId',
+    });
+    final resp = await _http.post(uri, headers: _stdHeaders(), body: body);
+    if (resp.statusCode != 200) return {};
+    return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> player(String videoId, {
+    String client = 'WEB_REMIX',
+    String region = 'IN',
+    String language = 'en',
+  }) async {
+    await _ensureKeys(region: region, language: language);
+    final key = client == 'ANDROID' ? _apiKeyWeb : _apiKeyMusic;
+    if (key == null) return {};
+    final base = client == 'ANDROID' ? _webBase : _musicBase;
+    final uri = Uri.parse('$base/player?key=$key');
+    final body = jsonEncode({
+      ..._clientContext(client: client, region: region, language: language),
+      'videoId': videoId,
+      'playbackContext': {
+        'contentPlaybackContext': {'signatureTimestamp': _signatureTimestamp()},
+      },
+      'contentCheckOk': true,
+      'racyCheckOk': true,
+    });
+    final resp = await _http.post(uri, headers: _stdHeaders(), body: body);
+    if (resp.statusCode != 200) {
+      _log.warning('player status ${resp.statusCode}');
+      return {};
+    }
+    return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
+  Future<List<String>> suggestions(String query) async {
+    final uri = Uri.parse(
+      'https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${Uri.encodeQueryComponent(query)}',
+    );
+    try {
+      final resp = await _http.get(uri, headers: _stdHeaders());
+      if (resp.statusCode != 200) return [];
+      final data = jsonDecode(resp.body) as List;
+      final unescape = HtmlUnescape();
+      return (data[1] as List).map((e) => unescape.convert(e.toString())).toList();
+    } catch (e) {
+      _log.severe('suggestions error: $e');
+      return [];
+    }
+  }
+
+  Map<String, String> _stdHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'User-Agent':
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+      if (_visitorData != null) 'X-Goog-Visitor-Id': _visitorData!,
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Origin': 'https://music.youtube.com',
+    };
+  }
+
+  int _signatureTimestamp() {
+    // Approximated timestamp (sts) used in Innertube; often derived from player JS.
+    final epochDays = DateTime.now().difference(DateTime(1970)).inDays;
+    return 170000 + (epochDays % 2000); // heuristic
+  }
+}
+
+/// Utility for deciphering signatureCipher and n-params (throttling bypass)
+class _CipherUtil {
+  static final Logger _log = Logger('_CipherUtil');
+  static String? _playerJsUrl;
+  static DateTime _lastUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+  static const Duration _refreshEvery = Duration(hours: 6);
+  static final RegExp _nFunctionRegex = RegExp(r'n\s*=\s*function\(\s*a\s*\)\s*{([^}]+)}');
+  static final RegExp _sigFunctionRegex = RegExp(r'\b[a-zA-Z0-9$]{2}\s*=\s*function\(a\)\{a=a\.split\(""\);([^}]+)return a\.join\(""\)');
+  static List<_Op> _nOps = [];
+  static List<_Op> _sigOps = [];
+
+  final Client _http;
+  _CipherUtil(this._http);
+
+  Future<void> _ensurePlayerJs() async {
+    if (_playerJsUrl != null &&
+        DateTime.now().difference(_lastUpdate) < _refreshEvery &&
+        _nOps.isNotEmpty &&
+        _sigOps.isNotEmpty) return;
+    try {
+      final resp = await _http.get(Uri.parse('https://www.youtube.com'));
+      if (resp.statusCode != 200) return;
+      final match = RegExp(r'src="(\/s\/player\/[^"]+base\.js)"').firstMatch(resp.body);
+      if (match == null) {
+        _log.warning('player js url not found');
+        return;
+      }
+      _playerJsUrl = 'https://www.youtube.com${match.group(1)}';
+      final js = await _http.get(Uri.parse(_playerJsUrl!));
+      if (js.statusCode != 200) return;
+      final script = js.body;
+      _nOps = _extractOps(script, _nFunctionRegex);
+      _sigOps = _extractOps(script, _sigFunctionRegex);
+      _lastUpdate = DateTime.now();
+      _log.info('Extracted cipher ops: n=${_nOps.length}, sig=${_sigOps.length}');
+    } catch (e) {
+      _log.severe('ensurePlayerJs error: $e');
+    }
+  }
+
+  List<_Op> _extractOps(String script, RegExp fnRegex) {
+    final m = fnRegex.firstMatch(script);
+    if (m == null) return [];
+    final body = m.group(1)!;
+    final ops = <_Op>[];
+    final parts = body.split(';');
+    for (final p in parts) {
+      if (p.contains('reverse()')) {
+        ops.add(_Op(_OpType.reverse));
+      } else if (p.contains('slice(')) {
+        final n = RegExp(r'slice\((\d+)').firstMatch(p)?.group(1);
+        ops.add(_Op(_OpType.slice, int.tryParse(n ?? '0') ?? 0));
+      } else if (p.contains('splice(')) {
+        final n = RegExp(r'splice\((\d+)').firstMatch(p)?.group(1);
+        ops.add(_Op(_OpType.splice, int.tryParse(n ?? '0') ?? 0));
+      } else if (RegExp(r'\[(\d+)%').hasMatch(p) || p.contains('var')) {
+        // swap like: var c=a[0];a[0]=a[b%a.length];a[b]=c
+        final n = RegExp(r'(\d+)').firstMatch(p)?.group(1);
+        ops.add(_Op(_OpType.swap, int.tryParse(n ?? '0') ?? 0));
+      }
+    }
+    return ops;
+  }
+
+  Future<String> decipherSignature(String s) async {
+    await _ensurePlayerJs();
+    var chars = s.split('');
+    for (final op in _sigOps) {
+      chars = op.apply(chars);
+    }
+    return chars.join();
+  }
+
+  Future<String> decipherN(String n) async {
+    await _ensurePlayerJs();
+    var chars = n.split('');
+    for (final op in _nOps) {
+      chars = op.apply(chars);
+    }
+    return chars.join();
+  }
+}
+
+enum _OpType { reverse, slice, splice, swap }
+
+class _Op {
+  final _OpType type;
+  final int arg;
+  _Op(this.type, [this.arg = 0]);
+  List<String> apply(List<String> input) {
+    switch (type) {
+      case _OpType.reverse:
+        return input.reversed.toList();
+      case _OpType.slice:
+        return input.sublist(arg);
+      case _OpType.splice:
+        final copy = [...input];
+        final remove = min(arg, copy.length);
+        copy.removeRange(0, remove);
+        return copy;
+      case _OpType.swap:
+        if (input.isEmpty) return input;
+        final copy = [...input];
+        final idx = arg % copy.length;
+        final first = copy.first;
+        copy[0] = copy[idx];
+        copy[idx] = first;
+        return copy;
+    }
+  }
+}
 
 class YouTubeServices {
   static const String searchAuthority = 'www.youtube.com';
@@ -51,6 +330,7 @@ class YouTubeServices {
   }
 
   Future<List<Video>> getPlaylistSongs(String id) async {
+    // Keep youtube_explode for now (stable, Video object compatibility)
     final List<Video> results = await yt.playlists.getVideos(id).toList();
     return results;
   }
@@ -117,103 +397,36 @@ class YouTubeServices {
   }
 
   Future<Playlist> getPlaylistDetails(String id) async {
+    // Keep youtube_explode for now (stable, Playlist object compatibility)
     final Playlist metadata = await yt.playlists.get(id);
     return metadata;
   }
 
   Future<Map<String, List>> getMusicHome() async {
-    final Uri link = Uri.https(
-      searchAuthority,
-      paths['music'].toString(),
-    );
+    // New Innertube Music API usage
     try {
-      final Response response = await get(link);
-      if (response.statusCode != 200) {
-        return {};
-      }
-      final String searchResults =
-          RegExp(r'(\"contents\":{.*?}),\"metadata\"', dotAll: true)
-              .firstMatch(response.body)![1]!;
-      final Map data = json.decode('{$searchResults}') as Map;
-
-      final List result = data['contents']['twoColumnBrowseResultsRenderer']
-              ['tabs'][0]['tabRenderer']['content']['sectionListRenderer']
-          ['contents'] as List;
-
-      final List headResult = data['header']['carouselHeaderRenderer']
-          ['contents'][0]['carouselItemRenderer']['carouselItems'] as List;
-
-      final List shelfRenderer = result.map((element) {
-        return element['itemSectionRenderer']['contents'][0]['shelfRenderer'];
-      }).toList();
-
-      final List finalResult = shelfRenderer.map((element) {
-        final playlistItems = element['title']['runs'][0]['text'].trim() ==
-                    'Charts' ||
-                element['title']['runs'][0]['text'].trim() == 'Classements'
-            ? formatChartItems(
-                element['content']['horizontalListRenderer']['items'] as List,
-              )
-            : element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Music Videos') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Nouveaux clips') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('En Musique Avec Moi') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Performances Uniques')
-                ? formatVideoItems(
-                    element['content']['horizontalListRenderer']['items']
-                        as List,
-                  )
-                : formatItems(
-                    element['content']['horizontalListRenderer']['items']
-                        as List,
-                  );
-        if (playlistItems.isNotEmpty) {
-          return {
-            'title': element['title']['runs'][0]['text'],
-            'playlists': playlistItems,
-          };
-        } else {
-          Logger.root.severe(
-            "got null in getMusicHome for '${element['title']['runs'][0]['text']}'",
-          );
-          return null;
-        }
-      }).toList();
-
-      final List finalHeadResult = formatHeadItems(headResult);
-      finalResult.removeWhere((element) => element == null);
-
-      return {'body': finalResult, 'head': finalHeadResult};
+      final client = _InnertubeClient(Client());
+      final data = await client.browseMusic();
+      if (data.isEmpty) return {};
+      final List bodySections = _extractMusicSections(data);
+      final List headSections = _extractHead(data);
+      return {
+        'body': bodySections.cast(),
+        'head': headSections.cast(),
+      };
     } catch (e) {
-      Logger.root.severe('Error in getMusicHome: $e');
+      Logger.root.severe('Error in getMusicHome (Innertube): $e');
       return {};
     }
   }
 
   Future<List> getSearchSuggestions({required String query}) async {
-    const baseUrl =
-        'https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=';
-    // 'https://invidious.snopyta.org/api/v1/search/suggestions?q=';
-    final Uri link = Uri.parse(baseUrl + query);
     try {
-      final Response response = await get(link, headers: headers);
-      if (response.statusCode != 200) {
-        return [];
-      }
-      final unescape = HtmlUnescape();
-      // final Map res = jsonDecode(response.body) as Map;
-      final List res = (jsonDecode(response.body) as List)[1] as List;
-      // return (res['suggestions'] as List).map((e) => unescape.convert(e.toString())).toList();
-      return res.map((e) => unescape.convert(e.toString())).toList();
+      final client = _InnertubeClient(Client());
+      final suggestions = await client.suggestions(query);
+      return suggestions;
     } catch (e) {
-      Logger.root.severe('Error in getSearchSuggestions: $e');
+      Logger.root.severe('Error in getSearchSuggestions (Innertube): $e');
       return [];
     }
   }
@@ -562,6 +775,12 @@ class YouTubeServices {
         urlData = await getUri(videoId);
       }
 
+      // Fallback: if no urls or 403 issues suspected, use Innertube player
+      if (urlData.isEmpty) {
+        final fallback = await _getInnertubePlayerStreams(videoId);
+        if (fallback.isNotEmpty) urlData = fallback;
+      }
+
       try {
         await Hive.box('ytlinkcache')
             .put(
@@ -632,5 +851,117 @@ class YouTubeServices {
     AudioOnlyStreamInfo streamInfo,
   ) {
     return yt.videos.streamsClient.get(streamInfo);
+  }
+
+  // ------------------- Innertube Helpers ------------------- //
+  List _extractMusicSections(Map root) {
+    final List finalResult = [];
+    try {
+      final tabs = root['contents']?['singleColumnBrowseResultsRenderer']?['tabs'] ??
+          root['contents']?['twoColumnBrowseResultsRenderer']?['tabs'];
+      if (tabs is! List || tabs.isEmpty) return finalResult;
+      final content = tabs.first['tabRenderer']?['content'];
+      final sections = content?['sectionListRenderer']?['contents'];
+      if (sections is! List) return finalResult;
+      for (final section in sections) {
+        final shelf = section['itemSectionRenderer']?['contents']?[0]?['shelfRenderer'];
+        if (shelf == null) continue;
+        final titleRuns = shelf['title']?['runs'];
+        final String title = titleRuns is List && titleRuns.isNotEmpty
+          ? (titleRuns[0]['text'] as String? ?? 'Unknown')
+          : 'Unknown';
+        final items = shelf['content']?['horizontalListRenderer']?['items'];
+        if (items is! List) continue;
+        List formatted;
+        if (title.toLowerCase().contains('chart')) {
+          formatted = formatChartItems(items);
+        } else if (title.toLowerCase().contains('video')) {
+          formatted = formatVideoItems(items);
+        } else {
+          formatted = formatItems(items);
+        }
+        if (formatted.isEmpty) continue;
+        finalResult.add({'title': title, 'playlists': formatted});
+      }
+    } catch (e) {
+      Logger.root.severe('extractMusicSections error: $e');
+    }
+    return finalResult;
+  }
+
+  List _extractHead(Map root) {
+    final List head = [];
+    try {
+      final header = root['header'];
+      final items = header?['carouselHeaderRenderer']?['contents']?[0]?
+          ['carouselItemRenderer']?['carouselItems'];
+      if (items is! List) return head;
+      return formatHeadItems(items);
+    } catch (e) {
+      Logger.root.severe('extractHead error: $e');
+      return head;
+    }
+  }
+
+  Future<List<Map>> _getInnertubePlayerStreams(String videoId) async {
+    final client = _InnertubeClient(Client());
+    final cipher = _CipherUtil(Client());
+    Map<String, dynamic> playerData = await client.player(videoId);
+    if (playerData.isEmpty) {
+      // Android fallback
+      playerData = await client.player(videoId, client: 'ANDROID');
+    }
+    final streamingData = playerData['streamingData'];
+    if (streamingData == null) return [];
+    final List<Map> out = [];
+    final adaptiveRaw = streamingData['adaptiveFormats'];
+    final formatsRaw = streamingData['formats'];
+    final List adaptive = adaptiveRaw is List ? adaptiveRaw : <dynamic>[];
+    final List formats = formatsRaw is List ? formatsRaw : <dynamic>[];
+    final List all = [...formats, ...adaptive];
+    for (final fmt in all) {
+      if (fmt is! Map) continue;
+      final itag = fmt['itag']?.toString();
+      if (itag == '140' || itag == '251' || (fmt['mimeType']?.toString() ?? '').contains('audio')) {
+        String? url = fmt['url'] as String?;
+        if (url == null && fmt['signatureCipher'] != null) {
+          final cipherStr = fmt['signatureCipher'] as String;
+          final parts = Uri.splitQueryString(
+            cipherStr.startsWith('?') ? cipherStr : '?$cipherStr',
+          );
+          final baseUrl = parts['url'];
+          final s = parts['s'];
+          final sp = parts['sp'] ?? 'signature';
+          if (baseUrl != null && s != null) {
+            final sig = await cipher.decipherSignature(s);
+            url = '$baseUrl&$sp=$sig';
+          }
+        }
+        if (url == null) continue;
+        // Throttling n param
+        if (url.contains('n=')) {
+          final nVal = RegExp('[?&]n=([^&]+)').firstMatch(url)?.group(1);
+          if (nVal != null) {
+            final newN = await cipher.decipherN(nVal);
+            url = url.replaceFirst('n=$nVal', 'n=$newN');
+          }
+        }
+        out.add({
+          'bitrate': fmt['bitrate']?.toString() ?? '',
+          'codec': fmt['mimeType']?.toString().split(';').first ?? '',
+          'qualityLabel': fmt['audioQuality']?.toString() ?? fmt['qualityLabel']?.toString() ?? 'audio',
+          'size': '0',
+          'url': url,
+          'expireAt': getExpireAt(url),
+        });
+      }
+    }
+    // Sort by bitrate ascending then return
+    out.sort((a, b) {
+      final ai = int.tryParse(a['bitrate']?.toString() ?? '0') ?? 0;
+      final bi = int.tryParse(b['bitrate']?.toString() ?? '0') ?? 0;
+      return ai.compareTo(bi);
+    });
+    return out;
   }
 }

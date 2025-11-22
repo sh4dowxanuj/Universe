@@ -30,10 +30,12 @@ class YtMusicService {
   static const ytmDomain = 'music.youtube.com';
   static const httpsYtmDomain = 'https://music.youtube.com';
   static const baseApiEndpoint = '/youtubei/v1/';
-  static const ytmParams = {
-    'alt': 'json',
-    'key': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-  };
+  
+  // Dynamic API key (updated 2024-2025)
+  static String? _cachedApiKey;
+  static DateTime _lastKeyFetch = DateTime.fromMillisecondsSinceEpoch(0);
+  static const Duration _keyRefreshInterval = Duration(hours: 6);
+  
   static const userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0';
   static const Map<String, String> endpoints = {
@@ -71,6 +73,30 @@ class YtMusicService {
   }
 
   YtMusicService._internal();
+
+  Future<String> _getApiKey() async {
+    if (_cachedApiKey != null &&
+        DateTime.now().difference(_lastKeyFetch) < _keyRefreshInterval) {
+      return _cachedApiKey!;
+    }
+    try {
+      final response = await get(Uri.parse(httpsYtmDomain));
+      if (response.statusCode == 200) {
+        final match = RegExp('"INNERTUBE_API_KEY":"(.*?)"')
+            .firstMatch(response.body);
+        if (match != null) {
+          _cachedApiKey = match.group(1);
+          _lastKeyFetch = DateTime.now();
+          Logger.root.info('Fetched YtMusic API key');
+          return _cachedApiKey!;
+        }
+      }
+    } catch (e) {
+      Logger.root.warning('Failed to fetch dynamic API key: $e');
+    }
+    // Fallback to known working key
+    return 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
+  }
 
   Map<String, String> initializeHeaders() {
     return {
@@ -124,6 +150,11 @@ class YtMusicService {
     Map body,
     Map<String, String>? headers,
   ) async {
+    final apiKey = await _getApiKey();
+    final ytmParams = {
+      'alt': 'json',
+      'key': apiKey,
+    };
     final Uri uri = Uri.https(ytmDomain, baseApiEndpoint + endpoint, ytmParams);
     final response = await post(uri, headers: headers, body: jsonEncode(body));
     if (response.statusCode == 200) {
