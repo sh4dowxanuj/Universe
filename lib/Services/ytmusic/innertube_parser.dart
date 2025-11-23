@@ -746,9 +746,9 @@ class InnertubeParser {
         'count': viewCount ?? '',
         'videoId': videoId,
         'firstItemId': videoId,
-        'image': thumbnails != null && thumbnails.isNotEmpty 
-            ? thumbnails.last['url'] 
-            : '',
+        'image': thumbnails != null && thumbnails.length > 1 
+            ? thumbnails[1]['url']  // Standard quality
+            : (thumbnails != null && thumbnails.isNotEmpty ? thumbnails[0]['url'] : ''),
         'imageMin': thumbnails != null && thumbnails.isNotEmpty 
             ? thumbnails[0]['url'] 
             : '',
@@ -759,7 +759,7 @@ class InnertubeParser {
             ? thumbnails[2]['url'] 
             : '',
         'imageMax': thumbnails != null && thumbnails.isNotEmpty 
-            ? thumbnails.last['url'] 
+            ? thumbnails.last['url']  // Highest quality
             : '',
       };
     } catch (e) {

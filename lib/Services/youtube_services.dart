@@ -658,7 +658,7 @@ class YouTubeServices {
       final cipherUtil = CipherUtil();
       
       // Pre-fetch player.js to get signature timestamp
-      await cipherUtil.decodeNParameter(''); // This ensures player.js is cached
+      await cipherUtil.initializePlayerJs();
       
       final response = await innertubeClient.player(
         videoId: videoId,

@@ -41,6 +41,11 @@ class CipherUtil {
   // Get signature timestamp for player requests
   int? get signatureTimestamp => _signatureTimestamp;
   
+  // Pre-initialize player.js cache for signature operations
+  Future<void> initializePlayerJs() async {
+    await _fetchPlayerJs();
+  }
+  
   Future<void> _fetchPlayerJs() async {
     if (_cachedPlayerJs != null && 
         _cacheExpiry != null && 
@@ -78,7 +83,17 @@ class CipherUtil {
       final timestampMatch = RegExp(r'/player/([a-f0-9]+)/').firstMatch(_cachedPlayerUrl!);
       if (timestampMatch != null) {
         final timestampStr = timestampMatch.group(1);
-        _signatureTimestamp = int.tryParse(timestampStr ?? '', radix: 16);
+        if (timestampStr != null && timestampStr.isNotEmpty) {
+          try {
+            _signatureTimestamp = int.parse(timestampStr, radix: 16);
+            Logger.root.info('Signature timestamp extracted: $_signatureTimestamp');
+          } catch (e) {
+            Logger.root.warning('Failed to parse signature timestamp: $e');
+            _signatureTimestamp = null;
+          }
+        }
+      } else {
+        Logger.root.warning('Could not extract signature timestamp from player URL');
       }
       
       // Fetch player JavaScript
@@ -202,7 +217,7 @@ class CipherUtil {
     }
     
     // Swap operation: var c=a[0];a[0]=a[b%a.length];a[b]=c
-    if (objStr.contains('[0];') && objStr.contains('[b%') || objStr.contains('[b]=')) {
+    if ((objStr.contains('[0];') && objStr.contains('[b%')) || objStr.contains('[b]=')) {
       operations['swap'] = true;
     }
     
@@ -331,9 +346,17 @@ class CipherUtil {
   }
   
   Future<String?> _decodeSignature(String signature) async {
-    // This is a simplified signature decoder
-    // In production, this would need to execute the JavaScript operations
-    // For now, we implement basic transformations based on common patterns
+    // NOTE: This is a simplified signature decoder for fallback purposes.
+    // YouTube's actual signature operations use dynamic parameters from the JavaScript
+    // (e.g., swap(signature, N), splice(signature, 0, N), etc.) where N changes regularly.
+    // 
+    // This implementation applies fixed transformations as a basic structure.
+    // The primary method for signature handling is youtube_explode_dart, which has
+    // a mature, production-ready implementation that properly executes the JS operations.
+    //
+    // This code serves as:
+    // 1. A fallback structure for Innertube-based extraction
+    // 2. Documentation of the general approach for future enhancement
     
     if (_cachedSignatureFunction == null && _cachedTransformObject == null) {
       // If we couldn't extract functions, rely on youtube_explode_dart
@@ -344,8 +367,7 @@ class CipherUtil {
       var sig = signature.split('');
       
       // Apply basic transformations based on cached operations
-      // Note: This is a simplified implementation
-      // Real implementation would need to parse and execute JS operations
+      // Note: These are simplified and may not match current YouTube operations
       
       if (_cachedTransformObject != null) {
         if (_cachedTransformObject!['reverse'] == true) {
@@ -408,21 +430,21 @@ class CipherUtil {
   
   Future<String?> _transformNParameter(String nValue) async {
     // This is a simplified n-parameter transformer
-    // In production, this would need to execute the JavaScript transformation
-    // For now, we apply basic transformations
+    // Full implementation requires parsing and executing complex JavaScript operations
+    // including array manipulations, string operations, and mathematical transforms
     
     if (_cachedNTransformFunction == null) {
       // If we couldn't extract function, rely on youtube_explode_dart
+      Logger.root.info('No cached n-transform function available');
       return null;
     }
     
     try {
-      // Note: This is a placeholder implementation
-      // Real implementation would need to parse and execute complex JS operations
-      // including array manipulations, string operations, and mathematical transforms
+      // Note: This is intentionally minimal - youtube_explode_dart handles the complex
+      // n-parameter transformations properly. This structure exists for future enhancement
+      // if a pure Dart implementation becomes necessary.
       
-      // For now, we return the original value and rely on youtube_explode_dart
-      // which has proper n-parameter handling
+      Logger.root.info('N-parameter transformation delegated to youtube_explode_dart');
       return nValue;
     } catch (e) {
       Logger.root.warning('Error in n-parameter transformation: $e');
