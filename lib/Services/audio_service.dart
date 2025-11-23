@@ -443,7 +443,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           if (mediaItem.genre == 'YouTube') {
             final int expiredAt =
                 int.parse((mediaItem.extras!['expire_at'] ?? '0').toString());
-            if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
+            if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 >
                 expiredAt) {
               // Logger.root.info(
               //   'player | youtube link expired for ${mediaItem.title}, searching cache',
@@ -460,7 +460,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                     }
                   }
 
-                  if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
+                  if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 >
                       minExpiredAt) {
                     Logger.root.info(
                       'youtube link expired for ${mediaItem.title}, refreshing',
@@ -477,11 +477,17 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                       // Change this to handle yt quality
                       audioSource = LockCachingAudioSource(
                         Uri.parse(cachedData.last['url'].toString()),
+                        headers: const {
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        },
                       );
                     } else {
                       // Change this to handle yt quality
                       audioSource = AudioSource.uri(
                         Uri.parse(cachedData.last['url'].toString()),
+                        headers: const {
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        },
                       );
                     }
                     mediaItem.extras!['url'] = cachedData.last['url'];
@@ -510,10 +516,16 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
               if (cacheSong) {
                 audioSource = LockCachingAudioSource(
                   Uri.parse(mediaItem.extras!['url'].toString()),
+                  headers: const {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  },
                 );
               } else {
                 audioSource = AudioSource.uri(
                   Uri.parse(mediaItem.extras!['url'].toString()),
+                  headers: const {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  },
                 );
               }
               _mediaItemExpando[audioSource] = mediaItem;

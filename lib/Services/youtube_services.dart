@@ -37,7 +37,9 @@ class YouTubeServices {
   };
   static const Map<String, String> headers = {
     'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; rv:96.0) Gecko/20100101 Firefox/96.0',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
   };
   final YoutubeExplode yt = YoutubeExplode();
 
@@ -139,131 +141,58 @@ class YouTubeServices {
   }
 
   Future<Map<String, List>> getMusicHome() async {
-    final Uri link = Uri.https(
-      searchAuthority,
-      paths['music'].toString(),
-    );
     try {
-      Logger.root.info('Fetching YouTube Music home page');
-      final Response response = await get(link, headers: headers);
-      if (response.statusCode != 200) {
-        Logger.root.warning('YouTube Music returned status ${response.statusCode}');
-        return {};
-      }
+      Logger.root.info('Fetching YouTube Music home using search-based fallback');
       
-      // Try to extract the contents section with better error handling
-      final RegExp contentsRegex = RegExp(
-        r'(\"contents\":{.*?}),\"metadata\"',
-        dotAll: true,
-      );
-      final Match? match = contentsRegex.firstMatch(response.body);
+      // Since YouTube Music home scraping is unreliable, use curated searches as fallback
+      final List<Map> sections = [];
       
-      if (match == null || match.group(1) == null) {
-        Logger.root.severe('Failed to parse YouTube Music home page structure');
-        return {};
-      }
-      
-      final String searchResults = match.group(1)!;
-      final Map data = json.decode('{$searchResults}') as Map;
-
-      // Safely navigate the JSON structure
-      final Map? browseRenderer = data['contents']?['twoColumnBrowseResultsRenderer'] as Map?;
-      if (browseRenderer == null) {
-        Logger.root.severe('twoColumnBrowseResultsRenderer not found');
-        return {};
-      }
-
-      final List? tabs = browseRenderer['tabs'] as List?;
-      if (tabs == null || tabs.isEmpty) {
-        Logger.root.severe('No tabs found in browse renderer');
-        return {};
-      }
-
-      final Map? tabContent = tabs[0]['tabRenderer']?['content'] as Map?;
-      final List? result = tabContent?['sectionListRenderer']?['contents'] as List?;
-      
-      if (result == null) {
-        Logger.root.severe('No content sections found');
-        return {};
-      }
-
-      // Try to get header carousel - may not always exist
-      List headResult = [];
+      // Get trending music
       try {
-        final Map? header = data['header'] as Map?;
-        if (header != null && header.containsKey('carouselHeaderRenderer')) {
-          headResult = header['carouselHeaderRenderer']?['contents']?[0]
-              ?['carouselItemRenderer']?['carouselItems'] as List? ?? [];
+        final trendingResults = await fetchSearchResults('trending music 2024');
+        if (trendingResults.isNotEmpty) {
+          sections.add({
+            'title': 'Trending Now',
+            'playlists': trendingResults.take(10).toList(),
+          });
         }
       } catch (e) {
-        Logger.root.warning('Could not parse header carousel: $e');
+        Logger.root.warning('Failed to fetch trending: $e');
       }
-
-      final List shelfRenderer = result
-          .where(
-            (element) =>
-                element['itemSectionRenderer']?['contents']?[0]
-                        ?['shelfRenderer'] !=
-                    null,
-          )
-          .map((element) {
-            return element['itemSectionRenderer']['contents'][0]
-                ['shelfRenderer'];
-          })
-          .toList();
-
-      final List finalResult = shelfRenderer.map((element) {
-        try {
-          // Safely get title
-          final String? title = element['title']?['runs']?[0]?['text']?.toString().trim();
-          if (title == null) {
-            Logger.root.warning('Shelf has no title, skipping');
-            return null;
-          }
-
-          // Safely get content items
-          final List? items = element['content']?['horizontalListRenderer']?['items'] as List?;
-          if (items == null || items.isEmpty) {
-            Logger.root.warning('Shelf "$title" has no items');
-            return null;
-          }
-
-          // Determine type and format items accordingly
-          List playlistItems = [];
-          if (title == 'Charts' || title == 'Classements') {
-            playlistItems = formatChartItems(items);
-          } else if (title.contains('Music Videos') ||
-              title.contains('Nouveaux clips') ||
-              title.contains('En Musique Avec Moi') ||
-              title.contains('Performances Uniques') ||
-              title.contains('Videos')) {
-            playlistItems = formatVideoItems(items);
-          } else {
-            playlistItems = formatItems(items);
-          }
-
-          if (playlistItems.isNotEmpty) {
-            return {
-              'title': title,
-              'playlists': playlistItems,
-            };
-          } else {
-            Logger.root.info('Shelf "$title" returned no items after formatting');
-            return null;
-          }
-        } catch (e) {
-          Logger.root.warning('Error processing shelf: $e');
-          return null;
+      
+      // Get popular songs
+      try {
+        final popularResults = await fetchSearchResults('popular songs');
+        if (popularResults.isNotEmpty) {
+          sections.add({
+            'title': 'Popular Music',
+            'playlists': popularResults.take(10).toList(),
+          });
         }
-      }).toList();
-
-      final List finalHeadResult = headResult.isNotEmpty 
-          ? formatHeadItems(headResult)
-          : [];
-      finalResult.removeWhere((element) => element == null);
-
-      Logger.root.info('Successfully parsed ${finalResult.length} sections from YouTube Music home');
-      return {'body': finalResult, 'head': finalHeadResult};
+      } catch (e) {
+        Logger.root.warning('Failed to fetch popular: $e');
+      }
+      
+      // Get top charts
+      try {
+        final chartsResults = await fetchSearchResults('top music charts');
+        if (chartsResults.isNotEmpty) {
+          sections.add({
+            'title': 'Top Charts',
+            'playlists': chartsResults.take(10).toList(),
+          });
+        }
+      } catch (e) {
+        Logger.root.warning('Failed to fetch charts: $e');
+      }
+      
+      if (sections.isNotEmpty) {
+        Logger.root.info('Successfully created ${sections.length} sections for YouTube Music home');
+        return {'body': sections, 'head': []};
+      }
+      
+      Logger.root.severe('Failed to create any sections for YouTube Music home');
+      return {};
     } catch (e, stackTrace) {
       Logger.root.severe('Error in getMusicHome: $e\n$stackTrace');
       return {};
