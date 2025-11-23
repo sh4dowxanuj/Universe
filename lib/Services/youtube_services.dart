@@ -21,6 +21,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:blackhole/Services/yt_music.dart';
+import 'package:blackhole/Services/ytmusic/innertube_client.dart';
+import 'package:blackhole/Services/ytmusic/innertube_parser.dart';
+import 'package:blackhole/Services/ytmusic/cipher_util.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
@@ -122,11 +125,41 @@ class YouTubeServices {
   }
 
   Future<Map<String, List>> getMusicHome() async {
+    try {
+      Logger.root.info('Fetching YouTube Music home using Innertube API');
+      
+      // Use Innertube API to fetch music home
+      final innertubeClient = InnertubeClient();
+      final response = await innertubeClient.browse(browseId: 'FEmusic_home');
+      
+      if (response.isEmpty) {
+        Logger.root.warning('Innertube fetch failed, falling back to HTML scraping');
+        return await _getMusicHomeHtmlFallback();
+      }
+      
+      // Parse the response using InnertubeParser
+      final parsed = InnertubeParser.parseMusicHome(response);
+      
+      if (parsed['body'].isEmpty && parsed['head'].isEmpty) {
+        Logger.root.warning('Innertube parser returned empty, falling back to HTML scraping');
+        return await _getMusicHomeHtmlFallback();
+      }
+      
+      Logger.root.info('YouTube Music home fetched successfully via Innertube');
+      return parsed;
+    } catch (e) {
+      Logger.root.severe('Error in getMusicHome: $e');
+      return await _getMusicHomeHtmlFallback();
+    }
+  }
+
+  Future<Map<String, List>> _getMusicHomeHtmlFallback() async {
     final Uri link = Uri.https(
       searchAuthority,
       paths['music'].toString(),
     );
     try {
+      Logger.root.info('Attempting HTML scraping fallback');
       final Response response = await get(link);
       if (response.statusCode != 200) {
         return {};
@@ -192,7 +225,7 @@ class YouTubeServices {
 
       return {'body': finalResult, 'head': finalHeadResult};
     } catch (e) {
-      Logger.root.severe('Error in getMusicHome: $e');
+      Logger.root.severe('Error in HTML fallback getMusicHome: $e');
       return {};
     }
   }
@@ -547,18 +580,21 @@ class YouTubeServices {
           if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
               minExpiredAt) {
             // cache expired
+            Logger.root.info('Cache expired for $videoId, fetching new URLs');
             urlData = await getUri(videoId);
           } else {
             // giving cache link
-            Logger.root.info('cache found for $videoId');
+            Logger.root.info('Cache found for $videoId');
             urlData = cachedData as List<Map>;
           }
         } else {
           // old version cache is present
+          Logger.root.info('Old cache format for $videoId, refetching');
           urlData = await getUri(videoId);
         }
       } else {
         //cache not present
+        Logger.root.info('No cache for $videoId, fetching URLs');
         urlData = await getUri(videoId);
       }
 
@@ -590,20 +626,125 @@ class YouTubeServices {
     String videoId,
     // {bool preferM4a = true}
   ) async {
-    final List<AudioOnlyStreamInfo> sortedStreamInfo =
-        await getStreamInfo(videoId);
-    return sortedStreamInfo
-        .map(
-          (e) => {
-            'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
-            'codec': e.codec.subtype,
-            'qualityLabel': e.qualityLabel,
-            'size': e.size.totalMegaBytes.toStringAsFixed(2),
-            'url': e.url.toString(),
-            'expireAt': getExpireAt(e.url.toString()),
-          },
-        )
-        .toList();
+    try {
+      // First attempt: Use youtube_explode_dart
+      Logger.root.info('Attempting stream extraction with youtube_explode_dart');
+      final List<AudioOnlyStreamInfo> sortedStreamInfo =
+          await getStreamInfo(videoId);
+      
+      if (sortedStreamInfo.isNotEmpty) {
+        Logger.root.info('Playback URL extracted via youtube_explode_dart');
+        return sortedStreamInfo
+            .map(
+              (e) => {
+                'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
+                'codec': e.codec.subtype,
+                'qualityLabel': e.qualityLabel,
+                'size': e.size.totalMegaBytes.toStringAsFixed(2),
+                'url': e.url.toString(),
+                'expireAt': getExpireAt(e.url.toString()),
+              },
+            )
+            .toList();
+      }
+    } catch (e) {
+      Logger.root.warning('youtube_explode_dart failed: $e, trying Innertube fallback');
+    }
+    
+    // Second attempt: Use Innertube player endpoint
+    try {
+      Logger.root.info('Attempting Innertube player endpoint');
+      final innertubeClient = InnertubeClient();
+      final response = await innertubeClient.player(videoId: videoId);
+      
+      if (response.isNotEmpty && response.containsKey('streamingData')) {
+        final streamingData = response['streamingData'] as Map?;
+        if (streamingData != null) {
+          final formats = _extractAudioFormats(streamingData);
+          if (formats.isNotEmpty) {
+            Logger.root.info('Playback URL extracted via Innertube');
+            return formats;
+          }
+        }
+      }
+    } catch (e) {
+      Logger.root.warning('Innertube player failed: $e');
+    }
+    
+    Logger.root.severe('All playback URL extraction methods failed');
+    return [];
+  }
+  
+  List<Map> _extractAudioFormats(Map streamingData) {
+    final List<Map> formats = [];
+    final cipherUtil = CipherUtil();
+    
+    try {
+      // Get adaptive formats (audio only)
+      final adaptiveFormats = streamingData['adaptiveFormats'] as List?;
+      if (adaptiveFormats != null) {
+        for (final format in adaptiveFormats) {
+          final mimeType = format['mimeType'] as String?;
+          
+          // Only process audio formats
+          if (mimeType == null || !mimeType.startsWith('audio/')) continue;
+          
+          String? url = format['url'] as String?;
+          final signatureCipher = format['signatureCipher'] as String?;
+          
+          // Handle signature cipher
+          if (url == null && signatureCipher != null) {
+            Logger.root.info('Signature cipher detected, attempting decode');
+            // TODO: Full signature cipher decoding would be implemented here
+            // in a production environment. For now, we skip encrypted URLs
+            // as youtube_explode_dart handles them properly in the first fallback.
+            // Future implementation should:
+            // 1. Parse signatureCipher to extract 's', 'url', and 'sp' parameters
+            // 2. Use CipherUtil to decode the signature
+            // 3. Reconstruct the URL with decoded signature
+            continue;
+          }
+          
+          if (url != null) {
+            final bitrate = format['bitrate'] as int? ?? 0;
+            final contentLength = format['contentLength'] as String?;
+            final sizeBytes = contentLength != null ? int.tryParse(contentLength) ?? 0 : 0;
+            final sizeMB = sizeBytes / (1024 * 1024);
+            
+            // Extract codec info
+            String codec = 'unknown';
+            if (mimeType.contains('mp4a')) {
+              codec = 'm4a';
+            } else if (mimeType.contains('opus')) {
+              codec = 'opus';
+            } else if (mimeType.contains('webm')) {
+              codec = 'webm';
+            }
+            
+            formats.add({
+              'bitrate': (bitrate / 1000).round().toString(),
+              'codec': codec,
+              'qualityLabel': format['audioQuality'] ?? 'AUDIO_QUALITY_MEDIUM',
+              'size': sizeMB.toStringAsFixed(2),
+              'url': url,
+              'expireAt': cipherUtil.getExpireAt(url),
+            });
+          }
+        }
+      }
+      
+      // Sort by bitrate
+      formats.sort((a, b) {
+        final aBitrate = int.tryParse(a['bitrate'].toString()) ?? 0;
+        final bBitrate = int.tryParse(b['bitrate'].toString()) ?? 0;
+        return aBitrate.compareTo(bBitrate);
+      });
+      
+    } catch (e) {
+      Logger.root.severe('Error extracting audio formats: $e');
+    }
+    
+    return formats;
   }
 
   Future<List<AudioOnlyStreamInfo>> getStreamInfo(
