@@ -384,13 +384,33 @@ class Download with ChangeNotifier {
     Stream<List<int>> stream;
     // Download from yt
     if (data['url'].toString().contains('google')) {
-      // Use preferredYtDownloadQuality to check for quality first
-      final AudioOnlyStreamInfo streamInfo =
-          (await YouTubeServices.instance.getStreamInfo(data['id'].toString()))
-              .last;
-      total = streamInfo.size.totalBytes;
-      // Get the actual stream
-      stream = YouTubeServices.instance.getStreamClient(streamInfo);
+      Logger.root.info('Downloading from YouTube: ${data['id']}');
+      try {
+        // Get available streams
+        final List<AudioOnlyStreamInfo> streams = 
+            await YouTubeServices.instance.getStreamInfo(data['id'].toString());
+        
+        if (streams.isEmpty) {
+          Logger.root.severe('No audio streams available for ${data['id']}');
+          throw Exception('No audio streams available');
+        }
+        
+        // Select stream based on quality preference
+        final AudioOnlyStreamInfo streamInfo = preferredYtDownloadQuality == 'High'
+            ? streams.last  // Highest quality
+            : streams.first; // Lowest quality
+        
+        Logger.root.info(
+          'Selected stream: ${streamInfo.qualityLabel} (${streamInfo.bitrate.kiloBitsPerSecond.round()} kbps)',
+        );
+        
+        total = streamInfo.size.totalBytes;
+        // Get the actual stream
+        stream = YouTubeServices.instance.getStreamClient(streamInfo);
+      } catch (e) {
+        Logger.root.severe('Error fetching YouTube stream: $e');
+        rethrow;
+      }
     } else {
       Logger.root.info('Connecting to Client');
       client = Client();
