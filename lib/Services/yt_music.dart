@@ -533,47 +533,45 @@ class YtMusicService {
         'contentPlaybackContext': {'signatureTimestamp': signatureTimestamp},
       };
       body['video_id'] = videoId;
+      
+      Logger.root.info('Fetching song data for video: $videoId');
       final Map response =
           await sendRequest(endpoints['get_song']!, body, headers);
-      // int maxBitrate = 0;
-      // String? url;
-      // final formats =
-      //     await NavClass.nav(response, ['streamingData', 'formats']) as List;
-      // for (final element in formats) {
-      //   if (element['bitrate'] != null) {
-      //     if (int.parse(element['bitrate'].toString()) > maxBitrate) {
-      //       maxBitrate = int.parse(element['bitrate'].toString());
-      //       url = element['signatureCipher'].toString();
-      //     }
-      //   }
-      // }
-      // final adaptiveFormats =
-      //     await NavClass.nav(response, ['streamingData', 'adaptiveFormats']) as List;
-      // for (final element in adaptiveFormats) {
-      //   if (element['bitrate'] != null) {
-      //     if (int.parse(element['bitrate'].toString()) > maxBitrate) {
-      //       maxBitrate = int.parse(element['bitrate'].toString());
-      //       url = element['signatureCipher'].toString();
-      //     }
-      //   }
-      // }
+      
+      if (response.isEmpty) {
+        Logger.root.warning('Empty response from YTMusic for $videoId');
+        return {};
+      }
+      
       final videoDetails =
-          await NavClass.nav(response, ['videoDetails']) as Map;
-      // final reg = RegExp('url=(.*)');
-      // final matches = reg.firstMatch(url!);
-      // final String result = matches!.group(1).toString().unescape();
+          await NavClass.nav(response, ['videoDetails']) as Map?;
+      
+      if (videoDetails == null) {
+        Logger.root.warning('No video details found for $videoId');
+        return {};
+      }
+      
       List<String> urls = [];
       List<Map> urlsData = [];
       String finalUrl = '';
       String expireAt = '0';
+      
       if (getUrl) {
-        urlsData = await YouTubeServices.instance.getYtStreamUrls(videoId);
-        if (urlsData.isNotEmpty) {
-          final Map finalUrlData =
-              quality == 'High' ? urlsData.last : urlsData.first;
-          finalUrl = finalUrlData['url'].toString();
-          expireAt = finalUrlData['expireAt'].toString();
-          urls = urlsData.map((e) => e['url'].toString()).toList();
+        try {
+          urlsData = await YouTubeServices.instance.getYtStreamUrls(videoId);
+          if (urlsData.isNotEmpty) {
+            final Map finalUrlData =
+                quality == 'High' ? urlsData.last : urlsData.first;
+            finalUrl = finalUrlData['url'].toString();
+            expireAt = finalUrlData['expireAt'].toString();
+            urls = urlsData.map((e) => e['url'].toString()).toList();
+            Logger.root.info('Successfully fetched ${urlsData.length} URLs');
+          } else {
+            Logger.root.warning('No URLs available for $videoId');
+          }
+        } catch (e) {
+          Logger.root.severe('Error fetching stream URLs for $videoId: $e');
+          // Continue with metadata even if URL fetching fails
         }
       }
 
@@ -606,7 +604,7 @@ class YtMusicService {
         'perma_url': 'https://youtube.com/watch?v=$videoId',
       };
     } catch (e) {
-      Logger.root.severe('Error in yt get song data', e);
+      Logger.root.severe('Error in yt get song data for $videoId: $e');
       return {};
     }
   }

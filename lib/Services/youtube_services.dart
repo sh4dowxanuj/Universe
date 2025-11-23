@@ -99,21 +99,38 @@ class YouTubeServices {
       quality =
           Hive.box('settings').get('quality', defaultValue: 'Low').toString();
     } catch (e) {
+      Logger.root.warning('Failed to get quality setting: $e');
       quality = 'Low';
     }
-    if (useYTM) {
-      final Map res = await YtMusicService().getSongData(
-        videoId: id,
-        quality: quality,
-      );
-      return res;
-    }
-    final Video? res = await getVideoFromId(id);
-    if (res == null) {
+    
+    try {
+      if (useYTM) {
+        Logger.root.info('Refreshing link using YTMusic for $id');
+        final Map res = await YtMusicService().getSongData(
+          videoId: id,
+          quality: quality,
+        );
+        if (res.isEmpty) {
+          Logger.root.warning('YTMusic returned empty data, falling back to youtube_explode');
+          // Fallback to youtube_explode if YTMusic fails
+          return await refreshLink(id, useYTM: false);
+        }
+        return res;
+      }
+      
+      Logger.root.info('Refreshing link using youtube_explode for $id');
+      final Video? res = await getVideoFromId(id);
+      if (res == null) {
+        Logger.root.severe('Failed to get video data for $id');
+        return null;
+      }
+      
+      final Map? data = await formatVideo(video: res, quality: quality);
+      return data;
+    } catch (e) {
+      Logger.root.severe('Error refreshing link for $id: $e');
       return null;
     }
-    final Map? data = await formatVideo(video: res, quality: quality);
-    return data;
   }
 
   Future<Playlist> getPlaylistDetails(String id) async {
@@ -127,72 +144,128 @@ class YouTubeServices {
       paths['music'].toString(),
     );
     try {
-      final Response response = await get(link);
+      Logger.root.info('Fetching YouTube Music home page');
+      final Response response = await get(link, headers: headers);
       if (response.statusCode != 200) {
+        Logger.root.warning('YouTube Music returned status ${response.statusCode}');
         return {};
       }
-      final String searchResults =
-          RegExp(r'(\"contents\":{.*?}),\"metadata\"', dotAll: true)
-              .firstMatch(response.body)![1]!;
+      
+      // Try to extract the contents section with better error handling
+      final RegExp contentsRegex = RegExp(
+        r'(\"contents\":{.*?}),\"metadata\"',
+        dotAll: true,
+      );
+      final Match? match = contentsRegex.firstMatch(response.body);
+      
+      if (match == null || match.group(1) == null) {
+        Logger.root.severe('Failed to parse YouTube Music home page structure');
+        return {};
+      }
+      
+      final String searchResults = match.group(1)!;
       final Map data = json.decode('{$searchResults}') as Map;
 
-      final List result = data['contents']['twoColumnBrowseResultsRenderer']
-              ['tabs'][0]['tabRenderer']['content']['sectionListRenderer']
-          ['contents'] as List;
+      // Safely navigate the JSON structure
+      final Map? browseRenderer = data['contents']?['twoColumnBrowseResultsRenderer'] as Map?;
+      if (browseRenderer == null) {
+        Logger.root.severe('twoColumnBrowseResultsRenderer not found');
+        return {};
+      }
 
-      final List headResult = data['header']['carouselHeaderRenderer']
-          ['contents'][0]['carouselItemRenderer']['carouselItems'] as List;
+      final List? tabs = browseRenderer['tabs'] as List?;
+      if (tabs == null || tabs.isEmpty) {
+        Logger.root.severe('No tabs found in browse renderer');
+        return {};
+      }
 
-      final List shelfRenderer = result.map((element) {
-        return element['itemSectionRenderer']['contents'][0]['shelfRenderer'];
-      }).toList();
+      final Map? tabContent = tabs[0]['tabRenderer']?['content'] as Map?;
+      final List? result = tabContent?['sectionListRenderer']?['contents'] as List?;
+      
+      if (result == null) {
+        Logger.root.severe('No content sections found');
+        return {};
+      }
+
+      // Try to get header carousel - may not always exist
+      List headResult = [];
+      try {
+        final Map? header = data['header'] as Map?;
+        if (header != null && header.containsKey('carouselHeaderRenderer')) {
+          headResult = header['carouselHeaderRenderer']?['contents']?[0]
+              ?['carouselItemRenderer']?['carouselItems'] as List? ?? [];
+        }
+      } catch (e) {
+        Logger.root.warning('Could not parse header carousel: $e');
+      }
+
+      final List shelfRenderer = result
+          .where(
+            (element) =>
+                element['itemSectionRenderer']?['contents']?[0]
+                        ?['shelfRenderer'] !=
+                    null,
+          )
+          .map((element) {
+            return element['itemSectionRenderer']['contents'][0]
+                ['shelfRenderer'];
+          })
+          .toList();
 
       final List finalResult = shelfRenderer.map((element) {
-        final playlistItems = element['title']['runs'][0]['text'].trim() ==
-                    'Charts' ||
-                element['title']['runs'][0]['text'].trim() == 'Classements'
-            ? formatChartItems(
-                element['content']['horizontalListRenderer']['items'] as List,
-              )
-            : element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Music Videos') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Nouveaux clips') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('En Musique Avec Moi') ||
-                    element['title']['runs'][0]['text']
-                        .toString()
-                        .contains('Performances Uniques')
-                ? formatVideoItems(
-                    element['content']['horizontalListRenderer']['items']
-                        as List,
-                  )
-                : formatItems(
-                    element['content']['horizontalListRenderer']['items']
-                        as List,
-                  );
-        if (playlistItems.isNotEmpty) {
-          return {
-            'title': element['title']['runs'][0]['text'],
-            'playlists': playlistItems,
-          };
-        } else {
-          Logger.root.severe(
-            "got null in getMusicHome for '${element['title']['runs'][0]['text']}'",
-          );
+        try {
+          // Safely get title
+          final String? title = element['title']?['runs']?[0]?['text']?.toString().trim();
+          if (title == null) {
+            Logger.root.warning('Shelf has no title, skipping');
+            return null;
+          }
+
+          // Safely get content items
+          final List? items = element['content']?['horizontalListRenderer']?['items'] as List?;
+          if (items == null || items.isEmpty) {
+            Logger.root.warning('Shelf "$title" has no items');
+            return null;
+          }
+
+          // Determine type and format items accordingly
+          List playlistItems = [];
+          if (title == 'Charts' || title == 'Classements') {
+            playlistItems = formatChartItems(items);
+          } else if (title.contains('Music Videos') ||
+              title.contains('Nouveaux clips') ||
+              title.contains('En Musique Avec Moi') ||
+              title.contains('Performances Uniques') ||
+              title.contains('Videos')) {
+            playlistItems = formatVideoItems(items);
+          } else {
+            playlistItems = formatItems(items);
+          }
+
+          if (playlistItems.isNotEmpty) {
+            return {
+              'title': title,
+              'playlists': playlistItems,
+            };
+          } else {
+            Logger.root.info('Shelf "$title" returned no items after formatting');
+            return null;
+          }
+        } catch (e) {
+          Logger.root.warning('Error processing shelf: $e');
           return null;
         }
       }).toList();
 
-      final List finalHeadResult = formatHeadItems(headResult);
+      final List finalHeadResult = headResult.isNotEmpty 
+          ? formatHeadItems(headResult)
+          : [];
       finalResult.removeWhere((element) => element == null);
 
+      Logger.root.info('Successfully parsed ${finalResult.length} sections from YouTube Music home');
       return {'body': finalResult, 'head': finalHeadResult};
-    } catch (e) {
-      Logger.root.severe('Error in getMusicHome: $e');
+    } catch (e, stackTrace) {
+      Logger.root.severe('Error in getMusicHome: $e\n$stackTrace');
       return {};
     }
   }
@@ -363,47 +436,74 @@ class YouTubeServices {
     bool getUrl = true,
     // bool preferM4a = true,
   }) async {
-    if (video.duration?.inSeconds == null) return null;
-    List<String> allUrls = [];
-    List<Map> urlsData = [];
-    String finalUrl = '';
-    String expireAt = '0';
-    if (getUrl) {
-      urlsData = await getYtStreamUrls(video.id.value);
-      final Map finalUrlData =
-          quality == 'High' ? urlsData.last : urlsData.first;
-      finalUrl = finalUrlData['url'].toString();
-      expireAt = finalUrlData['expireAt'].toString();
-      allUrls = urlsData.map((e) => e['url'].toString()).toList();
+    try {
+      if (video.duration?.inSeconds == null) {
+        Logger.root.warning('Video duration is null for ${video.id.value}');
+        return null;
+      }
+      
+      List<String> allUrls = [];
+      List<Map> urlsData = [];
+      String finalUrl = '';
+      String expireAt = '0';
+      
+      if (getUrl) {
+        try {
+          urlsData = await getYtStreamUrls(video.id.value);
+          if (urlsData.isEmpty) {
+            Logger.root.severe('No URLs available for ${video.id.value}');
+            return null;
+          }
+          
+          final Map finalUrlData =
+              quality == 'High' ? urlsData.last : urlsData.first;
+          finalUrl = finalUrlData['url'].toString();
+          expireAt = finalUrlData['expireAt'].toString();
+          allUrls = urlsData.map((e) => e['url'].toString()).toList();
+          
+          Logger.root.info(
+            'Successfully fetched ${urlsData.length} URLs for ${video.id.value}',
+          );
+        } catch (e) {
+          Logger.root.severe('Error fetching URLs for ${video.id.value}: $e');
+          // Return partial data without URLs if fetching fails
+          finalUrl = '';
+          expireAt = '0';
+        }
+      }
+      
+      return {
+        'id': video.id.value,
+        'album': (data?['album'] ?? '') != ''
+            ? data!['album']
+            : video.author.replaceAll('- Topic', '').trim(),
+        'duration': video.duration?.inSeconds.toString(),
+        'title':
+            (data?['title'] ?? '') != '' ? data!['title'] : video.title.trim(),
+        'artist': (data?['artist'] ?? '') != ''
+            ? data!['artist']
+            : video.author.replaceAll('- Topic', '').trim(),
+        'image': video.thumbnails.maxResUrl,
+        'secondImage': video.thumbnails.highResUrl,
+        'language': 'YouTube',
+        'genre': 'YouTube',
+        'expire_at': expireAt,
+        'url': finalUrl,
+        'allUrls': allUrls,
+        'urlsData': urlsData,
+        'year': video.uploadDate?.year.toString(),
+        '320kbps': 'false',
+        'has_lyrics': 'false',
+        'release_date': video.publishDate.toString(),
+        'album_id': video.channelId.value,
+        'subtitle':
+            (data?['subtitle'] ?? '') != '' ? data!['subtitle'] : video.author,
+        'perma_url': video.url,
+      };
+    } catch (e) {
+      Logger.root.severe('Error formatting video ${video.id.value}: $e');
+      return null;
     }
-    return {
-      'id': video.id.value,
-      'album': (data?['album'] ?? '') != ''
-          ? data!['album']
-          : video.author.replaceAll('- Topic', '').trim(),
-      'duration': video.duration?.inSeconds.toString(),
-      'title':
-          (data?['title'] ?? '') != '' ? data!['title'] : video.title.trim(),
-      'artist': (data?['artist'] ?? '') != ''
-          ? data!['artist']
-          : video.author.replaceAll('- Topic', '').trim(),
-      'image': video.thumbnails.maxResUrl,
-      'secondImage': video.thumbnails.highResUrl,
-      'language': 'YouTube',
-      'genre': 'YouTube',
-      'expire_at': expireAt,
-      'url': finalUrl,
-      'allUrls': allUrls,
-      'urlsData': urlsData,
-      'year': video.uploadDate?.year.toString(),
-      '320kbps': 'false',
-      'has_lyrics': 'false',
-      'release_date': video.publishDate.toString(),
-      'album_id': video.channelId.value,
-      'subtitle':
-          (data?['subtitle'] ?? '') != '' ? data!['subtitle'] : video.author,
-      'perma_url': video.url,
-    };
     // For invidous
     // if (video['liveNow'] == true) return null;
     // try {
@@ -450,19 +550,46 @@ class YouTubeServices {
   }
 
   Future<List<Map>> fetchSearchResults(String query) async {
-    final List<Video> searchResults = await yt.search.search(query);
-    final List<Map> videoResult = [];
-    for (final Video vid in searchResults) {
-      final res = await formatVideo(video: vid, quality: 'High', getUrl: false);
-      if (res != null) videoResult.add(res);
-    }
-    return [
-      {
-        'title': 'Videos',
-        'items': videoResult,
-        'allowViewAll': false,
+    try {
+      Logger.root.info('Searching YouTube for: $query');
+      final List<Video> searchResults = await yt.search.search(query);
+      
+      if (searchResults.isEmpty) {
+        Logger.root.warning('No search results found for: $query');
+        return [];
       }
-    ];
+      
+      Logger.root.info('Found ${searchResults.length} search results');
+      final List<Map> videoResult = [];
+      
+      for (final Video vid in searchResults) {
+        try {
+          final res = await formatVideo(
+            video: vid, 
+            quality: 'High', 
+            getUrl: false,
+          );
+          if (res != null) {
+            videoResult.add(res);
+          }
+        } catch (e) {
+          Logger.root.warning('Failed to format video ${vid.id.value}: $e');
+          // Continue with other results even if one fails
+          continue;
+        }
+      }
+      
+      return [
+        {
+          'title': 'Videos',
+          'items': videoResult,
+          'allowViewAll': false,
+        }
+      ];
+    } catch (e) {
+      Logger.root.severe('Error in fetchSearchResults for "$query": $e');
+      return [];
+    }
     // return searchResults;
 
     // For parsing html
@@ -524,8 +651,18 @@ class YouTubeServices {
   }
 
   String getExpireAt(String url) {
-    return RegExp('expire=(.*?)&').firstMatch(url)!.group(1) ??
-        (DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5).toString();
+    try {
+      final match = RegExp(r'expire=(\d+)').firstMatch(url);
+      if (match != null && match.group(1) != null) {
+        return match.group(1)!;
+      }
+    } catch (e) {
+      Logger.root.warning('Failed to extract expire time from URL: $e');
+    }
+    // Default to 5.5 hours from now if extraction fails
+    final defaultExpire = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5;
+    Logger.root.info('Using default expire time: $defaultExpire');
+    return defaultExpire.toString();
   }
 
   Future<List<Map>> getYtStreamUrls(String videoId) async {
@@ -544,21 +681,25 @@ class YouTubeServices {
             }
           }
 
-          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
+          // Increased buffer time from 350 to 600 seconds for better reliability
+          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 >
               minExpiredAt) {
             // cache expired
+            Logger.root.info('Cache expired for $videoId, fetching new URLs');
             urlData = await getUri(videoId);
           } else {
             // giving cache link
-            Logger.root.info('cache found for $videoId');
+            Logger.root.info('Valid cache found for $videoId');
             urlData = cachedData as List<Map>;
           }
         } else {
           // old version cache is present
+          Logger.root.info('Old cache format detected for $videoId, refreshing');
           urlData = await getUri(videoId);
         }
       } else {
-        //cache not present
+        // cache not present
+        Logger.root.info('No cache found for $videoId, fetching fresh URLs');
         urlData = await getUri(videoId);
       }
 
@@ -610,22 +751,46 @@ class YouTubeServices {
     String videoId, {
     bool onlyMp4 = false,
   }) async {
-    final StreamManifest manifest =
-        await yt.videos.streamsClient.getManifest(VideoId(videoId));
-    final List<AudioOnlyStreamInfo> sortedStreamInfo = manifest.audioOnly
-        .toList()
-      ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
-    if (onlyMp4 || Platform.isIOS || Platform.isMacOS) {
-      final List<AudioOnlyStreamInfo> m4aStreams = sortedStreamInfo
-          .where((element) => element.audioCodec.contains('mp4'))
-          .toList();
-
-      if (m4aStreams.isNotEmpty) {
-        return m4aStreams;
+    try {
+      Logger.root.info('Fetching stream manifest for video: $videoId');
+      final StreamManifest manifest =
+          await yt.videos.streamsClient.getManifest(VideoId(videoId));
+      
+      if (manifest.audioOnly.isEmpty) {
+        Logger.root.severe('No audio streams available for $videoId');
+        throw Exception('No audio streams available for this video');
       }
-    }
+      
+      final List<AudioOnlyStreamInfo> sortedStreamInfo = manifest.audioOnly
+          .toList()
+        ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
+      
+      Logger.root.info(
+        'Found ${sortedStreamInfo.length} audio streams for $videoId',
+      );
+      
+      // Prefer M4A/MP4 codec for iOS/macOS for better compatibility
+      if (onlyMp4 || Platform.isIOS || Platform.isMacOS) {
+        final List<AudioOnlyStreamInfo> m4aStreams = sortedStreamInfo
+            .where((element) => 
+              element.audioCodec.contains('mp4') || 
+              element.audioCodec.contains('m4a'),
+            )
+            .toList();
 
-    return sortedStreamInfo;
+        if (m4aStreams.isNotEmpty) {
+          Logger.root.info(
+            'Using ${m4aStreams.length} M4A streams for compatibility',
+          );
+          return m4aStreams;
+        }
+      }
+
+      return sortedStreamInfo;
+    } catch (e) {
+      Logger.root.severe('Error fetching stream info for $videoId: $e');
+      rethrow;
+    }
   }
 
   Stream<List<int>> getStreamClient(
