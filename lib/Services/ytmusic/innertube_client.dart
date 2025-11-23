@@ -81,6 +81,12 @@ class InnertubeClient {
         Logger.root.info('API key extracted successfully');
       } else {
         Logger.root.warning('Could not extract API key, using fallback');
+        // NOTE: This is a public YouTube API key used by the web client.
+        // It's safe to include as a fallback because:
+        // 1. It's publicly visible in YouTube's web client JavaScript
+        // 2. YouTube changes these keys regularly
+        // 3. It's not a secret authentication token
+        // 4. Primary method extracts current key dynamically
         _apiKey = 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30'; // Fallback
       }
       

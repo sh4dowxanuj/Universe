@@ -99,8 +99,15 @@ class CipherUtil {
     if (_cachedPlayerJs == null) return;
     
     try {
-      // This is a simplified version - full implementation would parse the actual JS functions
-      // For now, we'll use a basic approach that works with most cases
+      // NOTE: This is a simplified version for the BlackHole implementation.
+      // Full implementation would require:
+      // 1. Parsing JavaScript function definitions from player code
+      // 2. Implementing reverse, swap, and splice operations
+      // 3. Building a transformation pipeline
+      // 
+      // Current approach: Rely on youtube_explode_dart for signature handling
+      // as it has a mature implementation that handles YouTube's obfuscation.
+      // This simplified version serves as a fallback structure.
       _cachedSignatureFunctions = [];
       Logger.root.info('Signature functions parsed');
     } catch (e) {
@@ -112,8 +119,15 @@ class CipherUtil {
     if (_cachedPlayerJs == null) return;
     
     try {
-      // This is a simplified version - full implementation would parse the actual JS functions
-      // For now, we'll use a basic approach that works with most cases
+      // NOTE: This is a simplified version for the BlackHole implementation.
+      // Full implementation would require:
+      // 1. Extracting n-parameter transformation function from player JS
+      // 2. Parsing complex JavaScript operations
+      // 3. Implementing the transformation logic in Dart
+      // 
+      // Current approach: Rely on youtube_explode_dart for n-parameter handling
+      // as it properly handles YouTube's throttling prevention mechanism.
+      // This simplified version serves as a fallback structure.
       _cachedNTransformFunctions = [];
       Logger.root.info('N-transform functions parsed');
     } catch (e) {

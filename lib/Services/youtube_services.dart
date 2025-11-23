@@ -695,8 +695,13 @@ class YouTubeServices {
           // Handle signature cipher
           if (url == null && signatureCipher != null) {
             Logger.root.info('Signature cipher detected, attempting decode');
-            // In production, we would decode this properly
-            // For now, skip encrypted URLs as youtube_explode handles them
+            // TODO: Full signature cipher decoding would be implemented here
+            // in a production environment. For now, we skip encrypted URLs
+            // as youtube_explode_dart handles them properly in the first fallback.
+            // Future implementation should:
+            // 1. Parse signatureCipher to extract 's', 'url', and 'sp' parameters
+            // 2. Use CipherUtil to decode the signature
+            // 3. Reconstruct the URL with decoded signature
             continue;
           }
           

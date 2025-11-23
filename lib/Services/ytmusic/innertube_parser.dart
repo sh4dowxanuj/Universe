@@ -451,15 +451,15 @@ class InnertubeParser {
         'image': thumbnails != null && thumbnails.isNotEmpty 
             ? thumbnails[0]['url'] 
             : '',
-        'imageMedium': thumbnails != null && thumbnails.isNotEmpty 
-            ? thumbnails[0]['url'] 
-            : '',
-        'imageStandard': thumbnails != null && thumbnails.isNotEmpty 
-            ? thumbnails[0]['url'] 
-            : '',
-        'imageMax': thumbnails != null && thumbnails.isNotEmpty 
-            ? thumbnails[0]['url'] 
-            : '',
+        'imageMedium': thumbnails != null && thumbnails.length > 1 
+            ? thumbnails[1]['url'] 
+            : (thumbnails != null && thumbnails.isNotEmpty ? thumbnails[0]['url'] : ''),
+        'imageStandard': thumbnails != null && thumbnails.length > 2 
+            ? thumbnails[2]['url'] 
+            : (thumbnails != null && thumbnails.isNotEmpty ? thumbnails[0]['url'] : ''),
+        'imageMax': thumbnails != null && thumbnails.length > 3 
+            ? thumbnails.last['url'] 
+            : (thumbnails != null && thumbnails.isNotEmpty ? thumbnails[0]['url'] : ''),
       };
     } catch (e) {
       Logger.root.warning('Error parsing grid playlist: $e');
