@@ -43,51 +43,75 @@ class InnertubeParser {
       final List<Map> headItems = [];
       
       for (final section in contents) {
-        // Parse different shelf types
-        final musicCarouselShelf = section['musicCarouselShelfRenderer'];
-        final musicShelfRenderer = section['musicShelfRenderer'];
-        final gridRenderer = section['gridRenderer'];
-        
-        if (musicCarouselShelf != null) {
-          final parsed = _parseMusicCarouselShelf(musicCarouselShelf);
-          if (parsed != null && parsed['playlists'].isNotEmpty) {
-            bodyItems.add(parsed);
+        try {
+          // Parse different shelf types
+          final musicCarouselShelf = section['musicCarouselShelfRenderer'];
+          final musicShelfRenderer = section['musicShelfRenderer'];
+          final gridRenderer = section['gridRenderer'];
+          final richGridRenderer = section['richGridRenderer'];
+          final itemSection = section['itemSectionRenderer'];
+          
+          if (musicCarouselShelf != null) {
+            final parsed = _parseMusicCarouselShelf(musicCarouselShelf);
+            if (parsed != null && parsed['playlists'].isNotEmpty) {
+              bodyItems.add(parsed);
+            }
+          } else if (musicShelfRenderer != null) {
+            final parsed = _parseMusicShelf(musicShelfRenderer);
+            if (parsed != null && parsed['playlists'].isNotEmpty) {
+              bodyItems.add(parsed);
+            }
+          } else if (gridRenderer != null) {
+            final parsed = _parseGrid(gridRenderer);
+            if (parsed != null && parsed['playlists'].isNotEmpty) {
+              bodyItems.add(parsed);
+            }
+          } else if (richGridRenderer != null) {
+            final parsed = _parseRichGrid(richGridRenderer);
+            if (parsed != null && parsed['playlists'].isNotEmpty) {
+              bodyItems.add(parsed);
+            }
+          } else if (itemSection != null) {
+            // Handle itemSectionRenderer which may contain Music Insights or other sections
+            final parsed = _parseItemSection(itemSection);
+            if (parsed != null && parsed['playlists'].isNotEmpty) {
+              bodyItems.add(parsed);
+            }
           }
-        } else if (musicShelfRenderer != null) {
-          final parsed = _parseMusicShelf(musicShelfRenderer);
-          if (parsed != null && parsed['playlists'].isNotEmpty) {
-            bodyItems.add(parsed);
-          }
-        } else if (gridRenderer != null) {
-          final parsed = _parseGrid(gridRenderer);
-          if (parsed != null && parsed['playlists'].isNotEmpty) {
-            bodyItems.add(parsed);
-          }
+        } catch (e) {
+          Logger.root.warning('Error parsing section in music home: $e');
+          // Continue with next section instead of failing completely
+          continue;
         }
       }
       
       // Parse header carousel if present
-      final header = NavClass.nav(response, [
-        'header',
-        'carouselHeaderRenderer',
-        'contents',
-      ]) as List?;
-      
-      if (header != null && header.isNotEmpty) {
-        for (final item in header) {
-          final carouselItem = item['carouselItemRenderer'];
-          if (carouselItem != null) {
-            final carouselItems = carouselItem['carouselItems'] as List?;
-            if (carouselItems != null) {
-              for (final ci in carouselItems) {
-                final parsed = _parseDefaultPromoPanel(ci);
-                if (parsed != null) {
-                  headItems.add(parsed);
+      try {
+        final header = NavClass.nav(response, [
+          'header',
+          'carouselHeaderRenderer',
+          'contents',
+        ]) as List?;
+        
+        if (header != null && header.isNotEmpty) {
+          for (final item in header) {
+            final carouselItem = item['carouselItemRenderer'];
+            if (carouselItem != null) {
+              final carouselItems = carouselItem['carouselItems'] as List?;
+              if (carouselItems != null) {
+                for (final ci in carouselItems) {
+                  final parsed = _parseDefaultPromoPanel(ci);
+                  if (parsed != null) {
+                    headItems.add(parsed);
+                  }
                 }
               }
             }
           }
         }
+      } catch (e) {
+        Logger.root.warning('Error parsing header carousel: $e');
+        // Continue without header items
       }
       
       return {'body': bodyItems, 'head': headItems};
@@ -513,6 +537,286 @@ class InnertubeParser {
       };
     } catch (e) {
       Logger.root.warning('Error parsing default promo panel: $e');
+      return null;
+    }
+  }
+  
+  static Map? _parseRichGrid(Map grid) {
+    try {
+      final header = grid['header'];
+      String? title;
+      
+      if (header != null) {
+        title = NavClass.nav(header, [
+          'richGridHeaderRenderer',
+          'title',
+          'runs',
+          0,
+          'text',
+        ]) as String?;
+      }
+      
+      final contents = grid['contents'] as List?;
+      if (contents == null) return null;
+      
+      final List parsedItems = [];
+      
+      for (final item in contents) {
+        try {
+          final richItem = item['richItemRenderer'];
+          final richSection = item['richSectionRenderer'];
+          
+          if (richItem != null) {
+            final content = richItem['content'];
+            if (content != null) {
+              final videoRenderer = content['videoRenderer'];
+              final playlistRenderer = content['playlistRenderer'];
+              
+              if (videoRenderer != null) {
+                final parsed = _parseRichItemVideo(videoRenderer);
+                if (parsed != null) parsedItems.add(parsed);
+              } else if (playlistRenderer != null) {
+                final parsed = _parseRichItemPlaylist(playlistRenderer);
+                if (parsed != null) parsedItems.add(parsed);
+              }
+            }
+          } else if (richSection != null) {
+            // Handle rich sections which may contain multiple items
+            final sectionContents = richSection['content'];
+            if (sectionContents != null) {
+              final sectionCarousel = sectionContents['richShelfRenderer'];
+              if (sectionCarousel != null) {
+                final parsed = _parseRichShelf(sectionCarousel);
+                if (parsed != null && parsed is List) {
+                  parsedItems.addAll(parsed);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          Logger.root.warning('Error parsing rich grid item: $e');
+          continue;
+        }
+      }
+      
+      return {
+        'title': title ?? 'Grid',
+        'playlists': parsedItems,
+      };
+    } catch (e) {
+      Logger.root.warning('Error parsing rich grid: $e');
+      return null;
+    }
+  }
+  
+  static Map? _parseItemSection(Map section) {
+    try {
+      final contents = section['contents'] as List?;
+      if (contents == null || contents.isEmpty) return null;
+      
+      final List parsedItems = [];
+      String? sectionTitle = 'Music Insights';
+      
+      for (final item in contents) {
+        try {
+          // Handle various content types in item section
+          final videoRenderer = item['videoRenderer'];
+          final playlistRenderer = item['playlistRenderer'];
+          final shelfRenderer = item['shelfRenderer'];
+          final musicCarousel = item['musicCarouselShelfRenderer'];
+          
+          if (videoRenderer != null) {
+            final parsed = _parseRichItemVideo(videoRenderer);
+            if (parsed != null) parsedItems.add(parsed);
+          } else if (playlistRenderer != null) {
+            final parsed = _parseRichItemPlaylist(playlistRenderer);
+            if (parsed != null) parsedItems.add(parsed);
+          } else if (shelfRenderer != null) {
+            // Extract title from shelf if present
+            final title = NavClass.nav(shelfRenderer, ['title', 'runs', 0, 'text']) as String?;
+            if (title != null) sectionTitle = title;
+            
+            final shelfContents = shelfRenderer['content'];
+            if (shelfContents != null) {
+              final horizontalList = shelfContents['horizontalListRenderer'];
+              if (horizontalList != null) {
+                final items = horizontalList['items'] as List?;
+                if (items != null) {
+                  for (final hItem in items) {
+                    final parsed = _parseTwoRowItem(hItem['musicTwoRowItemRenderer']);
+                    if (parsed != null) parsedItems.add(parsed);
+                  }
+                }
+              }
+            }
+          } else if (musicCarousel != null) {
+            // Nested carousel
+            final carouselTitle = NavClass.nav(musicCarousel, [
+              'header',
+              'musicCarouselShelfBasicHeaderRenderer',
+              'title',
+              'runs',
+              0,
+              'text',
+            ]) as String?;
+            if (carouselTitle != null) sectionTitle = carouselTitle;
+            
+            final carouselContents = musicCarousel['contents'] as List?;
+            if (carouselContents != null) {
+              for (final cItem in carouselContents) {
+                final parsed = _parseTwoRowItem(cItem['musicTwoRowItemRenderer']);
+                if (parsed != null) parsedItems.add(parsed);
+              }
+            }
+          }
+        } catch (e) {
+          Logger.root.warning('Error parsing item section content: $e');
+          continue;
+        }
+      }
+      
+      if (parsedItems.isEmpty) return null;
+      
+      return {
+        'title': sectionTitle,
+        'playlists': parsedItems,
+      };
+    } catch (e) {
+      Logger.root.warning('Error parsing item section: $e');
+      return null;
+    }
+  }
+  
+  static List? _parseRichShelf(Map shelf) {
+    try {
+      final contents = shelf['contents'] as List?;
+      if (contents == null) return null;
+      
+      final List parsedItems = [];
+      
+      for (final item in contents) {
+        try {
+          final twoRowItem = item['musicTwoRowItemRenderer'];
+          if (twoRowItem != null) {
+            final parsed = _parseTwoRowItem(twoRowItem);
+            if (parsed != null) parsedItems.add(parsed);
+          }
+        } catch (e) {
+          Logger.root.warning('Error parsing rich shelf item: $e');
+          continue;
+        }
+      }
+      
+      return parsedItems;
+    } catch (e) {
+      Logger.root.warning('Error parsing rich shelf: $e');
+      return null;
+    }
+  }
+  
+  static Map? _parseRichItemVideo(Map renderer) {
+    try {
+      final title = NavClass.nav(renderer, ['title', 'runs', 0, 'text']) as String?;
+      if (title == null) return null;
+      
+      final videoId = renderer['videoId'] as String?;
+      if (videoId == null) return null;
+      
+      final viewCount = NavClass.nav(renderer, [
+        'shortViewCountText',
+        'simpleText',
+      ]) as String?;
+      
+      final ownerText = NavClass.nav(renderer, [
+        'ownerText',
+        'runs',
+        0,
+        'text',
+      ]) as String?;
+      
+      final thumbnails = NavClass.nav(renderer, [
+        'thumbnail',
+        'thumbnails',
+      ]) as List?;
+      
+      return {
+        'title': title,
+        'type': 'video',
+        'description': ownerText ?? '',
+        'count': viewCount ?? '',
+        'videoId': videoId,
+        'firstItemId': videoId,
+        'image': thumbnails != null && thumbnails.isNotEmpty 
+            ? thumbnails.last['url'] 
+            : '',
+        'imageMin': thumbnails != null && thumbnails.isNotEmpty 
+            ? thumbnails[0]['url'] 
+            : '',
+        'imageMedium': thumbnails != null && thumbnails.length > 1 
+            ? thumbnails[1]['url'] 
+            : '',
+        'imageStandard': thumbnails != null && thumbnails.length > 2 
+            ? thumbnails[2]['url'] 
+            : '',
+        'imageMax': thumbnails != null && thumbnails.isNotEmpty 
+            ? thumbnails.last['url'] 
+            : '',
+      };
+    } catch (e) {
+      Logger.root.warning('Error parsing rich item video: $e');
+      return null;
+    }
+  }
+  
+  static Map? _parseRichItemPlaylist(Map renderer) {
+    try {
+      final title = NavClass.nav(renderer, ['title', 'simpleText']) as String?;
+      if (title == null) return null;
+      
+      final playlistId = renderer['playlistId'] as String?;
+      if (playlistId == null) return null;
+      
+      final videoCount = NavClass.nav(renderer, [
+        'videoCountShortText',
+        'simpleText',
+      ]) as String?;
+      
+      final ownerText = NavClass.nav(renderer, [
+        'shortBylineText',
+        'runs',
+        0,
+        'text',
+      ]) as String?;
+      
+      final thumbnails = NavClass.nav(renderer, [
+        'thumbnailRenderer',
+        'playlistVideoThumbnailRenderer',
+        'thumbnail',
+        'thumbnails',
+      ]) as List?;
+      
+      return {
+        'title': title,
+        'type': 'playlist',
+        'description': ownerText ?? '',
+        'count': videoCount ?? '',
+        'playlistId': playlistId,
+        'firstItemId': playlistId,
+        'image': thumbnails != null && thumbnails.isNotEmpty 
+            ? thumbnails[0]['url'] 
+            : '',
+        'imageMedium': thumbnails != null && thumbnails.length > 1 
+            ? thumbnails[1]['url'] 
+            : '',
+        'imageStandard': thumbnails != null && thumbnails.length > 2 
+            ? thumbnails[2]['url'] 
+            : '',
+        'imageMax': thumbnails != null && thumbnails.isNotEmpty 
+            ? thumbnails.last['url'] 
+            : '',
+      };
+    } catch (e) {
+      Logger.root.warning('Error parsing rich item playlist: $e');
       return null;
     }
   }

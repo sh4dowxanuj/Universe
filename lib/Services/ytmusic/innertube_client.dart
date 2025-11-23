@@ -177,6 +177,7 @@ class InnertubeClient {
     await _extractApiKey();
     
     try {
+      // Try WEB_REMIX first
       final body = _buildContext(clientName: 'WEB_REMIX');
       body['videoId'] = videoId;
       
@@ -205,20 +206,34 @@ class InnertubeClient {
       );
       
       if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final result = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        // Check if we got valid streaming data
+        final streamingData = result['streamingData'] as Map?;
+        if (streamingData != null && streamingData.isNotEmpty) {
+          final formats = streamingData['adaptiveFormats'] as List?;
+          if (formats != null && formats.isNotEmpty) {
+            Logger.root.info('Innertube Player working (WEB_REMIX)');
+            return result;
+          }
+        }
+        
+        // If no formats or empty, try ANDROID fallback
+        Logger.root.warning('WEB_REMIX returned empty formats, trying ANDROID fallback');
+        return await _playerAndroidFallback(videoId, signatureTimestamp: signatureTimestamp);
       } else {
         Logger.root.warning('WEB_REMIX player failed with status ${response.statusCode}, trying ANDROID fallback');
-        return await _playerAndroidFallback(videoId);
+        return await _playerAndroidFallback(videoId, signatureTimestamp: signatureTimestamp);
       }
     } catch (e) {
       Logger.root.severe('Error in Innertube player: $e');
-      return await _playerAndroidFallback(videoId);
+      return await _playerAndroidFallback(videoId, signatureTimestamp: signatureTimestamp);
     }
   }
   
-  Future<Map<String, dynamic>> _playerAndroidFallback(String videoId) async {
+  Future<Map<String, dynamic>> _playerAndroidFallback(String videoId, {int? signatureTimestamp}) async {
     try {
-      Logger.root.info('Using ANDROID client fallback for playback');
+      Logger.root.info('Using ANDROID client fallback');
       
       final body = {
         'context': {
@@ -233,6 +248,14 @@ class InnertubeClient {
         'videoId': videoId,
       };
       
+      if (signatureTimestamp != null) {
+        body['playbackContext'] = {
+          'contentPlaybackContext': {
+            'signatureTimestamp': signatureTimestamp,
+          },
+        };
+      }
+      
       final uri = Uri.https(
         ytDomain,
         '${baseApiEndpoint}player',
@@ -246,14 +269,77 @@ class InnertubeClient {
       );
       
       if (response.statusCode == 200) {
-        Logger.root.info('ANDROID fallback successful');
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final result = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        // Check if we got valid streaming data
+        final streamingData = result['streamingData'] as Map?;
+        if (streamingData != null && streamingData.isNotEmpty) {
+          final formats = streamingData['adaptiveFormats'] as List?;
+          if (formats != null && formats.isNotEmpty) {
+            Logger.root.info('Using ANDROID fallback - success');
+            return result;
+          }
+        }
+        
+        // If ANDROID also fails, try WEB fallback
+        Logger.root.warning('ANDROID returned empty formats, trying WEB fallback');
+        return await _playerWebFallback(videoId, signatureTimestamp: signatureTimestamp);
       } else {
-        Logger.root.severe('ANDROID fallback failed with status ${response.statusCode}');
-        return {};
+        Logger.root.severe('ANDROID fallback failed with status ${response.statusCode}, trying WEB fallback');
+        return await _playerWebFallback(videoId, signatureTimestamp: signatureTimestamp);
       }
     } catch (e) {
       Logger.root.severe('Error in ANDROID fallback: $e');
+      return await _playerWebFallback(videoId, signatureTimestamp: signatureTimestamp);
+    }
+  }
+  
+  Future<Map<String, dynamic>> _playerWebFallback(String videoId, {int? signatureTimestamp}) async {
+    try {
+      Logger.root.info('Using WEB client fallback');
+      
+      final body = {
+        'context': {
+          'client': {
+            'clientName': 'WEB',
+            'clientVersion': _clientVersion ?? '2.20231219.04.00',
+            'hl': 'en',
+            'gl': 'IN',
+            'visitorData': _visitorData ?? '',
+          },
+        },
+        'videoId': videoId,
+      };
+      
+      if (signatureTimestamp != null) {
+        body['playbackContext'] = {
+          'contentPlaybackContext': {
+            'signatureTimestamp': signatureTimestamp,
+          },
+        };
+      }
+      
+      final uri = Uri.https(
+        ytDomain,
+        '${baseApiEndpoint}player',
+        {'key': _apiKey ?? 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8', 'prettyPrint': 'false'},
+      );
+      
+      final response = await http.post(
+        uri,
+        headers: _getHeaders(isMusic: false),
+        body: jsonEncode(body),
+      );
+      
+      if (response.statusCode == 200) {
+        Logger.root.info('Using WEB fallback - success');
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        Logger.root.severe('WEB fallback failed with status ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      Logger.root.severe('Error in WEB fallback: $e');
       return {};
     }
   }

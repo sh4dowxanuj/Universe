@@ -655,12 +655,20 @@ class YouTubeServices {
     try {
       Logger.root.info('Attempting Innertube player endpoint');
       final innertubeClient = InnertubeClient();
-      final response = await innertubeClient.player(videoId: videoId);
+      final cipherUtil = CipherUtil();
+      
+      // Pre-fetch player.js to get signature timestamp
+      await cipherUtil.decodeNParameter(''); // This ensures player.js is cached
+      
+      final response = await innertubeClient.player(
+        videoId: videoId,
+        signatureTimestamp: cipherUtil.signatureTimestamp,
+      );
       
       if (response.isNotEmpty && response.containsKey('streamingData')) {
         final streamingData = response['streamingData'] as Map?;
         if (streamingData != null) {
-          final formats = _extractAudioFormats(streamingData);
+          final formats = await _extractAudioFormats(streamingData);
           if (formats.isNotEmpty) {
             Logger.root.info('Playback URL extracted via Innertube');
             return formats;
@@ -675,7 +683,7 @@ class YouTubeServices {
     return [];
   }
   
-  List<Map> _extractAudioFormats(Map streamingData) {
+  Future<List<Map>> _extractAudioFormats(Map streamingData) async {
     final List<Map> formats = [];
     final cipherUtil = CipherUtil();
     
@@ -694,18 +702,20 @@ class YouTubeServices {
           
           // Handle signature cipher
           if (url == null && signatureCipher != null) {
-            Logger.root.info('Signature cipher detected, attempting decode');
-            // TODO: Full signature cipher decoding would be implemented here
-            // in a production environment. For now, we skip encrypted URLs
-            // as youtube_explode_dart handles them properly in the first fallback.
-            // Future implementation should:
-            // 1. Parse signatureCipher to extract 's', 'url', and 'sp' parameters
-            // 2. Use CipherUtil to decode the signature
-            // 3. Reconstruct the URL with decoded signature
-            continue;
+            Logger.root.info('Signature cipher detected, decoding');
+            // Decode the signature cipher
+            url = await cipherUtil.decodeSignatureCipher(signatureCipher);
+            
+            if (url == null) {
+              Logger.root.warning('Failed to decode signature cipher, skipping format');
+              continue;
+            }
           }
           
           if (url != null) {
+            // Decode n-parameter for throttling bypass
+            final finalUrl = await cipherUtil.decodeNParameter(url) ?? url;
+            
             final bitrate = format['bitrate'] as int? ?? 0;
             final contentLength = format['contentLength'] as String?;
             final sizeBytes = contentLength != null ? int.tryParse(contentLength) ?? 0 : 0;
@@ -726,8 +736,8 @@ class YouTubeServices {
               'codec': codec,
               'qualityLabel': format['audioQuality'] ?? 'AUDIO_QUALITY_MEDIUM',
               'size': sizeMB.toStringAsFixed(2),
-              'url': url,
-              'expireAt': cipherUtil.getExpireAt(url),
+              'url': finalUrl,
+              'expireAt': cipherUtil.getExpireAt(finalUrl),
             });
           }
         }
