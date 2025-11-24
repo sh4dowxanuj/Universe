@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:blackhole/Services/yt_music.dart';
+import 'package:blackhole/Services/ytdlp_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
@@ -96,42 +97,77 @@ class YouTubeServices {
     return response;
   }
 
-  Future<Map?> refreshLink(String id, {bool useYTM = true}) async {
-    // FORCE HIGH QUALITY TEST (128 kbps MP4)
-    String quality = 'High';
-    // String quality;
-    // try {
-    //   quality =
-    //       Hive.box('settings').get('quality', defaultValue: 'Low').toString();
-    // } catch (e) {
-    //   Logger.root.warning('Failed to get quality setting: $e');
-    //   quality = 'Low';
-    // }
+  Future<Map?> refreshLink(String id, {bool useYTM = false}) async {
+    // Get quality setting from Hive
+    String quality;
+    try {
+      quality = Hive.box('settings').get('streamingQuality', defaultValue: 'High').toString();
+      // Convert kbps format to High/Low
+      if (quality.contains('320') || quality.contains('256')) {
+        quality = 'High';
+      } else {
+        quality = 'Low';
+      }
+    } catch (e) {
+      Logger.root.warning('Failed to get quality setting: $e');
+      quality = 'High'; // Default to high quality
+    }
     
     try {
-      if (useYTM) {
-        Logger.root.info('Refreshing link using YTMusic for $id');
+      // Use yt-dlp first (bypasses POTOKEN authentication)
+      Logger.root.info('Refreshing link using yt-dlp for $id (quality: $quality)');
+      final ytdlpData = await YtDlpService.instance.getAudioStream(id);
+      
+      if (ytdlpData != null && ytdlpData['url'] != null) {
+        // Get basic video info for metadata
+        Video? videoInfo;
+        try {
+          videoInfo = await getVideoFromId(id);
+        } catch (e) {
+          Logger.root.warning('Failed to get video metadata: $e');
+        }
+        
+        // Build response with yt-dlp URL and metadata
+        final result = {
+          'id': id,
+          'url': ytdlpData['url'],
+          'expire_at': ytdlpData['expire_at']?.toString() ?? '0',
+          'genre': 'YouTube',
+          'language': 'YouTube',
+        };
+        
+        // Add metadata if available
+        if (videoInfo != null) {
+          result.addAll({
+            'title': videoInfo.title,
+            'artist': videoInfo.author.replaceAll('- Topic', '').trim(),
+            'album': videoInfo.author.replaceAll('- Topic', '').trim(),
+            'duration': videoInfo.duration?.inSeconds.toString() ?? '0',
+            'image': videoInfo.thumbnails.maxResUrl,
+            'secondImage': videoInfo.thumbnails.highResUrl,
+          });
+        }
+        
+        Logger.root.info('Successfully refreshed link for $id via yt-dlp');
+        return result;
+      }
+      
+      Logger.root.warning('yt-dlp failed for $id, trying YTMusic as fallback');
+      
+      // youtube_explode_dart REMOVED - Try YTMusic as fallback
+      if (!useYTM) {
         final Map res = await YtMusicService().getSongData(
           videoId: id,
           quality: quality,
         );
-        if (res.isEmpty) {
-          Logger.root.warning('YTMusic returned empty data, falling back to youtube_explode');
-          // Fallback to youtube_explode if YTMusic fails
-          return await refreshLink(id, useYTM: false);
+        if (res.isNotEmpty) {
+          Logger.root.info('Successfully refreshed link for $id via YTMusic');
+          return res;
         }
-        return res;
       }
       
-      Logger.root.info('Refreshing link using youtube_explode for $id');
-      final Video? res = await getVideoFromId(id);
-      if (res == null) {
-        Logger.root.severe('Failed to get video data for $id');
-        return null;
-      }
-      
-      final Map? data = await formatVideo(video: res, quality: quality);
-      return data;
+      Logger.root.severe('All methods failed to refresh link for $id');
+      return null;
     } catch (e) {
       Logger.root.severe('Error refreshing link for $id: $e');
       return null;
@@ -397,49 +433,76 @@ class YouTubeServices {
       
       if (getUrl) {
         try {
-          urlsData = await getYtStreamUrls(video.id.value);
-          if (urlsData.isEmpty) {
-            Logger.root.severe('No URLs available for ${video.id.value}');
-            return null;
-          }
+          // Try yt-dlp first for authenticated URLs that bypass 403 errors
+          print('🔍 Search: Trying yt-dlp for ${video.id.value}');
+          final ytdlpData = await YtDlpService.instance.getAudioStream(video.id.value);
           
-          // Select appropriate stream based on quality
-          // Prefer MP4 codec for better ExoPlayer compatibility on Android
-          Map? finalUrlData;
-          if (quality == 'High') {
-            // For high quality, prefer highest bitrate MP4 stream
-            final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
-            if (mp4Streams.isNotEmpty) {
-              finalUrlData = mp4Streams.last; // Highest quality MP4
-              print('Selected HIGH quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
-            } else {
-              finalUrlData = urlsData.last; // Fallback to highest quality any codec
-              print('Selected HIGH quality (no MP4): ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
-            }
+          if (ytdlpData != null && ytdlpData['url'] != null) {
+            // yt-dlp success - use its URL
+            finalUrl = ytdlpData['url'] as String;
+            expireAt = ytdlpData['expire_at']?.toString() ?? '0';
+            print('✅ Search: yt-dlp SUCCESS - ${ytdlpData['bitrate']} kbps');
+            
+            // Create urlsData in expected format for compatibility
+            urlsData = [{
+              'url': finalUrl,
+              'expireAt': expireAt,
+              'bitrate': ytdlpData['bitrate'] ?? 0,
+              'codec': ytdlpData['codec'] ?? 'mp4',
+              'size': ytdlpData['size'] ?? '0 MB',
+              'quality': ytdlpData['quality'] ?? '',
+            }];
+            allUrls = [finalUrl];
+            
+            Logger.root.info('yt-dlp fetched URL for ${video.id.value}');
           } else {
-            // For medium/low quality, prefer medium bitrate MP4 (not lowest)
-            final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
-            if (mp4Streams.length > 1) {
-              // Use middle quality MP4 instead of lowest (better compatibility)
-              finalUrlData = mp4Streams[mp4Streams.length ~/ 2];
-              print('Selected MEDIUM quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
-            } else if (mp4Streams.isNotEmpty) {
-              finalUrlData = mp4Streams.first;
-              print('Selected LOW quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
-            } else {
-              // Fallback to first available stream
-              finalUrlData = urlsData.first;
-              print('Selected fallback stream: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            // yt-dlp failed - youtube_explode_dart is commented out (causes 403 errors)
+            print('❌ Search: yt-dlp failed, no fallback available');
+            Logger.root.severe('No URLs available for ${video.id.value} - yt-dlp failed');
+            return null;
+            
+            /* COMMENTED OUT - youtube_explode_dart causes 403 errors
+            // yt-dlp failed, fallback to youtube_explode_dart
+            print('⚠️ Search: yt-dlp failed, trying youtube_explode_dart fallback');
+            urlsData = await getYtStreamUrls(video.id.value);
+            
+            if (urlsData.isEmpty) {
+              Logger.root.severe('No URLs available for ${video.id.value}');
+              return null;
             }
+            
+            // Select appropriate stream based on quality
+            Map? finalUrlData;
+            if (quality == 'High') {
+              final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
+              if (mp4Streams.isNotEmpty) {
+                finalUrlData = mp4Streams.last;
+                print('Selected HIGH quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+              } else {
+                finalUrlData = urlsData.last;
+                print('Selected HIGH quality (no MP4): ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+              }
+            } else {
+              final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
+              if (mp4Streams.length > 1) {
+                finalUrlData = mp4Streams[mp4Streams.length ~/ 2];
+                print('Selected MEDIUM quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+              } else if (mp4Streams.isNotEmpty) {
+                finalUrlData = mp4Streams.first;
+                print('Selected LOW quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+              } else {
+                finalUrlData = urlsData.first;
+                print('Selected fallback stream: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+              }
+            }
+            
+            finalUrl = finalUrlData['url'].toString();
+            expireAt = finalUrlData['expireAt'].toString();
+            allUrls = urlsData.map((e) => e['url'].toString()).toList();
+            
+            Logger.root.info('youtube_explode_dart fetched ${urlsData.length} URLs for ${video.id.value}');
+            */
           }
-          
-          finalUrl = finalUrlData['url'].toString();
-          expireAt = finalUrlData['expireAt'].toString();
-          allUrls = urlsData.map((e) => e['url'].toString()).toList();
-          
-          Logger.root.info(
-            'Successfully fetched ${urlsData.length} URLs for ${video.id.value}',
-          );
         } catch (e) {
           Logger.root.severe('Error fetching URLs for ${video.id.value}: $e');
           // Return partial data without URLs if fetching fails
@@ -645,60 +708,42 @@ class YouTubeServices {
     try {
       List<Map> urlData = [];
 
-      // check cache first
-      if (Hive.box('ytlinkcache').containsKey(videoId)) {
-        final cachedData = Hive.box('ytlinkcache').get(videoId);
-        if (cachedData is List) {
-          int minExpiredAt = 0;
-          for (final e in cachedData) {
-            final int cachedExpiredAt = int.parse(e['expireAt'].toString());
-            if (minExpiredAt == 0 || cachedExpiredAt < minExpiredAt) {
-              minExpiredAt = cachedExpiredAt;
-            }
-          }
+      // ALWAYS fetch fresh URLs (don't use cache) to avoid 403 errors
+      // YouTube URLs expire quickly and cached URLs often fail
+      Logger.root.info('Fetching FRESH stream URLs for $videoId (bypassing cache)');
+      urlData = await getUri(videoId);
 
-          // Increased buffer time from 350 to 600 seconds for better reliability
-          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 >
-              minExpiredAt) {
-            // cache expired
-            Logger.root.info('Cache expired for $videoId, fetching new URLs');
-            urlData = await getUri(videoId);
-          } else {
-            // giving cache link
-            Logger.root.info('Valid cache found for $videoId');
+      if (urlData.isEmpty) {
+        Logger.root.warning('No URLs fetched for $videoId, checking cache as fallback');
+        // Only use cache if fresh fetch completely fails
+        if (Hive.box('ytlinkcache').containsKey(videoId)) {
+          final cachedData = Hive.box('ytlinkcache').get(videoId);
+          if (cachedData is List && cachedData.isNotEmpty) {
+            Logger.root.info('Using cached URLs for $videoId as fallback');
             urlData = cachedData as List<Map>;
           }
-        } else {
-          // old version cache is present
-          Logger.root.info('Old cache format detected for $videoId, refreshing');
-          urlData = await getUri(videoId);
         }
-      } else {
-        // cache not present
-        Logger.root.info('No cache found for $videoId, fetching fresh URLs');
-        urlData = await getUri(videoId);
       }
 
-      try {
-        await Hive.box('ytlinkcache')
-            .put(
-              videoId,
-              urlData,
-            )
-            .onError(
-              (error, stackTrace) => Logger.root.severe(
-                'Hive Error in formatVideo, you probably forgot to open box.\nError: $error',
-              ),
-            );
-      } catch (e) {
-        Logger.root.severe(
-          'Hive Error in formatVideo, you probably forgot to open box.\nError: $e',
-        );
+      // Update cache with fresh URLs for future fallback use
+      if (urlData.isNotEmpty) {
+        try {
+          await Hive.box('ytlinkcache')
+              .put(videoId, urlData)
+              .onError(
+                (error, stackTrace) => Logger.root.severe(
+                  'Hive Error updating cache for $videoId: $error',
+                ),
+              );
+          Logger.root.info('Cache updated with ${urlData.length} fresh URLs for $videoId');
+        } catch (e) {
+          Logger.root.severe('Error updating cache for $videoId: $e');
+        }
       }
 
       return urlData;
     } catch (e) {
-      Logger.root.severe('Error in getYtStreamUrls: $e');
+      Logger.root.severe('Error in getYtStreamUrls for $videoId: $e');
       return [];
     }
   }

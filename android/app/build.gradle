@@ -52,8 +52,8 @@ android {
         }
         
         python {
-            version "3.8"
-            buildPython "/tmp/chaquopy_python/bin/python"
+            version "3.11"
+            buildPython "/usr/bin/python3.11"
             pyc {
                 src false
             }
@@ -121,5 +121,6 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
 }
