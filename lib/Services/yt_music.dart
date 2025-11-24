@@ -20,7 +20,7 @@
 import 'dart:convert';
 
 import 'package:blackhole/Models/song_item.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:blackhole/Services/ytdlp_service.dart';
 import 'package:blackhole/Services/ytmusic/nav.dart';
 import 'package:blackhole/Services/ytmusic/playlist.dart';
 import 'package:http/http.dart';
@@ -558,19 +558,32 @@ class YtMusicService {
       
       if (getUrl) {
         try {
-          urlsData = await YouTubeServices.instance.getYtStreamUrls(videoId);
-          if (urlsData.isNotEmpty) {
-            final Map finalUrlData =
-                quality == 'High' ? urlsData.last : urlsData.first;
-            finalUrl = finalUrlData['url'].toString();
-            expireAt = finalUrlData['expireAt'].toString();
-            urls = urlsData.map((e) => e['url'].toString()).toList();
-            Logger.root.info('Successfully fetched ${urlsData.length} URLs');
+          // Use yt-dlp instead of youtube_explode_dart to avoid 403 errors
+          Logger.root.info('YTMusic: Fetching stream URL using yt-dlp for $videoId');
+          final ytdlpData = await YtDlpService.instance.getAudioStream(videoId);
+          
+          if (ytdlpData != null && ytdlpData['url'] != null) {
+            finalUrl = ytdlpData['url'] as String;
+            expireAt = ytdlpData['expire_at']?.toString() ?? '0';
+            
+            // Create urlsData in expected format
+            urlsData = [{
+              'url': finalUrl,
+              'expireAt': expireAt,
+              'bitrate': ytdlpData['bitrate'] ?? 0,
+              'codec': ytdlpData['codec'] ?? 'mp4',
+            }];
+            urls = [finalUrl];
+            
+            Logger.root.info('YTMusic: yt-dlp SUCCESS - Got stream URL');
           } else {
-            Logger.root.warning('No URLs available for $videoId');
+            Logger.root.warning('YTMusic: yt-dlp failed for $videoId');
           }
+          
+          // youtube_explode_dart REMOVED - causes 403 errors
+          
         } catch (e) {
-          Logger.root.severe('Error fetching stream URLs for $videoId: $e');
+          Logger.root.severe('YTMusic: Error fetching stream URL for $videoId: $e');
           // Continue with metadata even if URL fetching fails
         }
       }

@@ -292,16 +292,12 @@ class PlayerInvoke {
     // String? playlistBox,
   }) async {
     final List<MediaItem> queue = [];
-    final Map playItem = response[index] as Map;
-    final Map? nextItem =
-        index == response.length - 1 ? null : response[index + 1] as Map;
-    if (playItem['genre'] == 'YouTube') {
-      await refreshYtLink(playItem);
-    }
-    if (nextItem != null && nextItem['genre'] == 'YouTube') {
-      await refreshYtLink(nextItem);
-    }
-
+    
+    // REMOVED: Pre-fetching YouTube links (causes delays)
+    // Links will be fetched lazily when needed by audio_service
+    // This dramatically speeds up playback start time
+    
+    print('🚀 FAST PATH: Building queue without pre-fetching YouTube URLs');
     queue.addAll(
       response.map(
         (song) => MediaItemConverter.mapToMediaItem(

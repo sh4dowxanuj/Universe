@@ -14,25 +14,17 @@ sudo apt-get update
 
 # Install Python 3.11 (compatible with Chaquopy)
 echo "Installing Python 3.11..."
-sudo apt-get install -y software-properties-common
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
+# Python 3.11 is available from ppa.launchpadcontent.net (already configured in this environment)
+sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
 
-# Set Python 3.11 as the default python3
-echo "Setting Python 3.11 as default..."
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 2
-sudo update-alternatives --set python3 /usr/bin/python3.11
-
-# Install pip for Python 3.11
+# Install pip for Python 3.11 (without changing default python)
 echo "Installing pip for Python 3.11..."
-curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.11
+sudo python3.11 -m ensurepip --upgrade 2>/dev/null || true
 
-# Verify Python version
-echo "Python version:"
-python3 --version
-pip3 --version
+# Verify Python 3.11 is available
+echo "Python 3.11 version:"
+python3.11 --version
+python3.11 -m pip --version 2>/dev/null || echo "pip installation via ensurepip may have been skipped"
 
 # Install Java 17 (required for Flutter/Gradle)
 echo "Installing Java 17..."

@@ -35,7 +35,7 @@
         </receiver>
 
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name="com.shadow.blackhole.BlackHoleAudioServiceActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
             android:hardwareAccelerated="true"
