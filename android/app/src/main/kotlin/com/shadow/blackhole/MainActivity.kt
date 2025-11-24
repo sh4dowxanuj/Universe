@@ -1,5 +1,8 @@
+package com.shadow.blackhole
+
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 
 class MainActivity: FlutterActivity() {
@@ -10,5 +13,10 @@ class MainActivity: FlutterActivity() {
             startActivity(intent);
         }
         super.onCreate(savedInstanceState)
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        flutterEngine.plugins.add(YtDlpPlugin())
     }
 }

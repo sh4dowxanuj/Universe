@@ -386,14 +386,21 @@ class Download with ChangeNotifier {
     if (data['url'].toString().contains('google')) {
       Logger.root.info('Downloading from YouTube: ${data['id']}');
       try {
+        Logger.root.info('Fetching stream manifest for download');
         // Get available streams
         final List<AudioOnlyStreamInfo> streams = 
             await YouTubeServices.instance.getStreamInfo(data['id'].toString());
         
         if (streams.isEmpty) {
           Logger.root.severe('No audio streams available for ${data['id']}');
+          ShowSnackBar().showSnackBar(
+            context,
+            'Failed to download: No audio streams available',
+          );
           throw Exception('No audio streams available');
         }
+        
+        Logger.root.info('Found ${streams.length} audio streams');
         
         // Select stream based on quality preference
         final AudioOnlyStreamInfo streamInfo = preferredYtDownloadQuality == 'High'
@@ -401,14 +408,20 @@ class Download with ChangeNotifier {
             : streams.first; // Lowest quality
         
         Logger.root.info(
-          'Selected stream: ${streamInfo.qualityLabel} (${streamInfo.bitrate.kiloBitsPerSecond.round()} kbps)',
+          'Selected stream: ${streamInfo.qualityLabel} (${streamInfo.bitrate.kiloBitsPerSecond.round()} kbps, ${streamInfo.size.totalMegaBytes.toStringAsFixed(2)} MB)',
         );
         
         total = streamInfo.size.totalBytes;
-        // Get the actual stream
+        
+        // Get the actual stream from youtube_explode_dart (handles authentication internally)
+        Logger.root.info('Starting stream download from YouTube');
         stream = YouTubeServices.instance.getStreamClient(streamInfo);
-      } catch (e) {
-        Logger.root.severe('Error fetching YouTube stream: $e');
+      } catch (e, stackTrace) {
+        Logger.root.severe('Error fetching YouTube stream: $e\n$stackTrace');
+        ShowSnackBar().showSnackBar(
+          context,
+          'Download failed: $e',
+        );
         rethrow;
       }
     } else {
