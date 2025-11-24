@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
+        android:name=".BlackHoleApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="BlackHole"
         android:usesCleartextTraffic="true"

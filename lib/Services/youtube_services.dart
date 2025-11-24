@@ -78,12 +78,13 @@ class YouTubeServices {
     }
     final Map? response = await formatVideo(
       video: vid,
-      quality: Hive.box('settings')
-          .get(
-            'ytQuality',
-            defaultValue: 'Low',
-          )
-          .toString(),
+      quality: 'High', // FORCE HIGH QUALITY TEST (128 kbps MP4)
+      // quality: Hive.box('settings')
+      //     .get(
+      //       'ytQuality',
+      //       defaultValue: 'Low',
+      //     )
+      //     .toString(),
       data: data,
       getUrl: getUrl ?? true,
       // preferM4a: Hive.box(
@@ -96,14 +97,16 @@ class YouTubeServices {
   }
 
   Future<Map?> refreshLink(String id, {bool useYTM = true}) async {
-    String quality;
-    try {
-      quality =
-          Hive.box('settings').get('quality', defaultValue: 'Low').toString();
-    } catch (e) {
-      Logger.root.warning('Failed to get quality setting: $e');
-      quality = 'Low';
-    }
+    // FORCE HIGH QUALITY TEST (128 kbps MP4)
+    String quality = 'High';
+    // String quality;
+    // try {
+    //   quality =
+    //       Hive.box('settings').get('quality', defaultValue: 'Low').toString();
+    // } catch (e) {
+    //   Logger.root.warning('Failed to get quality setting: $e');
+    //   quality = 'Low';
+    // }
     
     try {
       if (useYTM) {
@@ -144,50 +147,66 @@ class YouTubeServices {
     try {
       Logger.root.info('Fetching YouTube Music home using search-based fallback');
       
-      // Since YouTube Music home scraping is unreliable, use curated searches as fallback
       final List<Map> sections = [];
       
-      // Get trending music
-      try {
-        final trendingResults = await fetchSearchResults('trending music 2024');
-        if (trendingResults.isNotEmpty) {
-          sections.add({
-            'title': 'Trending Now',
-            'playlists': trendingResults.take(10).toList(),
-          });
+      // Helper function to format video results for home page
+      Future<List<Map>> getFormattedVideos(String query, int limit) async {
+        try {
+          final List<Video> searchResults = await yt.search.search(query);
+          final List<Map> formatted = [];
+          
+          for (final vid in searchResults.take(limit)) {
+            formatted.add({
+              'title': vid.title,
+              'type': 'video',
+              'description': vid.author,
+              'count': vid.duration?.toString() ?? '',
+              'videoId': vid.id.value,
+              'firstItemId': vid.id.value,
+              'image': vid.thumbnails.highResUrl,
+              'imageMin': vid.thumbnails.lowResUrl,
+              'imageMedium': vid.thumbnails.mediumResUrl,
+              'imageStandard': vid.thumbnails.highResUrl,
+              'imageMax': vid.thumbnails.maxResUrl,
+            });
+          }
+          
+          return formatted;
+        } catch (e) {
+          Logger.root.warning('Failed to fetch videos for "$query": $e');
+          return [];
         }
-      } catch (e) {
-        Logger.root.warning('Failed to fetch trending: $e');
+      }
+      
+      // Get trending music
+      final trending = await getFormattedVideos('trending music 2024', 12);
+      if (trending.isNotEmpty) {
+        sections.add({
+          'title': 'Trending Now',
+          'playlists': trending,
+        });
       }
       
       // Get popular songs
-      try {
-        final popularResults = await fetchSearchResults('popular songs');
-        if (popularResults.isNotEmpty) {
-          sections.add({
-            'title': 'Popular Music',
-            'playlists': popularResults.take(10).toList(),
-          });
-        }
-      } catch (e) {
-        Logger.root.warning('Failed to fetch popular: $e');
+      final popular = await getFormattedVideos('popular songs', 12);
+      if (popular.isNotEmpty) {
+        sections.add({
+          'title': 'Popular Music',
+          'playlists': popular,
+        });
       }
       
       // Get top charts
-      try {
-        final chartsResults = await fetchSearchResults('top music charts');
-        if (chartsResults.isNotEmpty) {
-          sections.add({
-            'title': 'Top Charts',
-            'playlists': chartsResults.take(10).toList(),
-          });
-        }
-      } catch (e) {
-        Logger.root.warning('Failed to fetch charts: $e');
+      final charts = await getFormattedVideos('top music charts', 12);
+      if (charts.isNotEmpty) {
+        sections.add({
+          'title': 'Top Charts',
+          'playlists': charts,
+        });
       }
       
       if (sections.isNotEmpty) {
-        Logger.root.info('Successfully created ${sections.length} sections for YouTube Music home');
+        Logger.root.info('Successfully created ${sections.length} sections with ${sections.fold<int>(0, (sum, s) => sum + (s['playlists'] as List).length)} videos');
         return {'body': sections, 'head': []};
       }
       
@@ -384,8 +403,36 @@ class YouTubeServices {
             return null;
           }
           
-          final Map finalUrlData =
-              quality == 'High' ? urlsData.last : urlsData.first;
+          // Select appropriate stream based on quality
+          // Prefer MP4 codec for better ExoPlayer compatibility on Android
+          Map? finalUrlData;
+          if (quality == 'High') {
+            // For high quality, prefer highest bitrate MP4 stream
+            final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
+            if (mp4Streams.isNotEmpty) {
+              finalUrlData = mp4Streams.last; // Highest quality MP4
+              print('Selected HIGH quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            } else {
+              finalUrlData = urlsData.last; // Fallback to highest quality any codec
+              print('Selected HIGH quality (no MP4): ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            }
+          } else {
+            // For medium/low quality, prefer medium bitrate MP4 (not lowest)
+            final mp4Streams = urlsData.where((s) => s['codec'] == 'mp4').toList();
+            if (mp4Streams.length > 1) {
+              // Use middle quality MP4 instead of lowest (better compatibility)
+              finalUrlData = mp4Streams[mp4Streams.length ~/ 2];
+              print('Selected MEDIUM quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            } else if (mp4Streams.isNotEmpty) {
+              finalUrlData = mp4Streams.first;
+              print('Selected LOW quality MP4: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            } else {
+              // Fallback to first available stream
+              finalUrlData = urlsData.first;
+              print('Selected fallback stream: ${finalUrlData['bitrate']} kbps, ${finalUrlData['size']} MB');
+            }
+          }
+          
           finalUrl = finalUrlData['url'].toString();
           expireAt = finalUrlData['expireAt'].toString();
           allUrls = urlsData.map((e) => e['url'].toString()).toList();
@@ -662,18 +709,31 @@ class YouTubeServices {
   ) async {
     final List<AudioOnlyStreamInfo> sortedStreamInfo =
         await getStreamInfo(videoId);
-    return sortedStreamInfo
+    
+    print('=== YouTube Stream Info for $videoId ===');
+    print('Available streams: ${sortedStreamInfo.length}');
+    
+    final result = sortedStreamInfo
         .map(
-          (e) => {
-            'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
-            'codec': e.codec.subtype,
-            'qualityLabel': e.qualityLabel,
-            'size': e.size.totalMegaBytes.toStringAsFixed(2),
-            'url': e.url.toString(),
-            'expireAt': getExpireAt(e.url.toString()),
+          (e) {
+            print('Stream: ${e.bitrate.kiloBitsPerSecond.round()} kbps, '
+                  'codec: ${e.codec.subtype}, '
+                  'size: ${e.size.totalMegaBytes.toStringAsFixed(2)} MB, '
+                  'quality: ${e.qualityLabel}');
+            return {
+              'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
+              'codec': e.codec.subtype,
+              'qualityLabel': e.qualityLabel,
+              'size': e.size.totalMegaBytes.toStringAsFixed(2),
+              'url': e.url.toString(),
+              'expireAt': getExpireAt(e.url.toString()),
+            };
           },
         )
         .toList();
+    
+    print('Returning ${result.length} stream URLs');
+    return result;
   }
 
   Future<List<AudioOnlyStreamInfo>> getStreamInfo(

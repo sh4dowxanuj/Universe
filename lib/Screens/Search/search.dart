@@ -112,9 +112,21 @@ class _SearchPageState extends State<SearchPage> {
             .search(query == '' ? widget.query : query)
             .then((value) {
           setState(() {
-            final songSection =
-                value.firstWhere((element) => element['title'] == 'Songs');
-            songSection['allowViewAll'] = true;
+            // Try to find Songs section, fallback to first section with items
+            try {
+              final songSection =
+                  value.firstWhere((element) => element['title'] == 'Songs');
+              songSection['allowViewAll'] = true;
+            } catch (e) {
+              // No Songs section found, try Videos or any section with items
+              try {
+                final videoSection =
+                    value.firstWhere((element) => element['title'] == 'Videos' && (element['items'] as List?)?.isNotEmpty == true);
+                videoSection['allowViewAll'] = true;
+              } catch (e2) {
+                Logger.root.warning('No Songs or Videos section found in search results');
+              }
+            }
             searchedList = value;
             fetched = true;
           });
