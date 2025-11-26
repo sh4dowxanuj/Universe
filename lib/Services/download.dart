@@ -24,7 +24,7 @@ import 'package:audiotagger/models/tag.dart';
 import 'package:blackhole/CustomWidgets/snackbar.dart';
 import 'package:blackhole/Helpers/lyrics.dart';
 import 'package:blackhole/Services/ext_storage_provider.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:blackhole/Services/ytdlp_service.dart';
 // import 'package:ffmpeg_kit_flutter_audio/ffmpeg_kit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +36,6 @@ import 'package:logging/logging.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class Download with ChangeNotifier {
   static final Map<String, Download> _instances = {};
@@ -384,13 +383,55 @@ class Download with ChangeNotifier {
     Stream<List<int>> stream;
     // Download from yt
     if (data['url'].toString().contains('google')) {
-      // Use preferredYtDownloadQuality to check for quality first
-      final AudioOnlyStreamInfo streamInfo =
-          (await YouTubeServices.instance.getStreamInfo(data['id'].toString()))
-              .last;
-      total = streamInfo.size.totalBytes;
-      // Get the actual stream
-      stream = YouTubeServices.instance.getStreamClient(streamInfo);
+      Logger.root.info('Downloading from YouTube: ${data['id']}');
+      try {
+        Logger.root.info('Fetching stream URL using yt-dlp for download');
+
+        // Use yt-dlp to get authenticated stream URL
+        final ytDownloadQuality = Hive.box('settings')
+            .get('ytDownloadQuality', defaultValue: 'High') as String;
+        final ytdlpData = await YtDlpService.instance
+            .getAudioStream(data['id'].toString(), quality: ytDownloadQuality);
+
+        if (ytdlpData == null || ytdlpData['url'] == null) {
+          Logger.root
+              .severe('yt-dlp failed to get stream URL for ${data['id']}');
+          ShowSnackBar().showSnackBar(
+            context,
+            'Failed to download: Could not get stream URL',
+          );
+          throw Exception('yt-dlp failed to get stream URL');
+        }
+
+        final String streamUrl = ytdlpData['url'] as String;
+        final int bitrate = (ytdlpData['bitrate'] ?? 0) as int;
+        final String codec = (ytdlpData['codec'] ?? 'unknown') as String;
+
+        Logger.root
+            .info('✅ yt-dlp SUCCESS: Got download URL ($bitrate kbps, $codec)');
+
+        // Download from the authenticated URL
+        Logger.root.info('Starting HTTP download from authenticated URL');
+        client = Client();
+        final response =
+            await client.send(Request('GET', Uri.parse(streamUrl)));
+        total = response.contentLength ?? 0;
+
+        Logger.root.info(
+            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB');
+
+        stream = response.stream.asBroadcastStream();
+
+        // youtube_explode_dart REMOVED - causes 403 errors
+        // Old code using getStreamInfo() and getStreamClient() commented out
+      } catch (e, stackTrace) {
+        Logger.root.severe('Error fetching YouTube stream: $e\n$stackTrace');
+        ShowSnackBar().showSnackBar(
+          context,
+          'Download failed: $e',
+        );
+        rethrow;
+      }
     } else {
       Logger.root.info('Connecting to Client');
       client = Client();

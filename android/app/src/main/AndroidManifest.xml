@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
+        android:name=".BlackHoleApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="BlackHole"
         android:usesCleartextTraffic="true"
@@ -34,7 +35,7 @@
         </receiver>
 
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name="com.shadow.blackhole.BlackHoleAudioServiceActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
             android:hardwareAccelerated="true"

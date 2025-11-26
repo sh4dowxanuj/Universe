@@ -354,30 +354,35 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                     .ytStreamQualitySub,
               ),
               onTap: () {},
-              trailing: DropdownButton(
-                value: ytQuality,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyLarge!.color,
-                ),
-                underline: const SizedBox(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(
-                      () {
-                        ytQuality = newValue;
-                        Hive.box('settings').put('ytQuality', newValue);
-                      },
+              trailing: SizedBox(
+                width: 100,
+                child: DropdownButton(
+                  value: ['Low', 'Medium', 'High'].contains(ytQuality)
+                      ? ytQuality
+                      : 'Low',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyLarge!.color,
+                  ),
+                  underline: const SizedBox(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(
+                        () {
+                          ytQuality = newValue;
+                          Hive.box('settings').put('ytQuality', newValue);
+                        },
+                      );
+                    }
+                  },
+                  items: <String>['Low', 'Medium', 'High']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
                     );
-                  }
-                },
-                items: <String>['Low', 'High']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+                  }).toList(),
+                ),
               ),
               dense: true,
             ),
