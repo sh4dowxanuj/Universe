@@ -188,13 +188,17 @@ class PlayerInvoke {
     // final bool cacheSong =
     // Hive.box('settings').get('cacheSong', defaultValue: true) as bool;
     final int expiredAt = int.parse((playItem['expire_at'] ?? '0').toString());
-    if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 > expiredAt) {
+    
+    // Increased buffer time from 350 to 600 seconds for better reliability
+    if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 > expiredAt) {
       Logger.root.info(
-        'before service | youtube link expired for ${playItem["title"]}',
+        'YouTube link expired for ${playItem["title"]}, refreshing...',
       );
+      
+      // Check cache first
       if (Hive.box('ytlinkcache').containsKey(playItem['id'])) {
         final cache = await Hive.box('ytlinkcache').get(playItem['id']);
-        if (cache is List) {
+        if (cache is List && cache.isNotEmpty) {
           int minExpiredAt = 0;
           for (final e in cache) {
             final int cachedExpiredAt = int.parse(e['expireAt'].toString());
@@ -203,50 +207,79 @@ class PlayerInvoke {
             }
           }
 
-          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
+          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 >
               minExpiredAt) {
-            // cache expired
-            Logger.root
-                .info('youtube link expired in cache for ${playItem["title"]}');
-            final newData = await YouTubeServices.instance
-                .refreshLink(playItem['id'].toString());
+            // cache expired, fetch new link
             Logger.root.info(
-              'before service | received new link for ${playItem["title"]}',
+              'Cache expired for ${playItem["title"]}, fetching new link',
             );
-            if (newData != null) {
-              playItem['url'] = newData['url'];
-              playItem['duration'] = newData['duration'];
-              playItem['expire_at'] = newData['expire_at'];
+            try {
+              final newData = await YouTubeServices.instance
+                  .refreshLink(playItem['id'].toString());
+              
+              if (newData != null && newData.isNotEmpty) {
+                playItem['url'] = newData['url'];
+                playItem['duration'] = newData['duration'];
+                playItem['expire_at'] = newData['expire_at'];
+                Logger.root.info(
+                  'Successfully refreshed link for ${playItem["title"]}',
+                );
+              } else {
+                Logger.root.severe(
+                  'Failed to refresh link for ${playItem["title"]}: empty response',
+                );
+              }
+            } catch (e) {
+              Logger.root.severe(
+                'Error refreshing link for ${playItem["title"]}: $e',
+              );
             }
           } else {
             // giving cache link
-            Logger.root
-                .info('youtube link found in cache for ${playItem["title"]}');
+            Logger.root.info(
+              'Using cached link for ${playItem["title"]}',
+            );
             playItem['url'] = cache.last['url'];
             playItem['expire_at'] = cache.last['expireAt'];
           }
         } else {
+          // Invalid cache format, fetch new link
+          Logger.root.info(
+            'Invalid cache for ${playItem["title"]}, fetching new link',
+          );
+          try {
+            final newData = await YouTubeServices.instance
+                .refreshLink(playItem['id'].toString());
+            
+            if (newData != null && newData.isNotEmpty) {
+              playItem['url'] = newData['url'];
+              playItem['duration'] = newData['duration'];
+              playItem['expire_at'] = newData['expire_at'];
+            }
+          } catch (e) {
+            Logger.root.severe(
+              'Error refreshing link for ${playItem["title"]}: $e',
+            );
+          }
+        }
+      } else {
+        // No cache, fetch new link
+        Logger.root.info(
+          'No cache found for ${playItem["title"]}, fetching new link',
+        );
+        try {
           final newData = await YouTubeServices.instance
               .refreshLink(playItem['id'].toString());
-          Logger.root.info(
-            'before service | received new link for ${playItem["title"]}',
-          );
-          if (newData != null) {
+          
+          if (newData != null && newData.isNotEmpty) {
             playItem['url'] = newData['url'];
             playItem['duration'] = newData['duration'];
             playItem['expire_at'] = newData['expire_at'];
           }
-        }
-      } else {
-        final newData = await YouTubeServices.instance
-            .refreshLink(playItem['id'].toString());
-        Logger.root.info(
-          'before service | received new link for ${playItem["title"]}',
-        );
-        if (newData != null) {
-          playItem['url'] = newData['url'];
-          playItem['duration'] = newData['duration'];
-          playItem['expire_at'] = newData['expire_at'];
+        } catch (e) {
+          Logger.root.severe(
+            'Error refreshing link for ${playItem["title"]}: $e',
+          );
         }
       }
     }
@@ -259,16 +292,12 @@ class PlayerInvoke {
     // String? playlistBox,
   }) async {
     final List<MediaItem> queue = [];
-    final Map playItem = response[index] as Map;
-    final Map? nextItem =
-        index == response.length - 1 ? null : response[index + 1] as Map;
-    if (playItem['genre'] == 'YouTube') {
-      await refreshYtLink(playItem);
-    }
-    if (nextItem != null && nextItem['genre'] == 'YouTube') {
-      await refreshYtLink(nextItem);
-    }
-
+    
+    // REMOVED: Pre-fetching YouTube links (causes delays)
+    // Links will be fetched lazily when needed by audio_service
+    // This dramatically speeds up playback start time
+    
+    print('🚀 FAST PATH: Building queue without pre-fetching YouTube URLs');
     queue.addAll(
       response.map(
         (song) => MediaItemConverter.mapToMediaItem(

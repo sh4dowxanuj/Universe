@@ -29,6 +29,7 @@ import 'package:blackhole/Helpers/playlist.dart';
 import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:blackhole/Services/isolate_service.dart';
 import 'package:blackhole/Services/yt_music.dart';
+import 'package:blackhole/Services/ytdlp_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -64,6 +65,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       Hive.isBoxOpen('downloads') ? Hive.box('downloads') : null;
   final List<String> refreshLinks = [];
   bool jobRunning = false;
+  bool _audioSourceInitialized = false;
 
   final BehaviorSubject<List<MediaItem>> _recentSubject =
       BehaviorSubject.seeded(<MediaItem>[]);
@@ -275,6 +277,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         .listen((event) => _broadcastState(_player!.playbackEvent));
 
     _player!.processingStateStream.listen((state) {
+      print('=== Player processing state changed: $state ===');
       if (state == ProcessingState.completed) {
         stop();
         _player!.seek(Duration.zero, index: 0);
@@ -311,8 +314,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
               _onError(error, stackTrace, stopService: true);
               return null;
             });
+            _audioSourceInitialized = true;
+            print('Audio source initialized (empty queue)');
           } else {
-            await _playlist.addAll(_itemsToSources(lastQueue));
+            await _playlist.addAll(await _itemsToSources(lastQueue));
             try {
               await _player!
                   .setAudioSource(
@@ -327,6 +332,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                 _onError(error, stackTrace, stopService: true);
                 return null;
               });
+              _audioSourceInitialized = true;
+              print('Audio source initialized (with last queue)');
               if (lastIndex != 0 || lastPos > 0) {
                 await _player!
                     .seek(Duration(seconds: lastPos), index: lastIndex);
@@ -348,6 +355,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
             _onError(error, stackTrace, stopService: true);
             return null;
           });
+          _audioSourceInitialized = true;
+          print('Audio source initialized (no last queue)');
         }
       } else {
         await _player!
@@ -356,6 +365,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           _onError(error, stackTrace, stopService: true);
           return null;
         });
+        _audioSourceInitialized = true;
+        print('Audio source initialized (loadStart=false)');
       }
     } catch (e) {
       Logger.root.severe('Error while loading last queue', e);
@@ -422,7 +433,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     addQueueItem(newItem);
   }
 
-  AudioSource? _itemToSource(MediaItem mediaItem) {
+  Future<AudioSource?> _itemToSource(MediaItem mediaItem,
+      {bool lazy = false}) async {
+    print(
+        '=== _itemToSource called for: ${mediaItem.title} (genre: ${mediaItem.genre}, lazy: $lazy) ===');
     AudioSource? audioSource;
     try {
       if (mediaItem.artUri.toString().startsWith('file:')) {
@@ -432,7 +446,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         if (downloadsBox != null &&
             downloadsBox!.containsKey(mediaItem.id) &&
             useDown) {
-          Logger.root.info('Found ${mediaItem.id} in downloads');
+          print('Found ${mediaItem.id} in downloads');
           audioSource = AudioSource.uri(
             Uri.file(
               (downloadsBox!.get(mediaItem.id) as Map)['path'].toString(),
@@ -441,84 +455,121 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           );
         } else {
           if (mediaItem.genre == 'YouTube') {
-            final int expiredAt =
-                int.parse((mediaItem.extras!['expire_at'] ?? '0').toString());
-            if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
-                expiredAt) {
-              // Logger.root.info(
-              //   'player | youtube link expired for ${mediaItem.title}, searching cache',
-              // );
-              if (Hive.box('ytlinkcache').containsKey(mediaItem.id)) {
-                final cachedData = Hive.box('ytlinkcache').get(mediaItem.id);
-                if (cachedData is List) {
-                  int minExpiredAt = 0;
-                  for (final e in cachedData) {
-                    final int cachedExpiredAt =
-                        int.parse(e['expireAt'].toString());
-                    if (minExpiredAt == 0 || cachedExpiredAt < minExpiredAt) {
-                      minExpiredAt = cachedExpiredAt;
-                    }
-                  }
-
-                  if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
-                      minExpiredAt) {
-                    Logger.root.info(
-                      'youtube link expired for ${mediaItem.title}, refreshing',
-                    );
-                    refreshLinks.add(mediaItem.id);
-                    if (!jobRunning) {
-                      refreshJob();
-                    }
-                  } else {
-                    Logger.root.info(
-                      'youtube link found in cache for ${mediaItem.title}',
-                    );
-                    if (cacheSong) {
-                      // Change this to handle yt quality
-                      audioSource = LockCachingAudioSource(
-                        Uri.parse(cachedData.last['url'].toString()),
-                      );
-                    } else {
-                      // Change this to handle yt quality
-                      audioSource = AudioSource.uri(
-                        Uri.parse(cachedData.last['url'].toString()),
-                      );
-                    }
-                    mediaItem.extras!['url'] = cachedData.last['url'];
-                    _mediaItemExpando[audioSource] = mediaItem;
-                    return audioSource;
-                  }
-                } else {
-                  Logger.root.info(
-                    'old youtube link cache found for ${mediaItem.title}, refreshing',
-                  );
-                  refreshLinks.add(mediaItem.id);
-                  if (!jobRunning) {
-                    refreshJob();
-                  }
-                }
-              } else {
-                Logger.root.info(
-                  'youtube link not found in cache for ${mediaItem.title}, refreshing',
-                );
-                refreshLinks.add(mediaItem.id);
-                if (!jobRunning) {
-                  refreshJob();
-                }
-              }
-            } else {
-              if (cacheSong) {
-                audioSource = LockCachingAudioSource(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              } else {
-                audioSource = AudioSource.uri(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              }
+            // LAZY MODE: Use existing URL first (will be refreshed on actual playback)
+            if (lazy &&
+                mediaItem.extras!['url'] != null &&
+                mediaItem.extras!['url'].toString().isNotEmpty &&
+                mediaItem.extras!['url'].toString().startsWith('http')) {
+              print(
+                  '🚀 LAZY: Using existing URL for ${mediaItem.title} (will refresh on play)');
+              final url = mediaItem.extras!['url'].toString();
+              audioSource = AudioSource.uri(
+                Uri.parse(url),
+                headers: {
+                  'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Accept': '*/*',
+                },
+                tag: mediaItem.id,
+              );
               _mediaItemExpando[audioSource] = mediaItem;
               return audioSource;
             }
+
+            // ACTIVE MODE: Fetch fresh URL for immediate playback
+            print(
+                '=== YouTube playback - attempting yt-dlp for ${mediaItem.title} ===');
+            print('Video ID: ${mediaItem.id}');
+
+            try {
+              final ytQuality = Hive.box('settings')
+                  .get('ytQuality', defaultValue: 'High') as String;
+              final ytdlpData = await YtDlpService.instance
+                  .getAudioStream(mediaItem.id, quality: ytQuality);
+              if (ytdlpData != null && ytdlpData['url'] != null) {
+                final streamUrl = ytdlpData['url'] as String;
+                print(
+                    '✅ yt-dlp SUCCESS: Got fresh stream URL (${ytdlpData['bitrate']} kbps)');
+                print('Stream URL: ${streamUrl.substring(0, 100)}...');
+
+                audioSource = AudioSource.uri(
+                  Uri.parse(streamUrl),
+                  headers: {
+                    'User-Agent':
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': '*/*',
+                  },
+                  tag: mediaItem.id,
+                );
+                print(
+                    'AudioSource created with yt-dlp URL - tag: ${mediaItem.id}');
+                _mediaItemExpando[audioSource] = mediaItem;
+                return audioSource;
+              } else {
+                print('⚠️ yt-dlp returned null');
+              }
+            } catch (e) {
+              print('❌ yt-dlp error: $e');
+              Logger.root.warning('yt-dlp failed for ${mediaItem.id}: $e');
+            }
+
+            // youtube_explode_dart REMOVED - causes 403 errors, not using it anymore
+
+            // FALLBACK: Check cache as last resort (may have expired URLs)
+            print('⚠️ yt-dlp failed, checking cache as last resort...');
+            if (Hive.box('ytlinkcache').containsKey(mediaItem.id)) {
+              final cachedData = Hive.box('ytlinkcache').get(mediaItem.id);
+              if (cachedData is List && cachedData.isNotEmpty) {
+                final selectedStream = cachedData.last;
+                final cachedUrl = selectedStream['url'].toString();
+                final expireAt =
+                    int.parse(selectedStream['expireAt'].toString());
+                final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+                if (now + 300 < expireAt) {
+                  print('✅ Valid cache found (expires in ${expireAt - now}s)');
+                  audioSource = AudioSource.uri(
+                    Uri.parse(cachedUrl),
+                    headers: {
+                      'User-Agent':
+                          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                      'Accept': '*/*',
+                    },
+                    tag: mediaItem.id,
+                  );
+                  _mediaItemExpando[audioSource] = mediaItem;
+                  return audioSource;
+                } else {
+                  print('❌ Cached URL expired (${now - expireAt}s ago)');
+                }
+              }
+            }
+
+            // FALLBACK 3: Use existing URL from extras (likely to fail with 403)
+            if (mediaItem.extras!['url'] != null &&
+                mediaItem.extras!['url'].toString().isNotEmpty &&
+                mediaItem.extras!['url'].toString().startsWith('http')) {
+              print(
+                  '⚠️ Using existing URL from extras as final fallback (may cause 403)');
+              final url = mediaItem.extras!['url'].toString();
+              audioSource = AudioSource.uri(
+                Uri.parse(url),
+                headers: {
+                  'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Accept': '*/*',
+                },
+                tag: mediaItem.id,
+              );
+              _mediaItemExpando[audioSource] = mediaItem;
+              return audioSource;
+            }
+
+            // ERROR: No stream available at all
+            print('❌ CRITICAL: No stream URL available for ${mediaItem.id}');
+            Logger.root
+                .severe('Unable to fetch any stream URL for ${mediaItem.id}');
+            return null;
           } else {
             if (cacheSong) {
               audioSource = LockCachingAudioSource(
@@ -551,7 +602,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     return audioSource;
   }
 
-  List<AudioSource> _itemsToSources(List<MediaItem> mediaItems) {
+  Future<List<AudioSource>> _itemsToSources(List<MediaItem> mediaItems,
+      {bool lazy = false}) async {
     preferredMobileQuality = Hive.box('settings')
         .get('streamingQuality', defaultValue: '96 kbps')
         .toString();
@@ -564,7 +616,11 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     cacheSong =
         Hive.box('settings').get('cacheSong', defaultValue: true) as bool;
     useDown = Hive.box('settings').get('useDown', defaultValue: true) as bool;
-    return mediaItems.map(_itemToSource).whereType<AudioSource>().toList();
+
+    // Process in parallel but with lazy flag for YouTube items
+    final sources = await Future.wait(
+        mediaItems.map((item) => _itemToSource(item, lazy: lazy)));
+    return sources.whereType<AudioSource>().toList();
   }
 
   @override
@@ -694,45 +750,129 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   Future<void> skipToMediaItem(String? id, int? idx) async {
-    if (idx == null && id == null) return;
+    print('=== skipToMediaItem called - id: $id, idx: $idx ===');
+    if (idx == null && id == null) {
+      print('ERROR: Both id and idx are null');
+      return;
+    }
     final index = idx ?? queue.value.indexWhere((item) => item.id == id);
+    print('Calculated index: $index, queue length: ${queue.value.length}');
     if (index != -1) {
-      _player!.seek(
+      print('Seeking to index $index at position zero...');
+      await _player!.seek(
         Duration.zero,
         index: _player!.shuffleModeEnabled
             ? _player!.shuffleIndices![index]
             : index,
       );
+      print('Seek completed');
     } else {
+      print('ERROR: MediaItem not found in queue');
       Logger.root.severe('skipToMediaItem: MediaItem not found');
     }
   }
 
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    final res = _itemToSource(mediaItem);
+    print('=== addQueueItem called for: ${mediaItem.title} ===');
+    if (!_audioSourceInitialized) {
+      print('WARNING: Audio source not initialized, initializing now...');
+      await _player!.setAudioSource(_playlist, preload: false);
+      _audioSourceInitialized = true;
+      print('Audio source initialized in addQueueItem');
+    }
+    final res = await _itemToSource(mediaItem, lazy: true);
     if (res != null) {
-      await _playlist.add(res);
+      try {
+        await _playlist.add(res);
+        print('Successfully added ${mediaItem.title} to queue');
+      } catch (e) {
+        print('ERROR adding to queue: $e');
+      }
     }
   }
 
   @override
   Future<void> addQueueItems(List<MediaItem> mediaItems) async {
-    await _playlist.addAll(_itemsToSources(mediaItems));
+    print('=== addQueueItems called with ${mediaItems.length} items ===');
+    if (!_audioSourceInitialized) {
+      print('WARNING: Audio source not initialized, initializing now...');
+      await _player!.setAudioSource(_playlist, preload: false);
+      _audioSourceInitialized = true;
+      print('Audio source initialized in addQueueItems');
+    }
+    try {
+      await _playlist.addAll(await _itemsToSources(mediaItems, lazy: true));
+      print('Successfully added ${mediaItems.length} items to queue');
+    } catch (e) {
+      print('ERROR adding items to queue: $e');
+    }
   }
 
   @override
   Future<void> insertQueueItem(int index, MediaItem mediaItem) async {
-    final res = _itemToSource(mediaItem);
+    print(
+        '=== insertQueueItem called at index $index for: ${mediaItem.title} ===');
+    if (!_audioSourceInitialized) {
+      print('WARNING: Audio source not initialized, initializing now...');
+      await _player!.setAudioSource(_playlist, preload: false);
+      _audioSourceInitialized = true;
+      print('Audio source initialized in insertQueueItem');
+    }
+    final res = await _itemToSource(mediaItem, lazy: true);
     if (res != null) {
-      await _playlist.insert(index, res);
+      try {
+        await _playlist.insert(index, res);
+        print('Successfully inserted ${mediaItem.title} at index $index');
+      } catch (e) {
+        print('ERROR inserting to queue: $e');
+      }
     }
   }
 
   @override
   Future<void> updateQueue(List<MediaItem> newQueue) async {
-    await _playlist.clear();
-    await _playlist.addAll(_itemsToSources(newQueue));
+    print('=== updateQueue called with ${newQueue.length} items ===');
+    try {
+      // Check if player is initialized
+      if (_player == null) {
+        print('ERROR: Player is null, cannot update queue');
+        return;
+      }
+
+      // Instead of clearing and adding, recreate the playlist and reset audio source
+      // OPTIMIZATION: Use lazy loading for YouTube items (fetch URLs on-demand)
+      // This dramatically speeds up queue updates
+      print('Creating sources with LAZY loading for YouTube items...');
+      final stopwatch = Stopwatch()..start();
+      final sources = await _itemsToSources(newQueue, lazy: true);
+      stopwatch.stop();
+      print('⚡ Sources created in ${stopwatch.elapsedMilliseconds}ms');
+
+      // Clear the playlist
+      await _playlist.clear();
+      print('Playlist cleared');
+
+      // Add all new sources
+      if (sources.isNotEmpty) {
+        await _playlist.addAll(sources);
+        print('Added ${sources.length} sources to playlist');
+      }
+
+      // Force the player to re-set the audio source to sync with native player
+      // This is crucial - without this, the native ConcatenatingMediaSource stays null
+      print('Re-setting audio source to sync with native player...');
+      await _player!.setAudioSource(_playlist, preload: false);
+      _audioSourceInitialized = true;
+      print('✅ Queue updated in ${stopwatch.elapsedMilliseconds}ms');
+
+      // Verify the sequence is updated
+      print('Player sequence length: ${_player!.sequence?.length ?? 0}');
+      print('Queue updated successfully');
+    } catch (e, stackTrace) {
+      print('ERROR in updateQueue: $e');
+      print('StackTrace: $stackTrace');
+    }
     // addLastQueue(newQueue);
     // stationId = '';
     // stationNames = newQueue.map((e) => e.id).toList();
@@ -824,7 +964,23 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   @override
-  Future<void> play() => _player!.play();
+  Future<void> play() async {
+    print('=== PLAY() called - Starting playback ===');
+    print('Player state: ${_player!.processingState}');
+    print('Player playing: ${_player!.playing}');
+    print('Current index: ${_player!.currentIndex}');
+    print('Sequence length: ${_player!.sequence?.length}');
+    if (_player!.sequence != null && _player!.sequence!.isNotEmpty) {
+      print(
+          'Current source: ${_player!.sequence![_player!.currentIndex ?? 0]}');
+    }
+    try {
+      await _player!.play();
+      print('Play command completed');
+    } catch (e) {
+      print('ERROR in play(): $e');
+    }
+  }
 
   @override
   Future<void> pause() async {
@@ -1013,6 +1169,19 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   void _playbackError(err) {
+    print('=== PLAYBACK ERROR: ${err.toString()} ===');
+    if (err is PlatformException) {
+      print('Error code: ${err.code}');
+      print('Error message: ${err.message}');
+      print('Error details: ${err.details}');
+
+      // Check if this is a 403 error (expired YouTube URL)
+      if (err.message != null && err.message!.contains('403')) {
+        print('🔄 Detected 403 error - attempting to refresh URL...');
+        _handle403Error();
+        return; // Don't call _onError, we're handling this
+      }
+    }
     Logger.root.severe('Error from audioservice: ${err.code}', err);
     if (err is PlatformException &&
         err.code == 'abort' &&
@@ -1020,7 +1189,62 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     _onError(err, null);
   }
 
+  Future<void> _handle403Error() async {
+    try {
+      final currentItem = mediaItem.value;
+      if (currentItem == null) {
+        print('❌ No current media item to refresh');
+        return;
+      }
+
+      if (currentItem.genre != 'YouTube') {
+        print('❌ Not a YouTube song, cannot refresh');
+        return;
+      }
+
+      final currentIndex = _player!.currentIndex;
+      if (currentIndex == null) {
+        print('❌ No current index');
+        return;
+      }
+
+      print('🔄 Refreshing URL for: ${currentItem.title}');
+      print(
+          'Current index: $currentIndex, Queue length: ${queue.value.length}');
+
+      // Fetch fresh URL using active mode (lazy=false)
+      final newSource = await _itemToSource(currentItem, lazy: false);
+      if (newSource == null) {
+        print('❌ Failed to get fresh URL');
+        _onError(Exception('Failed to refresh YouTube URL'), null);
+        return;
+      }
+
+      print('✅ Got fresh URL, replacing audio source at index $currentIndex');
+
+      // Remove old source and insert new one
+      await _playlist.removeAt(currentIndex);
+      await _playlist.insert(currentIndex, newSource);
+
+      print('✅ Audio source replaced, seeking to index $currentIndex');
+
+      // Seek back to the same index to reload the source
+      await _player!.seek(Duration.zero, index: currentIndex);
+
+      // Resume playback
+      print('▶️ Resuming playback with fresh URL');
+      await _player!.play();
+
+      print('✅ 403 recovery completed successfully');
+    } catch (e, stackTrace) {
+      print('❌ Error during 403 recovery: $e');
+      Logger.root.severe('Failed to recover from 403 error', e, stackTrace);
+      _onError(e, stackTrace);
+    }
+  }
+
   void _onError(err, stacktrace, {bool stopService = false}) {
+    print('=== ON ERROR: ${err.toString()} ===');
     Logger.root.severe('Error from audioservice: ${err.code}', err);
     if (stopService) stop();
   }

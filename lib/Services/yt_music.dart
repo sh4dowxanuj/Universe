@@ -20,7 +20,7 @@
 import 'dart:convert';
 
 import 'package:blackhole/Models/song_item.dart';
-import 'package:blackhole/Services/youtube_services.dart';
+import 'package:blackhole/Services/ytdlp_service.dart';
 import 'package:blackhole/Services/ytmusic/nav.dart';
 import 'package:blackhole/Services/ytmusic/playlist.dart';
 import 'package:http/http.dart';
@@ -30,12 +30,10 @@ class YtMusicService {
   static const ytmDomain = 'music.youtube.com';
   static const httpsYtmDomain = 'https://music.youtube.com';
   static const baseApiEndpoint = '/youtubei/v1/';
-  
-  // Dynamic API key (updated 2024-2025)
-  static String? _cachedApiKey;
-  static DateTime _lastKeyFetch = DateTime.fromMillisecondsSinceEpoch(0);
-  static const Duration _keyRefreshInterval = Duration(hours: 6);
-  
+  static const ytmParams = {
+    'alt': 'json',
+    'key': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+  };
   static const userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0';
   static const Map<String, String> endpoints = {
@@ -73,30 +71,6 @@ class YtMusicService {
   }
 
   YtMusicService._internal();
-
-  Future<String> _getApiKey() async {
-    if (_cachedApiKey != null &&
-        DateTime.now().difference(_lastKeyFetch) < _keyRefreshInterval) {
-      return _cachedApiKey!;
-    }
-    try {
-      final response = await get(Uri.parse(httpsYtmDomain));
-      if (response.statusCode == 200) {
-        final match = RegExp('"INNERTUBE_API_KEY":"(.*?)"')
-            .firstMatch(response.body);
-        if (match != null) {
-          _cachedApiKey = match.group(1);
-          _lastKeyFetch = DateTime.now();
-          Logger.root.info('Fetched YtMusic API key');
-          return _cachedApiKey!;
-        }
-      }
-    } catch (e) {
-      Logger.root.warning('Failed to fetch dynamic API key: $e');
-    }
-    // Fallback to known working key
-    return 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
-  }
 
   Map<String, String> initializeHeaders() {
     return {
@@ -150,11 +124,6 @@ class YtMusicService {
     Map body,
     Map<String, String>? headers,
   ) async {
-    final apiKey = await _getApiKey();
-    final ytmParams = {
-      'alt': 'json',
-      'key': apiKey,
-    };
     final Uri uri = Uri.https(ytmDomain, baseApiEndpoint + endpoint, ytmParams);
     final response = await post(uri, headers: headers, body: jsonEncode(body));
     if (response.statusCode == 200) {
@@ -564,78 +533,58 @@ class YtMusicService {
         'contentPlaybackContext': {'signatureTimestamp': signatureTimestamp},
       };
       body['video_id'] = videoId;
+      
+      Logger.root.info('Fetching song data for video: $videoId');
       final Map response =
           await sendRequest(endpoints['get_song']!, body, headers);
-      // int maxBitrate = 0;
-      // String? url;
-      // final formats =
-      //     await NavClass.nav(response, ['streamingData', 'formats']) as List;
-      // for (final element in formats) {
-      //   if (element['bitrate'] != null) {
-      //     if (int.parse(element['bitrate'].toString()) > maxBitrate) {
-      //       maxBitrate = int.parse(element['bitrate'].toString());
-      //       url = element['signatureCipher'].toString();
-      //     }
-      //   }
-      // }
-      // final adaptiveFormats =
-      //     await NavClass.nav(response, ['streamingData', 'adaptiveFormats']) as List;
-      // for (final element in adaptiveFormats) {
-      //   if (element['bitrate'] != null) {
-      //     if (int.parse(element['bitrate'].toString()) > maxBitrate) {
-      //       maxBitrate = int.parse(element['bitrate'].toString());
-      //       url = element['signatureCipher'].toString();
-      //     }
-      //   }
-      // }
+      
+      if (response.isEmpty) {
+        Logger.root.warning('Empty response from YTMusic for $videoId');
+        return {};
+      }
+      
       final videoDetails =
-          await NavClass.nav(response, ['videoDetails']) as Map;
-      // final reg = RegExp('url=(.*)');
-      // final matches = reg.firstMatch(url!);
-      // final String result = matches!.group(1).toString().unescape();
+          await NavClass.nav(response, ['videoDetails']) as Map?;
+      
+      if (videoDetails == null) {
+        Logger.root.warning('No video details found for $videoId');
+        return {};
+      }
+      
       List<String> urls = [];
       List<Map> urlsData = [];
       String finalUrl = '';
       String expireAt = '0';
+      
       if (getUrl) {
-        urlsData = await YouTubeServices.instance.getYtStreamUrls(videoId);
-        if (urlsData.isNotEmpty) {
-          final Map finalUrlData =
-              quality == 'High' ? urlsData.last : urlsData.first;
-          finalUrl = finalUrlData['url'].toString();
-          expireAt = finalUrlData['expireAt'].toString();
-          urls = urlsData.map((e) => e['url'].toString()).toList();
-        } else {
-          // Fallback: attempt refresh via youtube_explode direct video fetch
-          Logger.root.severe(
-            'No stream URLs found initially for videoId=$videoId, attempting fallback refresh',
-          );
-          try {
-            final Map? refreshed = await YouTubeServices.instance
-                .refreshLink(videoId, useYTM: false);
-            if (refreshed != null && (refreshed['url']?.toString() ?? '') != '') {
-              finalUrl = refreshed['url'].toString();
-              expireAt = refreshed['expire_at']?.toString() ?? '0';
-              urls = [finalUrl];
-              urlsData = (refreshed['urlsData'] is List)
-                  ? (refreshed['urlsData'] as List)
-                      .whereType<Map>()
-                      .toList()
-                  : [];
-              Logger.root.info(
-                'Fallback succeeded for videoId=$videoId, url length=${finalUrl.length}',
-              );
-            } else {
-              Logger.root.severe(
-                'Fallback refresh failed to obtain URL for videoId=$videoId',
-              );
-            }
-          } catch (e) {
-            Logger.root.severe(
-              'Exception during fallback refresh for videoId=$videoId',
-              e,
-            );
+        try {
+          // Use yt-dlp instead of youtube_explode_dart to avoid 403 errors
+          Logger.root.info('YTMusic: Fetching stream URL using yt-dlp for $videoId');
+          final ytdlpData = await YtDlpService.instance.getAudioStream(videoId);
+          
+          if (ytdlpData != null && ytdlpData['url'] != null) {
+            finalUrl = ytdlpData['url'] as String;
+            expireAt = ytdlpData['expire_at']?.toString() ?? '0';
+            
+            // Create urlsData in expected format
+            urlsData = [{
+              'url': finalUrl,
+              'expireAt': expireAt,
+              'bitrate': ytdlpData['bitrate'] ?? 0,
+              'codec': ytdlpData['codec'] ?? 'mp4',
+            }];
+            urls = [finalUrl];
+            
+            Logger.root.info('YTMusic: yt-dlp SUCCESS - Got stream URL');
+          } else {
+            Logger.root.warning('YTMusic: yt-dlp failed for $videoId');
           }
+          
+          // youtube_explode_dart REMOVED - causes 403 errors
+          
+        } catch (e) {
+          Logger.root.severe('YTMusic: Error fetching stream URL for $videoId: $e');
+          // Continue with metadata even if URL fetching fails
         }
       }
 
@@ -668,7 +617,7 @@ class YtMusicService {
         'perma_url': 'https://youtube.com/watch?v=$videoId',
       };
     } catch (e) {
-      Logger.root.severe('Error in yt get song data', e);
+      Logger.root.severe('Error in yt get song data for $videoId: $e');
       return {};
     }
   }
