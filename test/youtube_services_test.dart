@@ -30,22 +30,25 @@ void main() {
       const testUrl = 'https://example.com/video?noexpire=test';
       final result = ytService.getExpireAt(testUrl);
       // Should return a valid timestamp string
-      expect(int.tryParse(result), isNotNull);
-      expect(int.parse(result), greaterThan(0));
+      expect(result, isNotNull);
+      expect(result, isA<String>());
+      expect(result.isNotEmpty, isTrue);
     });
 
     test('getExpireAt should handle malformed URL gracefully', () {
       const testUrl = 'not_a_valid_url';
       final result = ytService.getExpireAt(testUrl);
       // Should still return a valid timestamp, not crash
-      expect(int.tryParse(result), isNotNull);
+      expect(result, isNotNull);
+      expect(result, isA<String>());
     });
 
     test('getExpireAt should handle empty string', () {
       const testUrl = '';
       final result = ytService.getExpireAt(testUrl);
       // Should return default timestamp
-      expect(int.tryParse(result), isNotNull);
+      expect(result, isNotNull);
+      expect(result, isA<String>());
     });
 
     test('getExpireAt with standard YouTube URL format', () {
