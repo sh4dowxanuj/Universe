@@ -9,16 +9,19 @@ class YtDlpService {
   static const MethodChannel _channel = MethodChannel('ytdlp_channel');
 
   /// Get audio stream URL and metadata for a YouTube video
-  Future<Map<String, dynamic>?> getAudioStream(String videoId) async {
+  Future<Map<String, dynamic>?> getAudioStream(String videoId,
+      {String quality = 'High'}) async {
     try {
-      print('YtDlp: Fetching audio stream for $videoId');
+      print('YtDlp: Fetching audio stream for $videoId (quality: $quality)');
       final result = await _channel.invokeMethod('getAudioStream', {
         'videoId': videoId,
+        'quality': quality,
       });
-      
+
       if (result is Map) {
         final data = Map<String, dynamic>.from(result);
-        print('YtDlp: Got stream URL: ${data['url']?.substring(0, 100)}...');
+        print(
+            'YtDlp: Got stream URL: ${data['url']?.substring(0, 100)}... (${data['bitrate']} kbps)');
         return data;
       }
       return null;
@@ -38,7 +41,7 @@ class YtDlpService {
       final result = await _channel.invokeMethod('getVideoInfo', {
         'videoId': videoId,
       });
-      
+
       if (result is Map) {
         return Map<String, dynamic>.from(result);
       }
@@ -63,9 +66,11 @@ class YtDlpService {
         'query': query,
         'maxResults': maxResults,
       });
-      
+
       if (result is List) {
-        return result.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+        return result
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
       }
       return [];
     } on PlatformException catch (e) {
@@ -78,7 +83,8 @@ class YtDlpService {
   }
 
   /// Format video data for compatibility with existing YouTube service
-  Map<String, dynamic> formatVideoData(Map<String, dynamic> ytdlpData, String videoId) {
+  Map<String, dynamic> formatVideoData(
+      Map<String, dynamic> ytdlpData, String videoId) {
     return {
       'id': videoId,
       'title': ytdlpData['title'] ?? 'Unknown Title',

@@ -386,38 +386,44 @@ class Download with ChangeNotifier {
       Logger.root.info('Downloading from YouTube: ${data['id']}');
       try {
         Logger.root.info('Fetching stream URL using yt-dlp for download');
-        
+
         // Use yt-dlp to get authenticated stream URL
-        final ytdlpData = await YtDlpService.instance.getAudioStream(data['id'].toString());
-        
+        final ytDownloadQuality = Hive.box('settings')
+            .get('ytDownloadQuality', defaultValue: 'High') as String;
+        final ytdlpData = await YtDlpService.instance
+            .getAudioStream(data['id'].toString(), quality: ytDownloadQuality);
+
         if (ytdlpData == null || ytdlpData['url'] == null) {
-          Logger.root.severe('yt-dlp failed to get stream URL for ${data['id']}');
+          Logger.root
+              .severe('yt-dlp failed to get stream URL for ${data['id']}');
           ShowSnackBar().showSnackBar(
             context,
             'Failed to download: Could not get stream URL',
           );
           throw Exception('yt-dlp failed to get stream URL');
         }
-        
+
         final String streamUrl = ytdlpData['url'] as String;
         final int bitrate = (ytdlpData['bitrate'] ?? 0) as int;
         final String codec = (ytdlpData['codec'] ?? 'unknown') as String;
-        
-        Logger.root.info('✅ yt-dlp SUCCESS: Got download URL ($bitrate kbps, $codec)');
-        
+
+        Logger.root
+            .info('✅ yt-dlp SUCCESS: Got download URL ($bitrate kbps, $codec)');
+
         // Download from the authenticated URL
         Logger.root.info('Starting HTTP download from authenticated URL');
         client = Client();
-        final response = await client.send(Request('GET', Uri.parse(streamUrl)));
+        final response =
+            await client.send(Request('GET', Uri.parse(streamUrl)));
         total = response.contentLength ?? 0;
-        
-        Logger.root.info('Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB');
-        
+
+        Logger.root.info(
+            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB');
+
         stream = response.stream.asBroadcastStream();
-        
+
         // youtube_explode_dart REMOVED - causes 403 errors
         // Old code using getStreamInfo() and getStreamClient() commented out
-        
       } catch (e, stackTrace) {
         Logger.root.severe('Error fetching YouTube stream: $e\n$stackTrace');
         ShowSnackBar().showSnackBar(

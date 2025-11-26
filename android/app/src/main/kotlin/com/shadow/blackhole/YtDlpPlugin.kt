@@ -21,58 +21,130 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
     private val scope = CoroutineScope(Dispatchers.Main)
     private val TAG = "YtDlpPlugin"
 
-    // Centralized Python initialization
+    // Cached Python objects for performance
+    private var pythonInstance: Python? = null
+    private var ytdlpModule: PyObject? = null
+    private var jsonModule: PyObject? = null
+    private var builtins: PyObject? = null
+
+    // Pre-configured YoutubeDL instances
+    private var audioExtractor: PyObject? = null
+    private var infoExtractor: PyObject? = null
+    private var searchExtractor: PyObject? = null
+
+    // Cached configuration dictionaries
+    private var audioOptions: PyObject? = null
+    private var infoOptions: PyObject? = null
+    private var searchOptions: PyObject? = null
+
+    // Performance metrics
+    private var totalCalls = 0
+    private var cacheHits = 0
+
+    // Centralized Python initialization with caching
     private fun ensurePythonStarted(context: Context) {
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(context))
-            Log.e(TAG, "Python initialized")
+            Log.i(TAG, "Python runtime initialized")
+        }
+
+        // Initialize cached objects if not already done
+        if (pythonInstance == null) {
+            pythonInstance = Python.getInstance()
+            ytdlpModule = pythonInstance!!.getModule("yt_dlp")
+            jsonModule = pythonInstance!!.getModule("json")
+            builtins = pythonInstance!!.getBuiltins()
+
+            // Pre-create configuration dictionaries
+            createConfigDictionaries()
+
+            // Pre-create YoutubeDL instances
+            createExtractors()
+
+            Log.i(TAG, "Python objects cached for performance")
         }
     }
 
-    // Helper to convert PyObject to Map<String, Any?> via JSON
+    // Create optimized configuration dictionaries
+    private fun createConfigDictionaries() {
+        // Audio extraction config - optimized for speed
+        audioOptions = builtins!!.callAttr("dict")
+        audioOptions!!.callAttr("__setitem__", "quiet", true)
+        audioOptions!!.callAttr("__setitem__", "no_warnings", true)
+        audioOptions!!.callAttr("__setitem__", "skip_download", true)
+        audioOptions!!.callAttr("__setitem__", "format", "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio")
+        audioOptions!!.callAttr("__setitem__", "extract_flat", false)
+        audioOptions!!.callAttr("__setitem__", "noplaylist", true)
+        audioOptions!!.callAttr("__setitem__", "socket_timeout", 10)
+        audioOptions!!.callAttr("__setitem__", "retries", 1)
+
+        // Info extraction config
+        infoOptions = builtins!!.callAttr("dict")
+        infoOptions!!.callAttr("__setitem__", "quiet", true)
+        infoOptions!!.callAttr("__setitem__", "no_warnings", true)
+        infoOptions!!.callAttr("__setitem__", "skip_download", true)
+        infoOptions!!.callAttr("__setitem__", "extract_flat", true)
+        infoOptions!!.callAttr("__setitem__", "noplaylist", true)
+        infoOptions!!.callAttr("__setitem__", "socket_timeout", 10)
+        infoOptions!!.callAttr("__setitem__", "retries", 1)
+
+        // Search config
+        searchOptions = builtins!!.callAttr("dict")
+        searchOptions!!.callAttr("__setitem__", "quiet", true)
+        searchOptions!!.callAttr("__setitem__", "no_warnings", true)
+        searchOptions!!.callAttr("__setitem__", "skip_download", true)
+        searchOptions!!.callAttr("__setitem__", "extract_flat", true)
+        searchOptions!!.callAttr("__setitem__", "noplaylist", true)
+        searchOptions!!.callAttr("__setitem__", "socket_timeout", 10)
+        searchOptions!!.callAttr("__setitem__", "retries", 1)
+    }
+
+    // Create pre-configured YoutubeDL instances
+    private fun createExtractors() {
+        try {
+            audioExtractor = ytdlpModule!!.callAttr("YoutubeDL", audioOptions)
+            infoExtractor = ytdlpModule!!.callAttr("YoutubeDL", infoOptions)
+            searchExtractor = ytdlpModule!!.callAttr("YoutubeDL", searchOptions)
+            Log.i(TAG, "YoutubeDL extractors created and cached")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create extractors", e)
+            throw e
+        }
+    }
+
+    // Optimized PyObject to Map conversion using cached JSON module
     private fun pyToMap(pyObj: PyObject): Map<String, Any?> {
-        val python = Python.getInstance()
-        val jsonLib = python.getModule("json")
-        val jsonStr = jsonLib.callAttr("dumps", pyObj).toString()
+        val jsonStr = jsonModule!!.callAttr("dumps", pyObj).toString()
         return Gson().fromJson(jsonStr, Map::class.java) as Map<String, Any?>
     }
 
     companion object {
         @JvmStatic
         fun registerWith(registrar: io.flutter.plugin.common.PluginRegistry.Registrar) {
-            System.out.println("YTDLP: registerWith (old API) called")
             val channel = MethodChannel(registrar.messenger(), "ytdlp_channel")
             val plugin = YtDlpPlugin()
             channel.setMethodCallHandler(plugin)
-            System.out.println("YTDLP: Old API registration complete")
-            android.util.Log.e("YtDlpPlugin", "YTDLP: Channel registered via old API")
             plugin.ensurePythonStarted(registrar.context())
         }
     }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        System.out.println("YTDLP: onAttachedToEngine called")
-        android.util.Log.e(TAG, "YTDLP: Creating method channel")
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "ytdlp_channel")
         channel.setMethodCallHandler(this)
-        System.out.println("YTDLP: Method channel 'ytdlp_channel' registered")
-        android.util.Log.e(TAG, "YTDLP: Channel registration complete")
-
-        // Initialize Python if not already initialized
         ensurePythonStarted(flutterPluginBinding.applicationContext)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
-        System.out.println("YTDLP: Method call received: ${call.method}")
-        android.util.Log.e(TAG, "YTDLP: Processing method: ${call.method}")
+        Log.d(TAG, "Method call: ${call.method}")
         when (call.method) {
             "getAudioStream" -> {
                 val videoId = call.argument<String>("videoId")
+                val quality = call.argument<String>("quality") ?: "High"
                 if (videoId == null) {
                     result.error("INVALID_ARGUMENT", "videoId is required", null)
                     return
                 }
-                getAudioStream(videoId, result)
+                getAudioStream(videoId, quality, result)
             }
             "getVideoInfo" -> {
                 val videoId = call.argument<String>("videoId")
@@ -91,22 +163,35 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
                 }
                 searchVideos(query, maxResults, result)
             }
+            "getPerformanceStats" -> {
+                result.success(getPerformanceStats())
+            }
             else -> result.notImplemented()
         }
     }
 
-    private fun getAudioStream(videoId: String, result: Result) {
-        System.out.println("YTDLP: getAudioStream called for: $videoId")
-        Log.e(TAG, "YTDLP: Starting yt-dlp for $videoId")
+    private fun getPerformanceStats(): Map<String, Any> {
+        return mapOf(
+            "totalCalls" to totalCalls,
+            "cacheHits" to cacheHits,
+            "pythonInitialized" to (pythonInstance != null),
+            "extractorsReady" to (audioExtractor != null && infoExtractor != null && searchExtractor != null)
+        )
+    }
+
+    private fun getAudioStream(videoId: String, quality: String, result: Result) {
+        Log.d(TAG, "Getting audio stream for: $videoId (quality: $quality)")
         scope.launch {
             try {
+                val startTime = System.currentTimeMillis()
                 val audioData = withContext(Dispatchers.IO) {
-                    executeYtDlp(videoId)
+                    executeYtDlp(videoId, quality)
                 }
-                System.out.println("YTDLP: SUCCESS - Got stream URL for $videoId")
+                val duration = System.currentTimeMillis() - startTime
+                Log.i(TAG, "Successfully extracted audio for $videoId in ${duration}ms")
                 result.success(audioData)
             } catch (e: Exception) {
-                Log.e(TAG, "YTDLP: ERROR for $videoId: ${e.message}", e)
+                Log.e(TAG, "Failed to get audio stream for $videoId: ${e.message}", e)
                 result.error("PYTHON_ERROR", e.message, null)
             }
         }
@@ -154,73 +239,79 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun executeYtDlp(videoId: String): Map<String, Any?> {
-        android.util.Log.e(TAG, "YTDLP: Starting yt-dlp for $videoId (JSON conversion mode)")
-        val python = Python.getInstance()
-        val ytdlp = python.getModule("yt_dlp")
+    private fun executeYtDlp(videoId: String, quality: String = "High"): Map<String, Any?> {
+        totalCalls++
+        Log.d(TAG, "YTDLP: Extracting audio for $videoId (quality: $quality, call #$totalCalls)")
 
-        val pyDict = python.getBuiltins().callAttr("dict")
-        pyDict.callAttr("__setitem__", "quiet", true)
-        pyDict.callAttr("__setitem__", "skip_download", true)
-        pyDict.callAttr("__setitem__", "format", "bestaudio")
-        pyDict.callAttr("__setitem__", "extract_flat", false)
-        pyDict.callAttr("__setitem__", "noplaylist", true)
-
-        val ydl = ytdlp.callAttr("YoutubeDL", pyDict)
-        val info = ydl.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
+        val info = audioExtractor!!.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
             ?: throw Exception("Failed to extract info")
 
         val infoMap = pyToMap(info)
         val formats = infoMap["formats"] as? List<*> ?: throw Exception("No formats found")
 
-        var bestAudioUrl: String? = null
-        var bestBitrate = 0
-        val title = infoMap["title"]?.toString() ?: ""
-        val duration = (infoMap["duration"] as? Number)?.toInt() ?: (infoMap["duration"] as? Double)?.toInt() ?: 0
-        val thumbnail = infoMap["thumbnail"]?.toString() ?: ""
-        val uploader = infoMap["uploader"]?.toString() ?: ""
+        // Quality-aware format selection
+        val targetBitrate = when (quality.lowercase()) {
+            "low" -> 128  // Target ~128 kbps for low quality
+            "medium" -> 160  // Target ~160 kbps for medium quality
+            "high" -> 256  // Target ~256+ kbps for high quality
+            else -> 256
+        }
+
+        var bestFormat: Map<String, Any?>? = null
+        var bestScore = 0
 
         formats.forEach { item ->
             val f = item as? Map<String, Any?> ?: return@forEach
             val acodec = f["acodec"]?.toString()?.lowercase()
             val vcodec = f["vcodec"]?.toString()?.lowercase()
+            val ext = f["ext"]?.toString()?.lowercase()
+            val abr = (f["abr"] as? Number)?.toInt() ?: 0
+            val url = f["url"]?.toString()
 
-            if (acodec != null && acodec != "none" && (vcodec == null || vcodec == "none")) {
-                val abr = (f["abr"] as? Number)?.toInt()
-                    ?: (f["tbr"] as? Number)?.toInt()
-                    ?: 0
-                val urlStr = f["url"]?.toString()
-                Log.d(TAG, "Evaluating format: abr=$abr, url=$urlStr")
-                if (urlStr != null && abr >= bestBitrate) {
-                    bestBitrate = abr
-                    bestAudioUrl = urlStr
+            // Only consider audio-only formats
+            if (acodec != null && acodec != "none" && (vcodec == null || vcodec == "none") && url != null) {
+                // Score based on quality preference and proximity to target bitrate
+                var score = when (quality.lowercase()) {
+                    "low" -> if (abr <= 128) 1000 - (128 - abr) else 0  // Prefer <= 128kbps
+                    "medium" -> if (abr in 129..192) 1000 - kotlin.math.abs(160 - abr) else 0  // Prefer ~160kbps
+                    "high" -> abr  // Prefer highest bitrate
+                    else -> abr
+                }
+
+                // Bonus for preferred formats
+                if (ext == "m4a") score += 100
+                else if (ext == "mp3") score += 50
+
+                if (score > bestScore) {
+                    bestScore = score
+                    bestFormat = f
                 }
             }
         }
 
+        if (bestFormat == null) throw Exception("No suitable audio format found")
+
+        val title = infoMap["title"]?.toString() ?: ""
+        val duration = (infoMap["duration"] as? Number)?.toInt() ?: (infoMap["duration"] as? Double)?.toInt() ?: 0
+        val thumbnail = infoMap["thumbnail"]?.toString() ?: ""
+        val uploader = infoMap["uploader"]?.toString() ?: ""
+        val bitrate = (bestFormat!!["abr"] as? Number)?.toInt() ?: (bestFormat!!["tbr"] as? Number)?.toInt() ?: 128
+
+        Log.d(TAG, "Selected format: ${bitrate}kbps for quality: $quality")
         return mapOf(
-            "url" to (bestAudioUrl ?: throw Exception("No audio stream found")),
+            "url" to bestFormat!!["url"],
             "title" to title,
             "duration" to duration,
             "thumbnail" to thumbnail,
             "uploader" to uploader,
-            "bitrate" to bestBitrate
+            "bitrate" to bitrate
         )
     }
 
     private fun executeYtDlpInfo(videoId: String): Map<String, Any?> {
-        val python = Python.getInstance()
-        val ytdlp = python.getModule("yt_dlp")
+        Log.d(TAG, "YTDLP: Getting info for $videoId")
 
-        val pyDict = python.getBuiltins().callAttr("dict")
-        pyDict.callAttr("__setitem__", "quiet", true)
-        pyDict.callAttr("__setitem__", "skip_download", true)
-        pyDict.callAttr("__setitem__", "format", "bestaudio")
-        pyDict.callAttr("__setitem__", "extract_flat", false)
-        pyDict.callAttr("__setitem__", "noplaylist", true)
-
-        val ydl = ytdlp.callAttr("YoutubeDL", pyDict)
-        val info = ydl.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
+        val info = infoExtractor!!.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
             ?: throw Exception("Failed to extract info")
 
         val infoMap = pyToMap(info)
@@ -237,45 +328,26 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun executeYtDlpSearch(query: String, maxResults: Int): List<Map<String, Any?>> {
-        val python = Python.getInstance()
-        val ytdlp = python.getModule("yt_dlp")
+        Log.d(TAG, "YTDLP: Searching for '$query' (max $maxResults results)")
 
-        val pyDict = python.getBuiltins().callAttr("dict")
-        pyDict.callAttr("__setitem__", "quiet", true)
-        pyDict.callAttr("__setitem__", "skip_download", true)
-        pyDict.callAttr("__setitem__", "format", "bestaudio")
-        pyDict.callAttr("__setitem__", "extract_flat", false)
-        pyDict.callAttr("__setitem__", "noplaylist", true)
-
-        val ydl = ytdlp.callAttr("YoutubeDL", pyDict)
         val searchExpr = "ytsearch$maxResults:$query"
-        val result = ydl.callAttr("extract_info", searchExpr, false) ?: throw Exception("Search failed")
+        val result = searchExtractor!!.callAttr("extract_info", searchExpr, false)
+            ?: throw Exception("Search failed")
 
         val resultMap = pyToMap(result)
         val entries = resultMap["entries"] as? List<*> ?: return emptyList()
-        val out = mutableListOf<Map<String, Any?>>()
 
-        entries.forEach { item ->
-            val e = item as? Map<String, Any?> ?: return@forEach
-            val id = e["id"]?.toString() ?: ""
-            val title = e["title"]?.toString() ?: ""
-            val duration = (e["duration"] as? Number)?.toInt() ?: (e["duration"] as? Double)?.toInt() ?: 0
-            val thumbnail = e["thumbnail"]?.toString() ?: ""
-            val uploader = e["uploader"]?.toString() ?: ""
-            val viewCount = (e["view_count"] as? Number)?.toInt() ?: (e["view_count"] as? Double)?.toInt() ?: 0
-            out.add(
-                mapOf(
-                    "id" to id,
-                    "title" to title,
-                    "duration" to duration,
-                    "thumbnail" to thumbnail,
-                    "uploader" to uploader,
-                    "view_count" to viewCount
-                )
+        return entries.mapNotNull { item ->
+            val e = item as? Map<String, Any?> ?: return@mapNotNull null
+            mapOf(
+                "id" to (e["id"]?.toString() ?: ""),
+                "title" to (e["title"]?.toString() ?: ""),
+                "duration" to ((e["duration"] as? Number)?.toInt() ?: (e["duration"] as? Double)?.toInt() ?: 0),
+                "thumbnail" to (e["thumbnail"]?.toString() ?: ""),
+                "uploader" to (e["uploader"]?.toString() ?: ""),
+                "view_count" to ((e["view_count"] as? Number)?.toInt() ?: (e["view_count"] as? Double)?.toInt() ?: 0)
             )
         }
-
-        return out
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

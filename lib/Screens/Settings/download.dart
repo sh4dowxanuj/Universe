@@ -109,32 +109,38 @@ class _DownloadPageState extends State<DownloadPage> {
                     .ytDownQualitySub,
               ),
               onTap: () {},
-              trailing: DropdownButton(
-                value: ytDownloadQuality,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyLarge!.color,
-                ),
-                underline: const SizedBox(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(
-                      () {
-                        ytDownloadQuality = newValue;
-                        Hive.box('settings').put('ytDownloadQuality', newValue);
-                      },
+              trailing: SizedBox(
+                width: 100,
+                child: DropdownButton(
+                  value: ['Low', 'Medium', 'High'].contains(ytDownloadQuality)
+                      ? ytDownloadQuality
+                      : 'High',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyLarge!.color,
+                  ),
+                  underline: const SizedBox(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(
+                        () {
+                          ytDownloadQuality = newValue;
+                          Hive.box('settings')
+                              .put('ytDownloadQuality', newValue);
+                        },
+                      );
+                    }
+                  },
+                  items: <String>['Low', 'Medium', 'High']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(
+                        value,
+                      ),
                     );
-                  }
-                },
-                items: <String>['Low', 'High']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      value,
-                    ),
-                  );
-                }).toList(),
+                  }).toList(),
+                ),
               ),
               dense: true,
             ),
