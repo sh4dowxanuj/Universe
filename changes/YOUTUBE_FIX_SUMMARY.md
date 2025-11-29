@@ -320,7 +320,7 @@ If issues arise, rollback by:
 ## Credits
 
 - **Package:** youtube_explode_dart by Tanner (@Hexer10)
-- **Original BlackHole:** Ankit Sangwan
+- **Original BlackHole:** SH4DOWXANUJ
 - **Fix Implementation:** GitHub Copilot AI Assistant
 - **Date:** November 23, 2025
 

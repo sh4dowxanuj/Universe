@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
  * 
- * Copyright (c) 2021-2023, Ankit Sangwan
+ * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
 import 'dart:convert';
@@ -540,15 +540,19 @@ class YtMusicService {
       
       if (response.isEmpty) {
         Logger.root.warning('Empty response from YTMusic for $videoId');
-        return {};
+        return {
+          'error': 'No data found for this video. Please try another track.'
+        };
       }
-      
+
       final videoDetails =
           await NavClass.nav(response, ['videoDetails']) as Map?;
-      
+
       if (videoDetails == null) {
         Logger.root.warning('No video details found for $videoId');
-        return {};
+        return {
+          'error': 'No video details found. The track may be unavailable.'
+        };
       }
       
       List<String> urls = [];
@@ -559,8 +563,8 @@ class YtMusicService {
       if (getUrl) {
         try {
           // Use yt-dlp instead of youtube_explode_dart to avoid 403 errors
-          Logger.root.info('YTMusic: Fetching stream URL using yt-dlp for $videoId');
-          final ytdlpData = await YtDlpService.instance.getAudioStream(videoId);
+          Logger.root.info('YTMusic: Fetching stream URL using yt-dlp for $videoId (quality: $quality)');
+          final ytdlpData = await YtDlpService.instance.getAudioStream(videoId, quality: quality);
           
           if (ytdlpData != null && ytdlpData['url'] != null) {
             finalUrl = ytdlpData['url'] as String;
@@ -584,7 +588,9 @@ class YtMusicService {
           
         } catch (e) {
           Logger.root.severe('YTMusic: Error fetching stream URL for $videoId: $e');
-          // Continue with metadata even if URL fetching fails
+          return {
+            'error': 'Failed to fetch stream URL. Please check your connection or try another track.'
+          };
         }
       }
 
@@ -618,7 +624,9 @@ class YtMusicService {
       };
     } catch (e) {
       Logger.root.severe('Error in yt get song data for $videoId: $e');
-      return {};
+      return {
+        'error': 'Unexpected error occurred. Please try again.'
+      };
     }
   }
 
@@ -690,82 +698,14 @@ class YtMusicService {
           'playlistItemData',
           'videoId',
         ]).toString();
-        final String image = NavClass.nav(item, [
-          'musicResponsiveListItemRenderer',
-          'thumbnail',
-          'musicThumbnailRenderer',
-          'thumbnail',
-          'thumbnails',
-          0,
-          'url',
-        ]).toString();
-        final String title = NavClass.nav(item, [
-          'musicResponsiveListItemRenderer',
-          'flexColumns',
-          0,
-          'musicResponsiveListItemFlexColumnRenderer',
-          'text',
-          'runs',
-          0,
-          'text',
-        ]).toString();
-        final List subtitleList = NavClass.nav(item, [
-          'musicResponsiveListItemRenderer',
-          'flexColumns',
-          1,
-          'musicResponsiveListItemFlexColumnRenderer',
-          'text',
-          'runs',
-        ]) as List;
-        int count = 0;
-        String year = '';
-        String album = '';
-        String artist = '';
-        String albumArtist = '';
-        String duration = '';
-        String subtitle = '';
-        year = '';
-        for (final element in subtitleList) {
-          // ignore: use_string_buffers
-          subtitle += element['text'].toString();
-          if (element['text'].trim() == '•') {
-            count++;
-          } else {
-            if (count == 0) {
-              if (element['text'].toString().trim() == '&') {
-                artist += ', ';
-              } else {
-                artist += element['text'].toString();
-                if (albumArtist == '') {
-                  albumArtist = element['text'].toString();
-                }
-              }
-            } else if (count == 1) {
-              album += element['text'].toString();
-            } else if (count == 2) {
-              duration += element['text'].toString();
-            }
-          }
+        if (id.isEmpty || id == 'null') continue;
+        // Fetch full song data with yt-dlp stream URL
+        final songData = await getSongData(videoId: id, getUrl: true);
+        if (songData.isNotEmpty && songData['error'] == null) {
+          songResults.add(songData);
+        } else if (songData['error'] != null) {
+          Logger.root.warning('Skipping track $id: ${songData['error']}');
         }
-        songResults.add({
-          'id': id,
-          'type': 'song',
-          'title': title,
-          'artist': artist,
-          'genre': 'YouTube',
-          'language': 'YouTube',
-          'year': year,
-          'album_artist': albumArtist,
-          'album': album,
-          'duration': duration,
-          'subtitle': subtitle,
-          'image': image,
-          'perma_url': 'https://www.youtube.com/watch?v=$id',
-          'url': 'https://www.youtube.com/watch?v=$id',
-          'release_date': '',
-          'album_id': '',
-          'expire_at': '0',
-        });
       }
       return {
         'songs': songResults,
