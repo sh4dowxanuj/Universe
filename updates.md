@@ -303,7 +303,7 @@ print(_CipherUtil._nOps.length); // Should be > 0
 
 Updated by: GitHub Copilot Agent  
 Date: November 22, 2025  
-Original BlackHole by: Ankit Sangwan (Sangwan5688)  
+Original BlackHole by: SH4DOWXANUJ (Sangwan5688)  
 License: GNU Lesser General Public License v3.0
 
 ---
