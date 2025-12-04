@@ -147,8 +147,8 @@ class _SeekBarState extends State<SeekBar> {
                     trackShape: const RoundedRectSliderTrackShape(),
                   ),
                   child: Slider(
-                    max: widget.duration.inMilliseconds.toDouble(),
-                    value: value.clamp(0.0, widget.duration.inMilliseconds.toDouble()),
+                    max: widget.duration.inMilliseconds.toDouble().clamp(1.0, double.infinity),
+                    value: value.clamp(0.0, widget.duration.inMilliseconds.toDouble().clamp(1.0, double.infinity)),
                     onChanged: (value) {
                       if (!_dragging) {
                         _dragging = true;

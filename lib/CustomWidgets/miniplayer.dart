@@ -17,6 +17,7 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+// dart:ui is used for ImageFilter.blur in the glassmorphism effect
 import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';

@@ -33,7 +33,6 @@ class AppTheme {
     final Color accentColor = currentTheme.currentColor();
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'ProductSans',
       textSelectionTheme: TextSelectionThemeData(
         selectionHandleColor: accentColor,
         cursorColor: accentColor,
@@ -235,7 +234,6 @@ class AppTheme {
     
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'ProductSans',
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: Colors.white,
