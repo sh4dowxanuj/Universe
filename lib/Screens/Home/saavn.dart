@@ -162,21 +162,28 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     children: [
                       GestureDetector(
-                        child: Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 10, 0, 5),
-                              child: Text(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
                                 AppLocalizations.of(context)!.lastSession,
                                 style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                  fontSize: 18,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.grey[900],
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.3,
                                 ),
                               ),
-                            ),
-                          ],
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ],
+                          ),
                         ),
                         onTap: () {
                           Navigator.pushNamed(context, '/recent');
@@ -211,21 +218,28 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                   child: Column(
                     children: [
                       GestureDetector(
-                        child: Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 10, 15, 5),
-                              child: Text(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
                                 AppLocalizations.of(context)!.yourPlaylists,
                                 style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                  fontSize: 18,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : Colors.grey[900],
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.3,
                                 ),
                               ),
-                            ),
-                          ],
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ],
+                          ),
                         ),
                         onTap: () {
                           Navigator.pushNamed(context, '/playlists');
@@ -374,22 +388,23 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                     ? const SizedBox()
                     : Column(
                         children: [
-                          Row(
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(15, 10, 0, 5),
-                                child: Text(
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            child: Row(
+                              children: [
+                                Text(
                                   'Liked Artists',
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                    fontSize: 18,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.grey[900],
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           HorizontalAlbumsList(
                             songsList: likedArtistsList,
@@ -419,29 +434,39 @@ class _SaavnHomePageState extends State<SaavnHomePage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(15, 10, 15, 5),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                           child: Row(
                             children: [
-                              Text(
-                                data['modules'][lists[idx]]?['title']
-                                        ?.toString()
-                                        .unescape() ??
-                                    '',
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: Text(
+                                  data['modules'][lists[idx]]?['title']
+                                          ?.toString()
+                                          .unescape() ??
+                                      '',
+                                  style: TextStyle(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : Colors.grey[900],
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(
-                                width: 8,
-                              ),
                               GestureDetector(
-                                child: Icon(
-                                  Icons.block_rounded,
-                                  color: Theme.of(context).disabledColor,
-                                  size: 18,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white.withOpacity(0.1)
+                                        : Colors.grey.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.block_rounded,
+                                    color: Theme.of(context).disabledColor,
+                                    size: 16,
+                                  ),
                                 ),
                                 onTap: () {
                                   showDialog(

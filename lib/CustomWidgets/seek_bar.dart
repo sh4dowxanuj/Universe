@@ -30,8 +30,6 @@ class SeekBar extends StatefulWidget {
   final Duration position;
   final Duration bufferedPosition;
   final bool offline;
-  // final double width;
-  // final double height;
   final ValueChanged<Duration>? onChanged;
   final ValueChanged<Duration>? onChangeEnd;
 
@@ -40,8 +38,6 @@ class SeekBar extends StatefulWidget {
     required this.position,
     required this.offline,
     required this.audioHandler,
-    // required this.width,
-    // required this.height,
     this.bufferedPosition = Duration.zero,
     this.onChanged,
     this.onChangeEnd,
@@ -54,16 +50,6 @@ class SeekBar extends StatefulWidget {
 class _SeekBarState extends State<SeekBar> {
   double? _dragValue;
   bool _dragging = false;
-  late SliderThemeData _sliderThemeData;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    _sliderThemeData = SliderTheme.of(context).copyWith(
-      trackHeight: 4.0,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,39 +60,52 @@ class _SeekBarState extends State<SeekBar> {
     if (_dragValue != null && !_dragging) {
       _dragValue = null;
     }
+    
+    final Color accentColor = Theme.of(context).colorScheme.secondary;
+    
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Speed indicator
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // if (widget.offline)
-                //   Text(
-                //     'Offline',
-                //     style: TextStyle(
-                //       fontWeight: FontWeight.w500,
-                //       color: Theme.of(context).disabledColor,
-                //       fontSize: 14.0,
-                //     ),
-                //   )
-                // else
                 const SizedBox(),
                 StreamBuilder<double>(
                   stream: widget.audioHandler.speed,
                   builder: (context, snapshot) {
                     final String speedValue =
                         '${snapshot.data?.toStringAsFixed(1) ?? 1.0}x';
+                    final bool isDefault = speedValue == '1.0x';
                     return GestureDetector(
-                      child: Text(
-                        speedValue,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: speedValue == '1.0x'
-                              ? Theme.of(context).disabledColor
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDefault
+                              ? Colors.transparent
+                              : accentColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: isDefault
+                              ? Border.all(
+                                  color: Theme.of(context).iconTheme.color!.withOpacity(0.3),
+                                )
                               : null,
+                        ),
+                        child: Text(
+                          speedValue,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: isDefault
+                                ? Theme.of(context).iconTheme.color!.withOpacity(0.6)
+                                : accentColor,
+                          ),
                         ),
                       ),
                       onTap: () {
@@ -125,54 +124,31 @@ class _SeekBarState extends State<SeekBar> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          // Modern seek bar
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10.0,
-              vertical: 2.0,
-            ),
-            child: Stack(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0,
-                    vertical: 6.0,
-                  ),
-                  child: SliderTheme(
-                    data: _sliderThemeData.copyWith(
-                      thumbShape: HiddenThumbComponentShape(),
-                      overlayShape: SliderComponentShape.noThumb,
-                      activeTrackColor:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.5),
-                      inactiveTrackColor:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.3),
-                      // trackShape: RoundedRectSliderTrackShape(),
-                      trackShape: const RectangularSliderTrackShape(),
-                    ),
-                    child: ExcludeSemantics(
-                      child: Slider(
-                        max: widget.duration.inMilliseconds.toDouble(),
-                        value: min(
-                          widget.bufferedPosition.inMilliseconds.toDouble(),
-                          widget.duration.inMilliseconds.toDouble(),
-                        ),
-                        onChanged: (value) {},
-                      ),
-                    ),
-                  ),
-                ),
                 SliderTheme(
-                  data: _sliderThemeData.copyWith(
-                    inactiveTrackColor: Colors.transparent,
-                    activeTrackColor: Theme.of(context).iconTheme.color,
-                    thumbColor: Theme.of(context).iconTheme.color,
+                  data: SliderThemeData(
+                    trackHeight: 5.0,
                     thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 8.0,
+                      enabledThumbRadius: 7.0,
+                      elevation: 2,
                     ),
-                    overlayShape: SliderComponentShape.noThumb,
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 16.0,
+                    ),
+                    activeTrackColor: accentColor,
+                    inactiveTrackColor: Theme.of(context).iconTheme.color!.withOpacity(0.15),
+                    thumbColor: Colors.white,
+                    overlayColor: accentColor.withOpacity(0.2),
+                    trackShape: const RoundedRectSliderTrackShape(),
                   ),
                   child: Slider(
                     max: widget.duration.inMilliseconds.toDouble(),
-                    value: value,
+                    value: value.clamp(0.0, widget.duration.inMilliseconds.toDouble()),
                     onChanged: (value) {
                       if (!_dragging) {
                         _dragging = true;
@@ -190,28 +166,30 @@ class _SeekBarState extends State<SeekBar> {
                     },
                   ),
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  RegExp(r'((^0*[1-9]\d*:)?\d{2}:\d{2})\.\d+$')
-                          .firstMatch('$_position')
-                          ?.group(1) ??
-                      '$_position',
-                ),
-                Text(
-                  RegExp(r'((^0*[1-9]\d*:)?\d{2}:\d{2})\.\d+$')
-                          .firstMatch('$_duration')
-                          ?.group(1) ??
-                      '$_duration',
-                  // style: Theme.of(context).textTheme.caption!.copyWith(
-                  //       color: Theme.of(context).iconTheme.color,
-                  //     ),
+                // Time display
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _formatDuration(_position),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).iconTheme.color!.withOpacity(0.7),
+                        ),
+                      ),
+                      Text(
+                        _formatDuration(_duration),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).iconTheme.color!.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -219,6 +197,18 @@ class _SeekBarState extends State<SeekBar> {
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    
+    if (hours > 0) {
+      return '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}';
+    }
+    return '${twoDigits(minutes)}:${twoDigits(seconds)}';
   }
 
   Duration get _duration => widget.duration;
@@ -255,13 +245,23 @@ void showSliderDialog({
   required AudioPlayerHandler audioHandler,
   String valueSuffix = '',
 }) {
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  final Color accentColor = Theme.of(context).colorScheme.secondary;
+  
   showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
+        borderRadius: BorderRadius.circular(24.0),
       ),
-      title: Text(title, textAlign: TextAlign.center),
+      title: Text(
+        title, 
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : Colors.grey[900],
+        ),
+      ),
       content: StreamBuilder<double>(
         stream: audioHandler.speed,
         builder: (context, snapshot) {
@@ -273,14 +273,15 @@ void showSliderDialog({
             value = min;
           }
           return SizedBox(
-            height: 100.0,
+            height: 120.0,
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.minus),
+                    _buildSpeedButton(
+                      context: context,
+                      icon: CupertinoIcons.minus,
                       onPressed: audioHandler.speed.value > min
                           ? () {
                               audioHandler
@@ -288,16 +289,28 @@ void showSliderDialog({
                             }
                           : null,
                     ),
-                    Text(
-                      '${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
-                      style: const TextStyle(
-                        fontFamily: 'Fixed',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24.0,
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '${snapshot.data?.toStringAsFixed(1)}$valueSuffix',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 28.0,
+                          color: accentColor,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.plus),
+                    _buildSpeedButton(
+                      context: context,
+                      icon: CupertinoIcons.plus,
                       onPressed: audioHandler.speed.value < max
                           ? () {
                               audioHandler
@@ -307,21 +320,54 @@ void showSliderDialog({
                     ),
                   ],
                 ),
-                Slider(
-                  inactiveColor:
-                      Theme.of(context).iconTheme.color!.withOpacity(0.4),
-                  activeColor: Theme.of(context).iconTheme.color,
-                  divisions: divisions,
-                  min: min,
-                  max: max,
-                  value: value,
-                  onChanged: audioHandler.setSpeed,
+                const SizedBox(height: 16),
+                SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 4.0,
+                    activeTrackColor: accentColor,
+                    inactiveTrackColor: accentColor.withOpacity(0.2),
+                    thumbColor: accentColor,
+                    overlayColor: accentColor.withOpacity(0.15),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6.0,
+                    ),
+                  ),
+                  child: Slider(
+                    divisions: divisions,
+                    min: min,
+                    max: max,
+                    value: value,
+                    onChanged: audioHandler.setSpeed,
+                  ),
                 ),
               ],
             ),
           );
         },
       ),
+    ),
+  );
+}
+
+Widget _buildSpeedButton({
+  required BuildContext context,
+  required IconData icon,
+  required VoidCallback? onPressed,
+}) {
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  return Container(
+    decoration: BoxDecoration(
+      color: isDark 
+          ? Colors.white.withOpacity(0.1) 
+          : Colors.grey.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: IconButton(
+      icon: Icon(icon, size: 20),
+      onPressed: onPressed,
+      color: onPressed != null
+          ? (isDark ? Colors.white : Colors.grey[800])
+          : (isDark ? Colors.white38 : Colors.grey[400]),
     ),
   );
 }
