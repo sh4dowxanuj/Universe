@@ -65,19 +65,16 @@ sudo $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platfor
 
 # Install Flutter (if not already installed)
 if [ ! -d "/opt/flutter" ]; then
-    echo "Installing Flutter..."
+    echo "Installing Flutter 3.16.9..."
     cd /opt
-    sudo git clone https://github.com/flutter/flutter.git -b stable --depth 1
-    sudo chown -R $(whoami) /opt/flutter
+    wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.16.9-stable.tar.xz
+    tar xf flutter_linux_3.16.9-stable.tar.xz
+    sudo chown -R $(whoami) flutter
 fi
 
 # Set Flutter environment variables
 export PATH=$PATH:/opt/flutter/bin
 echo "export PATH=\$PATH:/opt/flutter/bin" >> ~/.bashrc
-
-# Update Flutter
-echo "Updating Flutter..."
-flutter upgrade
 
 # Run Flutter doctor
 echo "Running Flutter doctor..."
