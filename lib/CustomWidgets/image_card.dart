@@ -27,9 +27,9 @@ import 'package:flutter/material.dart';
 Widget imageCard({
   required String imageUrl,
   bool localImage = false,
-  double elevation = 5,
+  double elevation = 0,
   EdgeInsetsGeometry margin = EdgeInsets.zero,
-  double borderRadius = 7.0,
+  double borderRadius = 12.0,
   double? boxDimension = 55.0,
   ImageProvider placeholderImage = const AssetImage(
     'assets/cover.jpg',
@@ -38,62 +38,79 @@ Widget imageCard({
   ImageQuality imageQuality = ImageQuality.low,
   Function(Object, StackTrace?)? localErrorFunction,
 }) {
-  return Card(
-    elevation: elevation,
+  return Container(
     margin: margin,
-    shape: RoundedRectangleBorder(
+    decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(borderRadius),
+      boxShadow: elevation > 0
+          ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: elevation * 2,
+                offset: Offset(0, elevation / 2),
+              ),
+            ]
+          : null,
     ),
-    clipBehavior: Clip.antiAlias,
-    child: SizedBox.square(
-      dimension: boxDimension,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (localImage || imageUrl == '')
-            Image(
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stacktrace) {
-                if (localErrorFunction != null) {
-                  localErrorFunction(error, stacktrace);
-                }
-                return Image(
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: SizedBox.square(
+        dimension: boxDimension,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (localImage || imageUrl == '')
+              Image(
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stacktrace) {
+                  if (localErrorFunction != null) {
+                    localErrorFunction(error, stacktrace);
+                  }
+                  return Image(
+                    fit: BoxFit.cover,
+                    image: placeholderImage,
+                  );
+                },
+                image: FileImage(
+                  File(
+                    imageUrl,
+                  ),
+                ),
+              )
+            else
+              CachedNetworkImage(
+                fit: BoxFit.cover,
+                errorWidget: (context, _, __) => Image(
                   fit: BoxFit.cover,
                   image: placeholderImage,
-                );
-              },
-              image: FileImage(
-                File(
-                  imageUrl,
+                ),
+                imageUrl:
+                    UrlImageGetter([imageUrl]).getImageUrl(quality: imageQuality),
+                placeholder: (context, url) => Container(
+                  color: Colors.grey.withOpacity(0.1),
+                  child: Image(
+                    fit: BoxFit.cover,
+                    image: placeholderImage,
+                    opacity: const AlwaysStoppedAnimation(0.5),
+                  ),
                 ),
               ),
-            )
-          else
-            CachedNetworkImage(
-              fit: BoxFit.cover,
-              errorWidget: (context, _, __) => Image(
-                fit: BoxFit.cover,
-                image: placeholderImage,
-              ),
-              imageUrl:
-                  UrlImageGetter([imageUrl]).getImageUrl(quality: imageQuality),
-              placeholder: (context, url) => Image(
-                fit: BoxFit.cover,
-                image: placeholderImage,
-              ),
-            ),
-          if (selected)
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.check_rounded,
+            if (selected)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(borderRadius),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     ),
   );

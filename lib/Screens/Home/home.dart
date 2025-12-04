@@ -384,23 +384,24 @@ class _HomePageState extends State<HomePage> {
               ),
               // MiniPlayer sits directly above bottom navigation
               miniplayer,
-              // Bottom Navigation without SafeArea to touch the bottom edge
+              // Bottom Navigation with modern Material 3 styling
               if (!rotated)
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black.withOpacity(0.9)
-                        : Colors.white.withOpacity(0.9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, -2),
+                        ? Colors.black.withOpacity(0.85)
+                        : Colors.white.withOpacity(0.95),
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey.withOpacity(0.1),
+                        width: 1,
                       ),
-                    ],
+                    ),
                   ),
                   child: SafeArea(
-                    top: false, // Only apply SafeArea to bottom for navigation gesture area
+                    top: false,
                     child: ValueListenableBuilder(
                       valueListenable: _selectedIndex,
                       builder: (
@@ -408,15 +409,30 @@ class _HomePageState extends State<HomePage> {
                         int indexValue,
                         Widget? child,
                       ) {
-                        return BottomNavigationBar(
-                          type: BottomNavigationBarType.fixed,
-                          currentIndex: indexValue,
-                          onTap: onItemTapped,
-                          backgroundColor: Colors.transparent,
-                          elevation: 0,
-                          selectedItemColor: Theme.of(context).colorScheme.secondary,
-                          unselectedItemColor: Theme.of(context).iconTheme.color,
-                          items: _buildBottomNavItems(context),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: BottomNavigationBar(
+                            type: BottomNavigationBarType.fixed,
+                            currentIndex: indexValue,
+                            onTap: onItemTapped,
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            selectedItemColor: Theme.of(context).colorScheme.secondary,
+                            unselectedItemColor: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white54
+                                : Colors.grey[500],
+                            selectedFontSize: 12,
+                            unselectedFontSize: 12,
+                            selectedLabelStyle: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              height: 1.5,
+                            ),
+                            unselectedLabelStyle: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                            ),
+                            items: _buildBottomNavItems(context),
+                          ),
                         );
                       },
                     ),
@@ -655,45 +671,103 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<BottomNavigationBarItem> _buildBottomNavItems(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color accentColor = Theme.of(context).colorScheme.secondary;
+    
     return sectionsToShow.map((section) {
       switch (section) {
         case 'Home':
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.home_rounded),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.home_outlined, size: 26),
+            ),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.home_rounded, size: 26, color: accentColor),
             ),
             label: AppLocalizations.of(context)!.home,
           );
         case 'Top Charts':
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.trending_up_rounded),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.trending_up_outlined, size: 26),
+            ),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.trending_up_rounded, size: 26, color: accentColor),
             ),
             label: AppLocalizations.of(context)!.topCharts,
           );
         case 'YouTube':
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(MdiIcons.youtube),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(MdiIcons.youtubeSubscription, size: 26),
+            ),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(MdiIcons.youtube, size: 26, color: accentColor),
             ),
             label: AppLocalizations.of(context)!.youTube,
           );
         case 'Library':
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.my_library_music_rounded),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.library_music_outlined, size: 26),
+            ),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.library_music_rounded, size: 26, color: accentColor),
             ),
             label: AppLocalizations.of(context)!.library,
           );
         default:
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.settings_rounded),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.settings_outlined, size: 26),
+            ),
+            activeIcon: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(Icons.settings_rounded, size: 26, color: accentColor),
             ),
             label: AppLocalizations.of(context)!.settings,
           );

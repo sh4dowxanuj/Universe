@@ -43,34 +43,50 @@ class _NewSettingsPageState extends State<NewSettingsPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GradientContainer(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          centerTitle: true,
-          leading: sectionsToShow.contains('Settings')
-              ? homeDrawer(
-                  context: context,
-                  padding: const EdgeInsets.only(left: 15.0),
-                )
-              : null,
-          title: Text(
-            AppLocalizations.of(context)!.settings,
-            style: TextStyle(
-              color: Theme.of(context).iconTheme.color,
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 80,
+              floating: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: sectionsToShow.contains('Settings')
+                  ? homeDrawer(
+                      context: context,
+                      padding: const EdgeInsets.only(left: 15.0),
+                    )
+                  : null,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                title: Text(
+                  AppLocalizations.of(context)!.settings,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.grey[900],
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
             ),
-          ),
-          iconTheme: IconThemeData(
-            color: Theme.of(context).iconTheme.color,
-          ),
-        ),
-        body: Column(
-          children: [
-            _searchBar(context),
-            Expanded(child: _settingsItem(context)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _searchBar(context),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(16.0),
+              sliver: _settingsGrid(context),
+            ),
           ],
         ),
       ),
@@ -78,16 +94,32 @@ class _NewSettingsPageState extends State<NewSettingsPage>
   }
 
   Widget _searchBar(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 0.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          10.0,
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.grey.withOpacity(0.15),
+          width: 1,
         ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
-      elevation: 2.0,
       child: SizedBox(
-        height: 55.0,
+        height: 54.0,
         child: Center(
           child: ValueListenableBuilder(
             valueListenable: searchQuery,
@@ -95,26 +127,35 @@ class _NewSettingsPageState extends State<NewSettingsPage>
               return TextField(
                 controller: controller,
                 textAlignVertical: TextAlignVertical.center,
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.grey[900],
+                ),
                 decoration: InputDecoration(
-                  focusedBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      width: 1.5,
-                      color: Colors.transparent,
-                    ),
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  border: InputBorder.none,
+                  fillColor: Colors.transparent,
+                  filled: true,
+                  prefixIcon: Icon(
+                    CupertinoIcons.search,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
-                  fillColor: Theme.of(context).colorScheme.secondary,
-                  prefixIcon: const Icon(CupertinoIcons.search),
                   suffixIcon: query.trim() != ''
                       ? IconButton(
                           onPressed: () {
                             controller.clear();
                             searchQuery.value = '';
                           },
-                          icon: const Icon(Icons.close_rounded),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: isDark ? Colors.white54 : Colors.grey[500],
+                          ),
                         )
                       : null,
-                  border: InputBorder.none,
                   hintText: AppLocalizations.of(context)!.search,
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white54 : Colors.grey[500],
+                  ),
                 ),
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.search,
@@ -129,18 +170,16 @@ class _NewSettingsPageState extends State<NewSettingsPage>
     );
   }
 
-  Widget _settingsItem(BuildContext context) {
+  Widget _settingsGrid(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final List<Map<String, dynamic>> settingsList = [
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .theme,
+        'title': AppLocalizations.of(context)!.theme,
         'icon': MdiIcons.themeLightDark,
-        'onTap': ThemePage(
-          callback: widget.callback,
-        ),
-        'isThreeLine': true,
+        'color': Colors.purple,
+        'onTap': ThemePage(callback: widget.callback),
+        'description': 'Colors, gradients & appearance',
         'items': [
           AppLocalizations.of(context)!.darkMode,
           AppLocalizations.of(context)!.accent,
@@ -156,15 +195,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .ui,
+        'title': AppLocalizations.of(context)!.ui,
         'icon': Icons.design_services_rounded,
-        'onTap': AppUIPage(
-          callback: widget.callback,
-        ),
-        'isThreeLine': true,
+        'color': Colors.blue,
+        'onTap': AppUIPage(callback: widget.callback),
+        'description': 'Layout & interface options',
         'items': [
           AppLocalizations.of(context)!.playerScreenBackground,
           AppLocalizations.of(context)!.miniButtons,
@@ -181,15 +216,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .musicPlayback,
+        'title': AppLocalizations.of(context)!.musicPlayback,
         'icon': Icons.music_note_rounded,
-        'onTap': MusicPlaybackPage(
-          callback: widget.callback,
-        ),
-        'isThreeLine': true,
+        'color': Colors.green,
+        'onTap': MusicPlaybackPage(callback: widget.callback),
+        'description': 'Quality & playback settings',
         'items': [
           AppLocalizations.of(context)!.musicLang,
           AppLocalizations.of(context)!.streamQuality,
@@ -204,13 +235,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .down,
-        'icon': Icons.download_done_rounded,
+        'title': AppLocalizations.of(context)!.down,
+        'icon': Icons.download_rounded,
+        'color': Colors.orange,
         'onTap': const DownloadPage(),
-        'isThreeLine': true,
+        'description': 'Download location & quality',
         'items': [
           AppLocalizations.of(context)!.downQuality,
           AppLocalizations.of(context)!.downLocation,
@@ -222,13 +251,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .others,
-        'icon': Icons.miscellaneous_services_rounded,
+        'title': AppLocalizations.of(context)!.others,
+        'icon': Icons.tune_rounded,
+        'color': Colors.teal,
         'onTap': const OthersPage(),
-        'isThreeLine': true,
+        'description': 'Language & additional options',
         'items': [
           AppLocalizations.of(context)!.lang,
           AppLocalizations.of(context)!.includeExcludeFolder,
@@ -246,13 +273,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .backNRest,
-        'icon': Icons.settings_backup_restore_rounded,
+        'title': AppLocalizations.of(context)!.backNRest,
+        'icon': Icons.cloud_sync_rounded,
+        'color': Colors.indigo,
         'onTap': const BackupAndRestorePage(),
-        'isThreeLine': false,
+        'description': 'Backup & restore your data',
         'items': [
           AppLocalizations.of(context)!.createBack,
           AppLocalizations.of(context)!.restore,
@@ -261,13 +286,11 @@ class _NewSettingsPageState extends State<NewSettingsPage>
         ],
       },
       {
-        'title': AppLocalizations.of(
-          context,
-        )!
-            .about,
+        'title': AppLocalizations.of(context)!.about,
         'icon': Icons.info_outline_rounded,
+        'color': Colors.red,
         'onTap': const AboutPage(),
-        'isThreeLine': false,
+        'description': 'App info & support',
         'items': [
           AppLocalizations.of(context)!.version,
           AppLocalizations.of(context)!.shareApp,
@@ -287,57 +310,130 @@ class _NewSettingsPageState extends State<NewSettingsPage>
       }
     }
 
-    final bool isRotated =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
-
-    return Stack(
-      children: [
-        ListView.builder(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10.0,
-            vertical: 15.0,
+    return ValueListenableBuilder(
+      valueListenable: searchQuery,
+      builder: (BuildContext context, String query, Widget? child) {
+        if (query != '') {
+          final List<Map> results = _getSearchResults(searchOptions, query);
+          return SliverToBoxAdapter(
+            child: _searchSuggestions(context, results),
+          );
+        }
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = settingsList[index];
+              return _buildSettingsCard(
+                context: context,
+                title: item['title'].toString(),
+                description: item['description'].toString(),
+                icon: item['icon'] as IconData,
+                color: item['color'] as Color,
+                onTap: () {
+                  searchQuery.value = '';
+                  controller.text = '';
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => item['onTap'] as Widget,
+                    ),
+                  );
+                },
+              );
+            },
+            childCount: settingsList.length,
           ),
-          physics: const BouncingScrollPhysics(),
-          itemCount: settingsList.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              leading: SizedBox.square(
-                dimension: 40,
-                child: Icon(settingsList[index]['icon'] as IconData),
-              ),
-              title: Text(settingsList[index]['title'].toString()),
-              subtitle: Text(
-                (settingsList[index]['items'] as List).take(3).join(', '),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              isThreeLine: !isRotated &&
-                  (settingsList[index]['isThreeLine'] as bool? ?? false),
-              onTap: () {
-                searchQuery.value = '';
-                controller.text = '';
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        settingsList[index]['onTap'] as Widget,
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsCard({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: isDark
+                  ? null
+                  : Border.all(
+                      color: Colors.grey.withOpacity(0.1),
+                      width: 1,
+                    ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(isDark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                );
-              },
-            );
-          },
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white60 : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark ? Colors.white38 : Colors.grey[400],
+                ),
+              ],
+            ),
+          ),
         ),
-        ValueListenableBuilder(
-          valueListenable: searchQuery,
-          builder: (BuildContext context, String query, Widget? child) {
-            if (query != '') {
-              final List<Map> results = _getSearchResults(searchOptions, query);
-              return _searchSuggestions(context, results);
-            }
-            return const SizedBox();
-          },
-        ),
-      ],
+      ),
     );
   }
 
@@ -360,43 +456,93 @@ class _NewSettingsPageState extends State<NewSettingsPage>
     BuildContext context,
     List<Map> options,
   ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 18.0,
-        vertical: 10,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          10.0,
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    if (options.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: isDark ? Colors.white38 : Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No results found',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.white54 : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? null
+            : Border.all(
+                color: Colors.grey.withOpacity(0.1),
+                width: 1,
+              ),
       ),
-      elevation: 8.0,
-      child: SizedBox(
-        height: options.length * 70,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(left: 10, top: 10),
-          physics: const BouncingScrollPhysics(),
-          itemCount: options.length,
-          itemExtent: 70,
-          itemBuilder: (context, index) {
-            return ListTile(
-              leading: Text(options[index]['title'].toString()),
-              onTap: () {
-                searchQuery.value = '';
-                controller.text = '';
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => options[index]['route'] as Widget,
-                    settings: RouteSettings(
-                      arguments: options[index]['title'],
-                    ),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        itemCount: options.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 1,
+          color: isDark ? Colors.white12 : Colors.grey.withOpacity(0.1),
+        ),
+        itemBuilder: (context, index) {
+          return ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.settings_rounded,
+                color: Theme.of(context).colorScheme.secondary,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              options[index]['title'].toString(),
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.grey[800],
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? Colors.white38 : Colors.grey[400],
+            ),
+            onTap: () {
+              searchQuery.value = '';
+              controller.text = '';
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => options[index]['route'] as Widget,
+                  settings: RouteSettings(
+                    arguments: options[index]['title'],
                   ),
-                );
-              },
-            );
-          },
-        ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

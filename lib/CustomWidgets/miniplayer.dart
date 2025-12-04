@@ -17,8 +17,9 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+import 'dart:ui';
+
 import 'package:audio_service/audio_service.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
 import 'package:blackhole/CustomWidgets/image_card.dart';
 import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:flutter/material.dart';
@@ -46,16 +47,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final double screenHeight = MediaQuery.sizeOf(context).height;
     final bool rotated = screenHeight < screenWidth;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SafeArea(
       top: false,
       child: StreamBuilder<MediaItem?>(
         stream: audioHandler.mediaItem,
         builder: (context, snapshot) {
-          // if (snapshot.connectionState != ConnectionState.active) {
-          //   return const SizedBox();
-          // }
           final MediaItem? mediaItem = snapshot.data;
-          // if (mediaItem == null) return const SizedBox();
 
           final List preferredMiniButtons = Hive.box('settings').get(
             'preferredMiniButtons',
@@ -96,34 +95,61 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 }
                 return Future.value(false);
               },
-              child: Card(
+              child: Container(
                 margin: const EdgeInsets.symmetric(
-                  horizontal: 2.0,
-                  vertical: 1.0,
+                  horizontal: 12.0,
+                  vertical: 8.0,
                 ),
-                elevation: 0,
-                child: SizedBox(
-                  child: GradientContainer(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        miniplayerTile(
-                          context: context,
-                          preferredMiniButtons: preferredMiniButtons,
-                          useDense: useDense,
-                          title: mediaItem?.title ?? '',
-                          subtitle: mediaItem?.artist ?? '',
-                          imagePath: (isLocal
-                                  ? mediaItem?.artUri?.toFilePath()
-                                  : mediaItem?.artUri?.toString()) ??
-                              '',
-                          isLocalImage: isLocal,
-                          isDummy: mediaItem == null,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.black.withOpacity(0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.grey[900]!.withOpacity(0.85)
+                            : Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.grey.withOpacity(0.2),
+                          width: 1,
                         ),
-                        positionSlider(
-                          mediaItem?.duration?.inSeconds.toDouble(),
-                        ),
-                      ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          miniplayerTile(
+                            context: context,
+                            preferredMiniButtons: preferredMiniButtons,
+                            useDense: useDense,
+                            title: mediaItem?.title ?? '',
+                            subtitle: mediaItem?.artist ?? '',
+                            imagePath: (isLocal
+                                    ? mediaItem?.artUri?.toFilePath()
+                                    : mediaItem?.artUri?.toString()) ??
+                                '',
+                            isLocalImage: isLocal,
+                            isDummy: mediaItem == null,
+                          ),
+                          positionSlider(
+                            mediaItem?.duration?.inSeconds.toDouble(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -135,7 +161,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
     );
   }
 
-  ListTile miniplayerTile({
+  Widget miniplayerTile({
     required BuildContext context,
     required String title,
     required String subtitle,
@@ -145,83 +171,128 @@ class _MiniPlayerState extends State<MiniPlayer> {
     bool isLocalImage = false,
     bool isDummy = false,
   }) {
-    return ListTile(
-      dense: useDense,
-      onTap: isDummy
-          ? null
-          : () {
-              Navigator.pushNamed(context, '/player');
-            },
-      title: Text(
-        isDummy ? 'Now Playing' : title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: 8.0,
+        vertical: useDense ? 4.0 : 8.0,
       ),
-      subtitle: Text(
-        isDummy ? 'Unknown' : subtitle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      leading: Hero(
-        tag: 'currentArtwork',
-        child: imageCard(
-          elevation: 8,
-          boxDimension: useDense ? 40.0 : 50.0,
-          localImage: isLocalImage,
-          imageUrl: isLocalImage ? imagePath : imagePath,
-        ),
-      ),
-      trailing: isDummy
-          ? null
-          : ControlButtons(
+      child: Row(
+        children: [
+          // Album Art
+          GestureDetector(
+            onTap: isDummy
+                ? null
+                : () {
+                    Navigator.pushNamed(context, '/player');
+                  },
+            child: Hero(
+              tag: 'currentArtwork',
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: imageCard(
+                  elevation: 0,
+                  borderRadius: 12,
+                  boxDimension: useDense ? 44.0 : 52.0,
+                  localImage: isLocalImage,
+                  imageUrl: isLocalImage ? imagePath : imagePath,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Title and Subtitle
+          Expanded(
+            child: GestureDetector(
+              onTap: isDummy
+                  ? null
+                  : () {
+                      Navigator.pushNamed(context, '/player');
+                    },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isDummy ? 'Now Playing' : title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: useDense ? 14 : 15,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.grey[900],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isDummy ? 'Unknown' : subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: useDense ? 12 : 13,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white60
+                          : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Control Buttons
+          if (!isDummy)
+            ControlButtons(
               audioHandler,
               miniplayer: true,
               buttons: isLocalImage
                   ? ['Like', 'Play/Pause', 'Next']
                   : preferredMiniButtons,
             ),
+        ],
+      ),
     );
   }
 
-  StreamBuilder<Duration> positionSlider(double? maxDuration) {
+  Widget positionSlider(double? maxDuration) {
     return StreamBuilder<Duration>(
       stream: AudioService.position,
       builder: (context, snapshot) {
         final position = snapshot.data;
-        return ((position?.inSeconds.toDouble() ?? 0) < 0.0 ||
-                ((position?.inSeconds.toDouble() ?? 0) >
-                    (maxDuration ?? 180.0)))
-            ? const SizedBox()
-            : SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: Theme.of(context).colorScheme.secondary,
-                  inactiveTrackColor: Colors.transparent,
-                  trackHeight: 0.5,
-                  thumbColor: Theme.of(context).colorScheme.secondary,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 1.0,
-                  ),
-                  overlayColor: Colors.transparent,
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 2.0,
-                  ),
-                ),
-                child: Center(
-                  child: Slider(
-                    inactiveColor: Colors.transparent,
-                    // activeColor: Colors.white,
-                    value: position?.inSeconds.toDouble() ?? 0,
-                    max: maxDuration ?? 180.0,
-                    onChanged: (newPosition) {
-                      audioHandler.seek(
-                        Duration(
-                          seconds: newPosition.round(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
+        final currentPosition = position?.inSeconds.toDouble() ?? 0;
+        final max = maxDuration ?? 180.0;
+        
+        if (currentPosition < 0.0 || currentPosition > max) {
+          return const SizedBox(height: 3);
+        }
+        
+        return Container(
+          height: 3,
+          margin: const EdgeInsets.only(bottom: 1),
+          child: LinearProgressIndicator(
+            value: max > 0 ? (currentPosition / max).clamp(0.0, 1.0) : 0,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.grey.withOpacity(0.15),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.secondary,
+            ),
+            minHeight: 3,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+            ),
+          ),
+        );
       },
     );
   }

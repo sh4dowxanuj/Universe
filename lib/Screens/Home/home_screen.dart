@@ -51,12 +51,25 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String name =
         Hive.box('settings').get('name', defaultValue: 'Guest') as String;
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SafeArea(
       child: Stack(
         children: [
@@ -69,12 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ) {
               return <Widget>[
                 SliverAppBar(
-                  expandedHeight: 135,
+                  expandedHeight: 140,
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  // pinned: true,
-                  toolbarHeight: 65,
-                  // floating: true,
+                  toolbarHeight: 70,
                   automaticallyImplyLeading: false,
                   flexibleSpace: LayoutBuilder(
                     builder: (
@@ -82,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       BoxConstraints constraints,
                     ) {
                       return FlexibleSpaceBar(
-                        // collapseMode: CollapseMode.parallax,
                         background: GestureDetector(
                           onTap: () async {
                             showTextInputDialog(
@@ -100,77 +110,63 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.pop(context);
                               },
                             );
-                            // setState(() {});
                           },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const SizedBox(
-                                height: 60,
-                              ),
-                              Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 15.0,
-                                    ),
-                                    child: Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!
-                                          .homeGreet,
-                                      style: TextStyle(
-                                        letterSpacing: 2,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: 20.0,
+                              right: 20.0,
+                              top: 50.0,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(
+                                  _getGreeting(),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark 
+                                        ? Colors.white60 
+                                        : Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
                                   ),
-                                ],
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 15.0,
                                 ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    ValueListenableBuilder(
-                                      valueListenable: Hive.box(
-                                        'settings',
-                                      ).listenable(),
-                                      builder: (
-                                        BuildContext context,
-                                        Box box,
-                                        Widget? child,
-                                      ) {
-                                        return Text(
-                                          (box.get('name') == null ||
-                                                  box.get('name') == '')
-                                              ? 'Guest'
-                                              : box
-                                                  .get(
-                                                    'name',
-                                                  )
-                                                  .split(
-                                                    ' ',
-                                                  )[0]
-                                                  .toString(),
-                                          style: const TextStyle(
-                                            letterSpacing: 2,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                                const SizedBox(height: 4),
+                                ValueListenableBuilder(
+                                  valueListenable: Hive.box(
+                                    'settings',
+                                  ).listenable(),
+                                  builder: (
+                                    BuildContext context,
+                                    Box box,
+                                    Widget? child,
+                                  ) {
+                                    return Text(
+                                      (box.get('name') == null ||
+                                              box.get('name') == '')
+                                          ? 'Guest'
+                                          : box
+                                              .get(
+                                                'name',
+                                              )
+                                              .split(
+                                                ' ',
+                                              )[0]
+                                              .toString(),
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: -0.5,
+                                        color: isDark 
+                                            ? Colors.white 
+                                            : Colors.grey[900],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -183,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   stretch: true,
-                  toolbarHeight: 65,
+                  toolbarHeight: 70,
                   title: Align(
                     alignment: Alignment.centerRight,
                     child: AnimatedBuilder(
@@ -201,51 +197,69 @@ class _HomeScreenState extends State<HomeScreen> {
                                     MediaQuery.sizeOf(context).width -
                                         (rotated ? 0 : 75),
                                   ),
-                            height: 55.0,
+                            height: 54.0,
                             duration: const Duration(
                               milliseconds: 150,
                             ),
-                            padding: const EdgeInsets.all(2.0),
-                            // margin: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(
-                                10.0,
+                              borderRadius: BorderRadius.circular(16.0),
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.08)
+                                  : Colors.white,
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.grey.withOpacity(0.15),
+                                width: 1,
                               ),
-                              color: Theme.of(context).cardColor,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 5.0,
-                                  offset: Offset(1.5, 1.5),
-                                  // shadow direction: bottom right
-                                ),
-                              ],
+                              boxShadow: isDark
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                             ),
                             child: Row(
                               children: [
-                                const SizedBox(
-                                  width: 10.0,
-                                ),
                                 Icon(
                                   CupertinoIcons.search,
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  size: 22,
                                 ),
-                                const SizedBox(
-                                  width: 10.0,
+                                const SizedBox(width: 12.0),
+                                Expanded(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.searchText,
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.grey[500],
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!
-                                      .searchText,
-                                  style: TextStyle(
-                                    fontSize: 16.0,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .color,
-                                    fontWeight: FontWeight.normal,
+                                        .colorScheme
+                                        .secondary
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.mic_none_rounded,
+                                    color: Theme.of(context).colorScheme.secondary,
+                                    size: 18,
                                   ),
                                 ),
                               ],
