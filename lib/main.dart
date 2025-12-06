@@ -1,18 +1,18 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
@@ -20,17 +20,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:blackhole/Helpers/config.dart';
-import 'package:blackhole/Helpers/handle_native.dart';
-import 'package:blackhole/Helpers/import_export_playlist.dart';
-import 'package:blackhole/Helpers/logging.dart';
-import 'package:blackhole/Helpers/route_handler.dart';
-import 'package:blackhole/Screens/Common/routes.dart';
-import 'package:blackhole/Screens/Player/audioplayer.dart';
-import 'package:blackhole/constants/constants.dart';
-import 'package:blackhole/constants/languagecodes.dart';
-import 'package:blackhole/providers/audio_service_provider.dart';
-import 'package:blackhole/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -44,13 +33,24 @@ import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:sizer/sizer.dart';
+import 'package:universe/Helpers/config.dart';
+import 'package:universe/Helpers/handle_native.dart';
+import 'package:universe/Helpers/import_export_playlist.dart';
+import 'package:universe/Helpers/logging.dart';
+import 'package:universe/Helpers/route_handler.dart';
+import 'package:universe/Screens/Common/routes.dart';
+import 'package:universe/Screens/Player/audioplayer.dart';
+import 'package:universe/constants/constants.dart';
+import 'package:universe/constants/languagecodes.dart';
+import 'package:universe/providers/audio_service_provider.dart';
+import 'package:universe/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Paint.enableDithering = true; No longer needed
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await Hive.initFlutter('BlackHole/Database');
+    await Hive.initFlutter('Universe/Database');
   } else if (Platform.isIOS) {
     await Hive.initFlutter('Database');
   } else {
@@ -107,8 +107,8 @@ Future<void> openHiveBox(String boxName, {bool limit = false}) async {
     File dbFile = File('$dirPath/$boxName.hive');
     File lockFile = File('$dirPath/$boxName.lock');
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      dbFile = File('$dirPath/BlackHole/$boxName.hive');
-      lockFile = File('$dirPath/BlackHole/$boxName.lock');
+      dbFile = File('$dirPath/Universe/$boxName.hive');
+      lockFile = File('$dirPath/Universe/$boxName.lock');
     }
     await dbFile.delete();
     await lockFile.delete();
@@ -144,7 +144,7 @@ Future<void> openHiveBox(String boxName, {bool limit = false}) async {
 //     //   'subtitle',
 //     //   audioHandler?.mediaItem.value?.displaySubtitle,
 //     // );
-//     // await HomeWidget.updateWidget(name: 'BlackHoleMusicWidget');
+//     // await HomeWidget.updateWidget(name: 'UniverseMusicWidget');
 //   }
 // }
 
@@ -173,7 +173,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // HomeWidget.setAppGroupId('com.shadow.blackhole');
+    // HomeWidget.setAppGroupId('com.shadow.universe');
     // HomeWidget.registerBackgroundCallback(backgroundCallback);
     final String systemLangCode = Platform.localeName.substring(0, 2);
     final String? lang = Hive.box('settings').get('lang') as String?;
@@ -306,8 +306,8 @@ class _MyAppState extends State<MyApp> {
             builder: (context, orientation) {
               SizerUtil.setScreenSize(constraints, orientation);
               return MaterialApp(
-                title: 'BlackHole',
-                restorationScopeId: 'blackhole',
+                title: 'Universe',
+                restorationScopeId: 'universe',
                 debugShowCheckedModeBanner: false,
                 themeMode: AppTheme.themeMode,
                 theme: AppTheme.lightTheme(

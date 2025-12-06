@@ -1,37 +1,37 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
 import 'package:app_links/app_links.dart';
-import 'package:blackhole/APIs/spotify_api.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/image_card.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/textinput_dialog.dart';
-import 'package:blackhole/Helpers/import_export_playlist.dart';
-import 'package:blackhole/Helpers/playlist.dart';
-import 'package:blackhole/Helpers/search_add_playlist.dart';
-import 'package:blackhole/Helpers/spotify_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:universe/APIs/spotify_api.dart';
+import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/CustomWidgets/image_card.dart';
+import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/CustomWidgets/textinput_dialog.dart';
+import 'package:universe/Helpers/import_export_playlist.dart';
+import 'package:universe/Helpers/playlist.dart';
+import 'package:universe/Helpers/search_add_playlist.dart';
+import 'package:universe/Helpers/spotify_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ImportPlaylist extends StatelessWidget {

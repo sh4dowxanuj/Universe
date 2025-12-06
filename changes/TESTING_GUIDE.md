@@ -5,7 +5,7 @@
 ### Prerequisites
 ```bash
 # Ensure you're in the project directory
-cd /workspaces/BlackHole
+cd /workspaces/Universe
 
 # Install dependencies
 flutter pub get

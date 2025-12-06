@@ -1,18 +1,18 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
@@ -52,7 +52,7 @@ class ExtStorageProvider {
 
           // getting main path
           final String newPath = directory!.path
-              .replaceFirst('Android/data/com.shadow.blackhole/files', dirName);
+              .replaceFirst('Android/data/com.shadow.universe/files', dirName);
 
           directory = Directory(newPath);
 
@@ -80,7 +80,7 @@ class ExtStorageProvider {
         }
       } else if (Platform.isIOS || Platform.isMacOS) {
         directory = await getApplicationDocumentsDirectory();
-        final finalDirName = dirName.replaceAll('BlackHole/', '');
+        final finalDirName = dirName.replaceAll('Universe/', '');
         return '${directory.path}/$finalDirName';
       } else {
         directory = await getDownloadsDirectory();

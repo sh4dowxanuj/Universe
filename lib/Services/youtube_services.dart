@@ -1,18 +1,18 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
@@ -20,12 +20,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:blackhole/Services/yt_music.dart';
-import 'package:blackhole/Services/ytdlp_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
+import 'package:universe/Services/yt_music.dart';
+import 'package:universe/Services/ytdlp_service.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class YouTubeServices {

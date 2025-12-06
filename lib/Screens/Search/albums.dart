@@ -1,33 +1,33 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'package:blackhole/APIs/api.dart';
-import 'package:blackhole/CustomWidgets/bouncy_sliver_scroll_view.dart';
-import 'package:blackhole/CustomWidgets/copy_clipboard.dart';
-import 'package:blackhole/CustomWidgets/download_button.dart';
-import 'package:blackhole/CustomWidgets/empty_screen.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/image_card.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Search/artists.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/APIs/api.dart';
+import 'package:universe/CustomWidgets/bouncy_sliver_scroll_view.dart';
+import 'package:universe/CustomWidgets/copy_clipboard.dart';
+import 'package:universe/CustomWidgets/download_button.dart';
+import 'package:universe/CustomWidgets/empty_screen.dart';
+import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/CustomWidgets/image_card.dart';
+import 'package:universe/Screens/Common/song_list.dart';
+import 'package:universe/Screens/Search/artists.dart';
 
 class AlbumSearchPage extends StatefulWidget {
   final String query;

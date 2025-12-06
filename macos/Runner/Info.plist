@@ -35,7 +35,7 @@
 			<string>Spotify Login</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>blackhole</string>
+				<string>universe</string>
 			</array>
 		</dict>
 	</array>

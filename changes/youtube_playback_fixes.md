@@ -335,7 +335,7 @@ How it works:
 - `lib/Services/youtube_services.dart` - Fixed getMusicHome(), forced HIGH quality
 - `android/app/build.gradle` - Updated SDK 33→34
 - `android/app/src/main/AndroidManifest.xml` - Added custom Application class
-- `android/app/src/main/kotlin/.../BlackHoleApplication.kt` - Created (unused)
+- `android/app/src/main/kotlin/.../UniverseApplication.kt` - Created (unused)
 - `pubspec.yaml` - Upgraded just_audio
 
 **Status**: YouTube playback currently NOT WORKING due to platform-wide authentication changes.
@@ -417,13 +417,13 @@ adb logcat -s flutter:V
 
 ### APK Installation
 ```bash
-adb uninstall com.shadow.blackhole
+adb uninstall com.shadow.universe
 adb install app-debug.apk
 ```
 
 ### Build Command
 ```bash
-cd /workspaces/BlackHole && flutter build apk --debug
+cd /workspaces/Universe && flutter build apk --debug
 ```
 
 ---

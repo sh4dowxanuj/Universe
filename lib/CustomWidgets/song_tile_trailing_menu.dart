@@ -1,35 +1,35 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
 import 'package:audio_service/audio_service.dart';
-import 'package:blackhole/CustomWidgets/add_playlist.dart';
-import 'package:blackhole/Helpers/add_mediaitem_to_queue.dart';
-import 'package:blackhole/Helpers/mediaitem_converter.dart';
-import 'package:blackhole/Helpers/radio.dart';
-import 'package:blackhole/Screens/Common/song_list.dart';
-import 'package:blackhole/Screens/Search/albums.dart';
-import 'package:blackhole/Screens/Search/search.dart';
-import 'package:blackhole/Services/yt_music.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:universe/CustomWidgets/add_playlist.dart';
+import 'package:universe/Helpers/add_mediaitem_to_queue.dart';
+import 'package:universe/Helpers/mediaitem_converter.dart';
+import 'package:universe/Helpers/radio.dart';
+import 'package:universe/Screens/Common/song_list.dart';
+import 'package:universe/Screens/Search/albums.dart';
+import 'package:universe/Screens/Search/search.dart';
+import 'package:universe/Services/yt_music.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SongTileTrailingMenu extends StatefulWidget {
