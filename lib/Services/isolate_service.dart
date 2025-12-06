@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:blackhole/Screens/Player/audioplayer.dart';
-import 'package:blackhole/Services/youtube_services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:universe/Screens/Player/audioplayer.dart';
+import 'package:universe/Services/youtube_services.dart';
 
 SendPort? isolateSendPort;
 
@@ -39,7 +39,7 @@ Future<void> _backgroundProcess(SendPort sendPort) async {
     if (!hiveInit) {
       String path = message.toString();
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        path += '/BlackHole/Database';
+        path += '/Universe/Database';
       } else if (Platform.isIOS) {
         path += '/Database';
       }

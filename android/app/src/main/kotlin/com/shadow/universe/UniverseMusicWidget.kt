@@ -1,4 +1,4 @@
-package com.shadow.blackhole
+package com.shadow.universe
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -22,7 +22,7 @@ import io.flutter.plugin.common.MethodChannel
 /**
  * Implementation of App Widget functionality.
  */
-class BlackHoleMusicWidget : AppWidgetProvider() {
+class UniverseMusicWidget : AppWidgetProvider() {
     // private lateinit var mediaSessionToken: MediaSession.Token
     // private lateinit var mediaController: MediaController
 
@@ -77,26 +77,26 @@ class BlackHoleMusicWidget : AppWidgetProvider() {
 
         // // val skipNextIntent = HomeWidgetBackgroundIntent.getBroadcast(
         // //         context,
-        // //         Uri.parse("blackhole://controls/skipNext")
+        // //         Uri.parse("universe://controls/skipNext")
         // // )
         // // setOnClickPendingIntent(R.id.widget_button_next, skipNextIntent)
 
         // // val skipPreviousIntent = HomeWidgetBackgroundIntent.getBroadcast(
         // //         context,
-        // //         Uri.parse("blackhole://controls/skipPrevious")
+        // //         Uri.parse("universe://controls/skipPrevious")
         // // )
         // // setOnClickPendingIntent(R.id.widget_button_prev, skipPreviousIntent)
 
         // // val playPauseIntent = HomeWidgetBackgroundIntent.getBroadcast(
         // //         context,
-        // //         Uri.parse("blackhole://controls/playPause")
+        // //         Uri.parse("universe://controls/playPause")
         // // )
         // // setOnClickPendingIntent(R.id.widget_button_play_pause, playPauseIntent)
 
         // }
 
         // // appWidgetManager.updateAppWidget(appWidgetId, views)
-        // val componentName = ComponentName(context, BlackHoleMusicWidget::class.java)
+        // val componentName = ComponentName(context, UniverseMusicWidget::class.java)
         // appWidgetManager.updateAppWidget(componentName, views)
     }
 }

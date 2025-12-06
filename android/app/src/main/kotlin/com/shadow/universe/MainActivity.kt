@@ -1,4 +1,4 @@
-package com.shadow.blackhole
+package com.shadow.universe
 
 import android.os.Bundle
 import android.util.Log
@@ -20,14 +20,14 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        System.out.println("BLACKHOLE: ========================================")
-        System.out.println("BLACKHOLE: Configuring Flutter engine")
-        android.util.Log.e(TAG, "BLACKHOLE: Registering YtDlpPlugin")
-        println("BLACKHOLE: Creating YtDlpPlugin instance")
+        System.out.println("UNIVERSE: ========================================")
+        System.out.println("UNIVERSE: Configuring Flutter engine")
+        android.util.Log.e(TAG, "UNIVERSE: Registering YtDlpPlugin")
+        println("UNIVERSE: Creating YtDlpPlugin instance")
         val plugin = YtDlpPlugin()
         flutterEngine.plugins.add(plugin)
-        System.out.println("BLACKHOLE: YtDlpPlugin added: ${plugin.javaClass.name}")
-        android.util.Log.e(TAG, "BLACKHOLE: Plugin registration complete")
-        System.out.println("BLACKHOLE: ========================================")
+        System.out.println("UNIVERSE: YtDlpPlugin added: ${plugin.javaClass.name}")
+        android.util.Log.e(TAG, "UNIVERSE: Plugin registration complete")
+        System.out.println("UNIVERSE: ========================================")
     }
 }

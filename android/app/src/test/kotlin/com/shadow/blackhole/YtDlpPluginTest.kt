@@ -1,4 +1,4 @@
-package com.shadow.blackhole
+package com.shadow.universe
 
 import org.junit.Test
 import org.junit.Assert.*

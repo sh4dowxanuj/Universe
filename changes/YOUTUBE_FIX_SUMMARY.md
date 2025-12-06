@@ -1,7 +1,7 @@
 # YouTube Audio Fetching, Playing & Downloading - Fix Summary
 
 ## Overview
-This document summarizes all changes made to fix YouTube audio fetching, playing, and downloading functionality in the BlackHole music player app due to YouTube's 2024-25 API changes.
+This document summarizes all changes made to fix YouTube audio fetching, playing, and downloading functionality in the Universe music player app due to YouTube's 2024-25 API changes.
 
 ---
 
@@ -320,7 +320,7 @@ If issues arise, rollback by:
 ## Credits
 
 - **Package:** youtube_explode_dart by Tanner (@Hexer10)
-- **Original BlackHole:** SH4DOWXANUJ
+- **Original Universe:** SH4DOWXANUJ
 - **Fix Implementation:** GitHub Copilot AI Assistant
 - **Date:** November 23, 2025
 
@@ -330,7 +330,7 @@ If issues arise, rollback by:
 
 - [youtube_explode_dart Documentation](https://pub.dev/packages/youtube_explode_dart)
 - [YouTube API Updates](https://developers.google.com/youtube/v3/revision_history)
-- [BlackHole GitHub Repository](https://github.com/Sangwan5688/BlackHole)
+- [Universe GitHub Repository](https://github.com/SH4DOWXANUJ/Universe)
 
 ---
 

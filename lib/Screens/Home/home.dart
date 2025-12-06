@@ -1,41 +1,24 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
 import 'dart:io';
 
-
-import 'package:blackhole/CustomWidgets/drawer.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/miniplayer.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/Helpers/backup_restore.dart';
-import 'package:blackhole/Helpers/downloads_checker.dart';
-import 'package:blackhole/Helpers/github.dart';
-import 'package:blackhole/Helpers/update.dart';
-import 'package:blackhole/Screens/Home/home_screen.dart';
-import 'package:blackhole/Screens/Library/library.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs.dart';
-import 'package:blackhole/Screens/LocalMusic/downed_songs_desktop.dart';
-import 'package:blackhole/Screens/Settings/new_settings_page.dart';
-import 'package:blackhole/Screens/Top Charts/top.dart';
-import 'package:blackhole/Screens/YouTube/youtube_home.dart';
-import 'package:blackhole/Services/ext_storage_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -43,6 +26,22 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:universe/CustomWidgets/drawer.dart';
+import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/CustomWidgets/miniplayer.dart';
+import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/Helpers/backup_restore.dart';
+import 'package:universe/Helpers/downloads_checker.dart';
+import 'package:universe/Helpers/github.dart';
+import 'package:universe/Helpers/update.dart';
+import 'package:universe/Screens/Home/home_screen.dart';
+import 'package:universe/Screens/Library/library.dart';
+import 'package:universe/Screens/LocalMusic/downed_songs.dart';
+import 'package:universe/Screens/LocalMusic/downed_songs_desktop.dart';
+import 'package:universe/Screens/Settings/new_settings_page.dart';
+import 'package:universe/Screens/Top Charts/top.dart';
+import 'package:universe/Screens/YouTube/youtube_home.dart';
+import 'package:universe/Services/ext_storage_provider.dart';
 // Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
 
@@ -202,7 +201,7 @@ class _HomePageState extends State<HomePage> {
         ) as String;
         if (autoBackPath == '') {
           ExtStorageProvider.getExtStorage(
-            dirName: 'BlackHole/Backups',
+            dirName: 'Universe/Backups',
             writeAccess: true,
           ).then((value) {
             Hive.box('settings').put('autoBackPath', value);
@@ -211,7 +210,7 @@ class _HomePageState extends State<HomePage> {
               checked,
               boxNames,
               path: value,
-              fileName: 'BlackHole_AutoBackup',
+              fileName: 'Universe_AutoBackup',
               showDialog: false,
             );
           });
@@ -221,14 +220,14 @@ class _HomePageState extends State<HomePage> {
             checked,
             boxNames,
             path: autoBackPath,
-            fileName: 'BlackHole_AutoBackup',
+            fileName: 'Universe_AutoBackup',
             showDialog: false,
           ).then(
             (value) => {
               if (value.contains('No such file or directory'))
                 {
                   ExtStorageProvider.getExtStorage(
-                    dirName: 'BlackHole/Backups',
+                    dirName: 'Universe/Backups',
                     writeAccess: true,
                   ).then(
                     (value) {
@@ -238,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                         checked,
                         boxNames,
                         path: value,
-                        fileName: 'BlackHole_AutoBackup',
+                        fileName: 'Universe_AutoBackup',
                       );
                     },
                   ),

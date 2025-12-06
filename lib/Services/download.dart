@@ -1,18 +1,18 @@
 /*
- *  This file is part of BlackHole (https://github.com/Sangwan5688/BlackHole).
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
  * 
- * BlackHole is free software: you can redistribute it and/or modify
+ * Universe is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * BlackHole is distributed in the hope that it will be useful,
+ * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with BlackHole.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
@@ -21,10 +21,6 @@ import 'dart:io';
 
 import 'package:audiotagger/audiotagger.dart';
 import 'package:audiotagger/models/tag.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/Helpers/lyrics.dart';
-import 'package:blackhole/Services/ext_storage_provider.dart';
-import 'package:blackhole/Services/ytdlp_service.dart';
 // import 'package:ffmpeg_kit_flutter_audio/ffmpeg_kit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +32,10 @@ import 'package:logging/logging.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/Helpers/lyrics.dart';
+import 'package:universe/Services/ext_storage_provider.dart';
+import 'package:universe/Services/ytdlp_service.dart';
 
 class Download with ChangeNotifier {
   static final Map<String, Download> _instances = {};
@@ -537,7 +537,7 @@ class Download with ChangeNotifier {
               genre: data['language'].toString(),
               year: data['year'].toString(),
               lyrics: lyrics,
-              comment: 'BlackHole',
+              comment: 'Universe',
             );
             Logger.root.info('Started tag editing');
             final tagger = Audiotagger();
@@ -569,7 +569,7 @@ class Download with ChangeNotifier {
                 genre: data['language'].toString(),
                 year: int.parse(data['year'].toString()),
                 // lyrics: lyrics,
-                // comment: 'BlackHole',
+                // comment: 'Universe',
                 // trackNumber: 1,
                 // trackTotal: 12,
                 // discNumber: 1,

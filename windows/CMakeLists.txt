@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-project(blackhole LANGUAGES CXX)
+project(universe LANGUAGES CXX)
 
-set(BINARY_NAME "blackhole")
+set(BINARY_NAME "universe")
 
 cmake_policy(SET CMP0063 NEW)
 

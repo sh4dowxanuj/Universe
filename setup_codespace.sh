@@ -1,11 +1,11 @@
 #!/bin/bash
-# BlackHole Development Environment Setup Script
+# Universe Development Environment Setup Script
 # This script sets up a fresh Codespace for building the Android APK
 
 set -e
 
 echo "=========================================="
-echo "BlackHole Codespace Setup"
+echo "Universe Codespace Setup"
 echo "=========================================="
 
 # Update system packages
@@ -88,7 +88,7 @@ flutter config --android-sdk $ANDROID_HOME
 
 # Install Flutter dependencies for the project
 echo "Installing Flutter dependencies..."
-cd /workspaces/BlackHole
+cd /workspaces/Universe
 flutter pub get
 
 # Clean any previous builds
@@ -104,7 +104,7 @@ echo "Important: Reload your shell to apply environment variables:"
 echo "  source ~/.bashrc"
 echo ""
 echo "Then you can build the APK with:"
-echo "  cd /workspaces/BlackHole"
+echo "  cd /workspaces/Universe"
 echo "  flutter build apk --debug"
 echo ""
 echo "Verify setup with:"

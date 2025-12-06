@@ -1,18 +1,18 @@
 import 'dart:io';
 
-import 'package:blackhole/CustomWidgets/box_switch_tile.dart';
-import 'package:blackhole/CustomWidgets/gradient_containers.dart';
-import 'package:blackhole/CustomWidgets/snackbar.dart';
-import 'package:blackhole/CustomWidgets/textinput_dialog.dart';
-import 'package:blackhole/Helpers/picker.dart';
-import 'package:blackhole/constants/languagecodes.dart';
-import 'package:blackhole/main.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:universe/CustomWidgets/box_switch_tile.dart';
+import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/CustomWidgets/textinput_dialog.dart';
+import 'package:universe/Helpers/picker.dart';
+import 'package:universe/constants/languagecodes.dart';
+import 'package:universe/main.dart';
 
 class OthersPage extends StatefulWidget {
   const OthersPage({super.key});
