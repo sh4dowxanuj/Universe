@@ -418,7 +418,7 @@ class Download with ChangeNotifier {
         total = response.contentLength ?? 0;
 
         Logger.root.info(
-            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB');
+            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB',);
 
         stream = response.stream.asBroadcastStream();
 

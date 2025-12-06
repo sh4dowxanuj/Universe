@@ -8,25 +8,25 @@ void main() {
         'vcodec': 'avc1.4d401f',
         'acodec': 'mp4a.40.2',
         'abr': 128,
-        'url': 'https://video-with-audio.com'
+        'url': 'https://video-with-audio.com',
       },
       {
         'vcodec': 'none',
         'acodec': 'mp4a.40.2',
         'abr': 128,
-        'url': 'https://audio-128.com'
+        'url': 'https://audio-128.com',
       },
       {
         'vcodec': 'none',
         'acodec': 'opus',
         'abr': 160,
-        'url': 'https://audio-160.com'
+        'url': 'https://audio-160.com',
       },
       {
         'vcodec': 'none',
         'acodec': 'mp4a.40.2',
         'abr': 256,
-        'url': 'https://audio-256.com' // Best quality audio-only
+        'url': 'https://audio-256.com', // Best quality audio-only
       },
     ];
 
@@ -34,8 +34,8 @@ void main() {
     String? bestAudioUrl;
     int bestBitrate = 0;
 
-    for (var formatObj in formats) {
-      final format = formatObj as Map<String, dynamic>;
+    for (final formatObj in formats) {
+      final format = formatObj;
       final vcodec = format['vcodec']?.toString();
       final acodec = format['acodec']?.toString();
       final abr = (format['abr'] as num?)?.toInt() ?? 0;

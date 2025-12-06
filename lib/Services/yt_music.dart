@@ -541,7 +541,7 @@ class YtMusicService {
       if (response.isEmpty) {
         Logger.root.warning('Empty response from YTMusic for $videoId');
         return {
-          'error': 'No data found for this video. Please try another track.'
+          'error': 'No data found for this video. Please try another track.',
         };
       }
 
@@ -551,7 +551,7 @@ class YtMusicService {
       if (videoDetails == null) {
         Logger.root.warning('No video details found for $videoId');
         return {
-          'error': 'No video details found. The track may be unavailable.'
+          'error': 'No video details found. The track may be unavailable.',
         };
       }
       
@@ -589,7 +589,7 @@ class YtMusicService {
         } catch (e) {
           Logger.root.severe('YTMusic: Error fetching stream URL for $videoId: $e');
           return {
-            'error': 'Failed to fetch stream URL. Please check your connection or try another track.'
+            'error': 'Failed to fetch stream URL. Please check your connection or try another track.',
           };
         }
       }
@@ -625,7 +625,7 @@ class YtMusicService {
     } catch (e) {
       Logger.root.severe('Error in yt get song data for $videoId: $e');
       return {
-        'error': 'Unexpected error occurred. Please try again.'
+        'error': 'Unexpected error occurred. Please try again.',
       };
     }
   }
@@ -700,7 +700,7 @@ class YtMusicService {
         ]).toString();
         if (id.isEmpty || id == 'null') continue;
         // Fetch full song data with yt-dlp stream URL
-        final songData = await getSongData(videoId: id, getUrl: true);
+        final songData = await getSongData(videoId: id);
         if (songData.isNotEmpty && songData['error'] == null) {
           songResults.add(songData);
         } else if (songData['error'] != null) {

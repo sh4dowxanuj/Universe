@@ -10,9 +10,8 @@ class YtDlpService {
 
   /// Get audio stream URL and metadata for a YouTube video
   Future<Map<String, dynamic>?> getAudioStream(String videoId,
-      {String quality = 'High'}) async {
+      {String quality = 'High',}) async {
     try {
-      print('YtDlp: Fetching audio stream for $videoId (quality: $quality)');
       final result = await _channel.invokeMethod('getAudioStream', {
         'videoId': videoId,
         'quality': quality,
@@ -20,16 +19,12 @@ class YtDlpService {
 
       if (result is Map) {
         final data = Map<String, dynamic>.from(result);
-        print(
-            'YtDlp: Got stream URL: ${data['url']?.substring(0, 100)}... (${data['bitrate']} kbps)');
         return data;
       }
       return null;
-    } on PlatformException catch (e) {
-      print('YtDlp Error: ${e.code} - ${e.message}');
+    } on PlatformException {
       return null;
-    } catch (e) {
-      print('YtDlp Error: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -37,7 +32,6 @@ class YtDlpService {
   /// Get video information without extracting stream URL (faster)
   Future<Map<String, dynamic>?> getVideoInfo(String videoId) async {
     try {
-      print('YtDlp: Fetching info for $videoId');
       final result = await _channel.invokeMethod('getVideoInfo', {
         'videoId': videoId,
       });
@@ -46,11 +40,9 @@ class YtDlpService {
         return Map<String, dynamic>.from(result);
       }
       return null;
-    } on PlatformException catch (e) {
-      print('YtDlp Error: ${e.code} - ${e.message}');
+    } on PlatformException {
       return null;
-    } catch (e) {
-      print('YtDlp Error: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -61,7 +53,6 @@ class YtDlpService {
     int maxResults = 10,
   }) async {
     try {
-      print('YtDlp: Searching for "$query"');
       final result = await _channel.invokeMethod('searchVideos', {
         'query': query,
         'maxResults': maxResults,
@@ -73,18 +64,16 @@ class YtDlpService {
             .toList();
       }
       return [];
-    } on PlatformException catch (e) {
-      print('YtDlp Error: ${e.code} - ${e.message}');
+    } on PlatformException {
       return [];
-    } catch (e) {
-      print('YtDlp Error: $e');
+    } catch (_) {
       return [];
     }
   }
 
   /// Format video data for compatibility with existing YouTube service
   Map<String, dynamic> formatVideoData(
-      Map<String, dynamic> ytdlpData, String videoId) {
+      Map<String, dynamic> ytdlpData, String videoId,) {
     return {
       'id': videoId,
       'title': ytdlpData['title'] ?? 'Unknown Title',
