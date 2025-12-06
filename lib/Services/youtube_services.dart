@@ -434,14 +434,12 @@ class YouTubeServices {
       if (getUrl) {
         try {
           // Try yt-dlp first for authenticated URLs that bypass 403 errors
-          print('🔍 Search: Trying yt-dlp for ${video.id.value}');
           final ytdlpData = await YtDlpService.instance.getAudioStream(video.id.value);
           
           if (ytdlpData != null && ytdlpData['url'] != null) {
             // yt-dlp success - use its URL
             finalUrl = ytdlpData['url'] as String;
             expireAt = ytdlpData['expire_at']?.toString() ?? '0';
-            print('✅ Search: yt-dlp SUCCESS - ${ytdlpData['bitrate']} kbps');
             
             // Create urlsData in expected format for compatibility
             urlsData = [{
@@ -457,7 +455,6 @@ class YouTubeServices {
             Logger.root.info('yt-dlp fetched URL for ${video.id.value}');
           } else {
             // yt-dlp failed - youtube_explode_dart is commented out (causes 403 errors)
-            print('❌ Search: yt-dlp failed, no fallback available');
             Logger.root.severe('No URLs available for ${video.id.value} - yt-dlp failed');
             return null;
             
@@ -755,16 +752,10 @@ class YouTubeServices {
     final List<AudioOnlyStreamInfo> sortedStreamInfo =
         await getStreamInfo(videoId);
     
-    print('=== YouTube Stream Info for $videoId ===');
-    print('Available streams: ${sortedStreamInfo.length}');
     
     final result = sortedStreamInfo
         .map(
           (e) {
-            print('Stream: ${e.bitrate.kiloBitsPerSecond.round()} kbps, '
-                  'codec: ${e.codec.subtype}, '
-                  'size: ${e.size.totalMegaBytes.toStringAsFixed(2)} MB, '
-                  'quality: ${e.qualityLabel}');
             return {
               'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
               'codec': e.codec.subtype,
@@ -777,7 +768,6 @@ class YouTubeServices {
         )
         .toList();
     
-    print('Returning ${result.length} stream URLs');
     return result;
   }
 
