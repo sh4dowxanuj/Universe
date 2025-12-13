@@ -181,7 +181,7 @@ class _AboutPageState extends State<AboutPage> {
                           Share.share(
                             '${AppLocalizations.of(
                               context,
-                            )!.shareAppText}: https://sangwan5688.github.io/',
+                            )!.shareAppText}: null',
                           );
                         },
                         dense: true,
@@ -203,7 +203,7 @@ class _AboutPageState extends State<AboutPage> {
                         onTap: () {
                           launchUrl(
                             Uri.parse(
-                              'https://www.buymeacoffee.com/ankitsangwan',
+                              'null',
                             ),
                             mode: LaunchMode.externalApplication,
                           );
@@ -226,7 +226,7 @@ class _AboutPageState extends State<AboutPage> {
                         isThreeLine: true,
                         onTap: () {
                           const String upiUrl =
-                              'upi://pay?pa=ankit.sangwan.5688@oksbi&pn=Universe';
+                              'null';
                           launchUrl(
                             Uri.parse(upiUrl),
                             mode: LaunchMode.externalApplication,
@@ -252,7 +252,7 @@ class _AboutPageState extends State<AboutPage> {
                           onPressed: () {
                             copyToClipboard(
                               context: context,
-                              text: 'ankit.sangwan.5688@oksbi',
+                              text: 'null',
                               displayText: AppLocalizations.of(
                                 context,
                               )!
@@ -311,7 +311,7 @@ class _AboutPageState extends State<AboutPage> {
                                               Navigator.pop(context);
                                               launchUrl(
                                                 Uri.parse(
-                                                  'https://mail.google.com/mail/?extsrc=mailto&url=mailto%3A%3Fto%3Duniverseyoucantescape%40gmail.com%26subject%3DRegarding%2520Mobile%2520App',
+                                                  'null',
                                                 ),
                                                 mode: LaunchMode
                                                     .externalApplication,
@@ -342,7 +342,7 @@ class _AboutPageState extends State<AboutPage> {
                                               Navigator.pop(context);
                                               launchUrl(
                                                 Uri.parse(
-                                                  'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                  'null',
                                                 ),
                                                 mode: LaunchMode
                                                     .externalApplication,
@@ -373,7 +373,7 @@ class _AboutPageState extends State<AboutPage> {
                                               Navigator.pop(context);
                                               launchUrl(
                                                 Uri.parse(
-                                                  'https://instagram.com/sangwan5688',
+                                                  'null',
                                                 ),
                                                 mode: LaunchMode
                                                     .externalApplication,
@@ -436,7 +436,7 @@ class _AboutPageState extends State<AboutPage> {
                                               Navigator.pop(context);
                                               launchUrl(
                                                 Uri.parse(
-                                                  'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                  'null',
                                                 ),
                                                 mode: LaunchMode
                                                     .externalApplication,
@@ -467,7 +467,7 @@ class _AboutPageState extends State<AboutPage> {
                                               Navigator.pop(context);
                                               launchUrl(
                                                 Uri.parse(
-                                                  'https://t.me/universe_official',
+                                                  'null',
                                                 ),
                                                 mode: LaunchMode
                                                     .externalApplication,
