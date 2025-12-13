@@ -41,58 +41,59 @@ class YouTube extends StatefulWidget {
 
 class _YouTubeState extends State<YouTube>
     with AutomaticKeepAliveClientMixin<YouTube> {
-  // List ytSearch =
-  // Hive.box('settings').get('ytSearch', defaultValue: []) as List;
-  // bool showHistory =
-  // Hive.box('settings').get('showHistory', defaultValue: true) as bool;
   final TextEditingController _controller = TextEditingController();
-
-  // int _currentPage = 0;
-  // final PageController _pageController = PageController(
-  // viewportFraction:
-  //     (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-  //         ? 0.385
-  //         : 1.0,
-  // );
+  bool _isLoading = false;
+  bool _hasError = false;
+  String _errorMessage = '';
 
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
-    if (!status) {
-      YouTubeServices.instance.getMusicHome().then((value) {
-        status = true;
-        if (value.isNotEmpty) {
-          setState(() {
-            searchedList = value['body'] ?? [];
-            headList = value['head'] ?? [];
-
-            Hive.box('cache').put('ytHome', value['body']);
-            Hive.box('cache').put('ytHomeHead', value['head']);
-          });
-        } else {
-          status = false;
-        }
-      });
-    }
-    // if (headList.isNotEmpty) {
-    // Timer.periodic(const Duration(seconds: 4), (Timer timer) {
-    //   if (_currentPage < headList.length - 1) {
-    //     _currentPage++;
-    //   } else {
-    //     _currentPage = 0;
-    //   }
-    //   if (_pageController.hasClients) {
-    //     _pageController.animateToPage(
-    //       _currentPage,
-    //       duration: const Duration(milliseconds: 350),
-    //       curve: Curves.easeIn,
-    //     );
-    //   }
-    // });
-    // }
     super.initState();
+    if (!status && searchedList.isEmpty) {
+      _loadYouTubeMusicHome();
+    }
+  }
+
+  Future<void> _loadYouTubeMusicHome() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      final value = await YouTubeServices.instance.getMusicHome();
+      status = true;
+      if (value.isNotEmpty) {
+        setState(() {
+          searchedList = value['body'] ?? [];
+          headList = value['head'] ?? [];
+          _isLoading = false;
+        });
+        // Cache the results
+        await Hive.box('cache').put('ytHome', value['body']);
+        await Hive.box('cache').put('ytHomeHead', value['head']);
+      } else {
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'No content available. Please try again.';
+          _isLoading = false;
+        });
+        status = false;
+      }
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Failed to load YouTube Music. Please check your connection and try again.';
+        _isLoading = false;
+      });
+      status = false;
+    }
   }
 
   @override
@@ -116,38 +117,68 @@ class _YouTubeState extends State<YouTube>
       body: SafeArea(
         child: Stack(
           children: [
-            if (searchedList.isEmpty)
+            // Loading state
+            if (_isLoading && searchedList.isEmpty)
               const Center(
                 child: CircularProgressIndicator(),
               )
-            else
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(10, 70, 10, 0),
+            // Error state
+            else if (_hasError && searchedList.isEmpty)
+              Center(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (headList.isNotEmpty)
-                      CarouselSlider.builder(
-                        itemCount: headList.length,
-                        options: CarouselOptions(
-                          height: boxSize + 20,
-                          viewportFraction: rotated ? 0.36 : 1.0,
-                          autoPlay: true,
-                          enlargeCenterPage: true,
-                        ),
-                        itemBuilder: (
-                          BuildContext context,
-                          int index,
-                          int pageViewIndex,
-                        ) =>
-                            GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              PageRouteBuilder(
-                                opaque: false,
-                                pageBuilder: (_, __, ___) => SearchPage(
-                                  query: headList[index]['title'].toString(),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadYouTubeMusicHome,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+            // Content loaded
+            else if (searchedList.isNotEmpty)
+              RefreshIndicator(
+                onRefresh: _loadYouTubeMusicHome,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(10, 70, 10, 0),
+                  child: Column(
+                    children: [
+                      if (headList.isNotEmpty)
+                        CarouselSlider.builder(
+                          itemCount: headList.length,
+                          options: CarouselOptions(
+                            height: boxSize + 20,
+                            viewportFraction: rotated ? 0.36 : 1.0,
+                            autoPlay: true,
+                            enlargeCenterPage: true,
+                          ),
+                          itemBuilder: (
+                            BuildContext context,
+                            int index,
+                            int pageViewIndex,
+                          ) =>
+                              GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  pageBuilder: (_, __, ___) => SearchPage(
+                                    query: headList[index]['title'].toString(),
                                   searchType: Hive.box('settings').get(
                                     'searchYtMusic',
                                     defaultValue: true,
@@ -449,6 +480,8 @@ class _YouTubeState extends State<YouTube>
                   ],
                 ),
               ),
+            ),
+            // Search bar overlay
             GestureDetector(
               child: Container(
                 width: MediaQuery.sizeOf(context).width,

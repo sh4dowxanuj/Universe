@@ -24,6 +24,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
+import 'package:universe/Services/innertube_service.dart';
 import 'package:universe/Services/yt_music.dart';
 import 'package:universe/Services/ytdlp_service.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
@@ -181,11 +182,18 @@ class YouTubeServices {
 
   Future<Map<String, List>> getMusicHome() async {
     try {
-      Logger.root.info('Fetching YouTube Music home using search-based fallback');
-      
-      final List<Map> sections = [];
-      
-      // Helper function to format video results for home page
+      Logger.root.info('Fetching YouTube Music home using InnerTube API');
+
+      // Try InnerTube API first
+      final innerTubeResult = await InnerTubeService.instance.getMusicHome();
+      if (innerTubeResult != null && innerTubeResult.isNotEmpty) {
+        Logger.root.info('Successfully loaded YouTube Music home from InnerTube API');
+        return innerTubeResult;
+      }
+
+      Logger.root.info('InnerTube API failed, falling back to search-based approach');
+
+      final List<Map> sections = [];      // Helper function to format video results for home page
       Future<List<Map>> getFormattedVideos(String query, int limit) async {
         try {
           final List<Video> searchResults = await yt.search.search(query);
