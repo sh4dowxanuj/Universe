@@ -24,8 +24,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/on_hover.dart';
+import 'package:universe/main.dart';
 import 'package:universe/Screens/Search/search.dart';
 import 'package:universe/Screens/YouTube/youtube_playlist.dart';
+import 'package:universe/Services/app_state_service.dart';
+import 'package:universe/Services/error_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 
 bool status = false;
@@ -42,9 +45,7 @@ class YouTube extends StatefulWidget {
 class _YouTubeState extends State<YouTube>
     with AutomaticKeepAliveClientMixin<YouTube> {
   final TextEditingController _controller = TextEditingController();
-  bool _isLoading = false;
-  bool _hasError = false;
-  String _errorMessage = '';
+  late final AppStateService _appState;
 
   @override
   bool get wantKeepAlive => true;
@@ -52,54 +53,56 @@ class _YouTubeState extends State<YouTube>
   @override
   void initState() {
     super.initState();
+    _appState = locator<AppStateService>();
+
     if (!status && searchedList.isEmpty) {
       _loadYouTubeMusicHome();
     }
-  }
 
-  Future<void> _loadYouTubeMusicHome() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-      _errorMessage = '';
-    });
-
-    try {
-      final value = await YouTubeServices.instance.getMusicHome();
-      status = true;
-      if (value.isNotEmpty) {
-        setState(() {
-          searchedList = value['body'] ?? [];
-          headList = value['head'] ?? [];
-          _isLoading = false;
-        });
-        // Cache the results
-        await Hive.box('cache').put('ytHome', value['body']);
-        await Hive.box('cache').put('ytHomeHead', value['head']);
-      } else {
-        setState(() {
-          _hasError = true;
-          _errorMessage = 'No content available. Please try again.';
-          _isLoading = false;
-        });
-        status = false;
-      }
-    } catch (e) {
-      setState(() {
-        _hasError = true;
-        _errorMessage = 'Failed to load YouTube Music. Please check your connection and try again.';
-        _isLoading = false;
-      });
-      status = false;
-    }
+    // Listen to app state changes
+    _appState.homeData.addListener(_onHomeDataChanged);
+    _appState.homeError.addListener(_onHomeErrorChanged);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _appState.homeData.removeListener(_onHomeDataChanged);
+    _appState.homeError.removeListener(_onHomeErrorChanged);
     super.dispose();
+  }
+
+  void _onHomeDataChanged() {
+    if (mounted) {
+      setState(() {
+        searchedList = _appState.homeData.value;
+      });
+    }
+  }
+
+  void _onHomeErrorChanged() {
+    if (mounted && _appState.homeError.value != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_appState.homeError.value!),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _loadYouTubeMusicHome,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadYouTubeMusicHome() async {
+    if (_appState.isHomeLoading.value) return;
+
+    try {
+      await YouTubeServices.instance.getMusicHome();
+      status = true;
+    } catch (e) {
+      locator<ErrorService>().reportError('YouTubeHome._loadYouTubeMusicHome', e);
+    }
   }
 
   @override
@@ -118,12 +121,12 @@ class _YouTubeState extends State<YouTube>
         child: Stack(
           children: [
             // Loading state
-            if (_isLoading && searchedList.isEmpty)
+            if (_appState.isHomeLoading.value && searchedList.isEmpty)
               const Center(
                 child: CircularProgressIndicator(),
               )
             // Error state
-            else if (_hasError && searchedList.isEmpty)
+            else if (_appState.homeError.value != null && searchedList.isEmpty)
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -135,7 +138,7 @@ class _YouTubeState extends State<YouTube>
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _errorMessage,
+                      _appState.homeError.value!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 16),
                     ),
@@ -179,18 +182,18 @@ class _YouTubeState extends State<YouTube>
                                   opaque: false,
                                   pageBuilder: (_, __, ___) => SearchPage(
                                     query: headList[index]['title'].toString(),
-                                  searchType: Hive.box('settings').get(
-                                    'searchYtMusic',
-                                    defaultValue: true,
-                                  ) as bool
-                                      ? 'ytm'
-                                      : 'yt',
-                                  fromDirectSearch: true,
+                                    searchType: Hive.box('settings').get(
+                                      'searchYtMusic',
+                                      defaultValue: true,
+                                    ) as bool
+                                        ? 'ytm'
+                                        : 'yt',
+                                    fromDirectSearch: true,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          child: Card(
+                              );
+                            },
+                            child: Card(
                             elevation: 5,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0),
@@ -213,7 +216,7 @@ class _YouTubeState extends State<YouTube>
                           ),
                         ),
                       ),
-                    ListView.builder(
+                      ListView.builder(
                       itemCount: searchedList.length,
                       physics: const BouncingScrollPhysics(),
                       shrinkWrap: true,

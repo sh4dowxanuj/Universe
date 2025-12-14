@@ -181,7 +181,7 @@ class _AboutPageState extends State<AboutPage> {
                           Share.share(
                             '${AppLocalizations.of(
                               context,
-                            )!.shareAppText}: null',
+                            )!.shareAppText}: none',
                           );
                         },
                         dense: true,
@@ -235,7 +235,7 @@ class _AboutPageState extends State<AboutPage> {
                         onLongPress: () {
                           copyToClipboard(
                             context: context,
-                            text: 'ankit.sangwan.5688@oksbi',
+                            text: 'none',
                             displayText: AppLocalizations.of(
                               context,
                             )!

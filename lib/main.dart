@@ -40,10 +40,47 @@ import 'package:universe/Helpers/logging.dart';
 import 'package:universe/Helpers/route_handler.dart';
 import 'package:universe/Screens/Common/routes.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
+import 'package:universe/Services/app_state_service.dart';
+import 'package:universe/Services/cache_service.dart';
+import 'package:universe/Services/error_service.dart';
+import 'package:universe/Services/network_service.dart';
+import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/constants/constants.dart';
 import 'package:universe/constants/languagecodes.dart';
 import 'package:universe/providers/audio_service_provider.dart';
 import 'package:universe/theme/app_theme.dart';
+
+/// Service Locator for dependency injection
+final GetIt locator = GetIt.instance;
+
+/// Initialize all services and dependencies
+Future<void> initializeServices() async {
+  // Initialize logging first
+  await initializeLogging();
+
+  // Initialize metadata handling
+  MetadataGod.initialize();
+
+  // Register core services
+  GetIt.I.registerLazySingleton<ErrorService>(() => ErrorService());
+  GetIt.I.registerLazySingleton<CacheService>(() => CacheService());
+  GetIt.I.registerLazySingleton<NetworkService>(() => NetworkService());
+  GetIt.I.registerLazySingleton<AppStateService>(() => AppStateService());
+
+  // Initialize audio service
+  final audioHandlerHelper = AudioHandlerHelper();
+  final AudioPlayerHandler audioHandler =
+      await audioHandlerHelper.getAudioHandler();
+  GetIt.I.registerSingleton<AudioPlayerHandler>(audioHandler);
+
+  // Register theme service
+  GetIt.I.registerSingleton<MyTheme>(MyTheme());
+
+  // Register YouTube services
+  GetIt.I.registerLazySingleton<YouTubeServices>(() => YouTubeServices());
+
+  Logger.root.info('All services initialized successfully');
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +102,7 @@ Future<void> main() async {
   if (Platform.isAndroid) {
     setOptimalDisplayMode();
   }
-  await startService();
+  await initializeServices();
   runApp(MyApp());
 }
 
@@ -87,16 +124,6 @@ Future<void> setOptimalDisplayMode() async {
   //     sameResolution.isNotEmpty ? sameResolution.first : active;
 
   // await FlutterDisplayMode.setPreferredMode(mostOptimalMode);
-}
-
-Future<void> startService() async {
-  await initializeLogging();
-  MetadataGod.initialize();
-  final audioHandlerHelper = AudioHandlerHelper();
-  final AudioPlayerHandler audioHandler =
-      await audioHandlerHelper.getAudioHandler();
-  GetIt.I.registerSingleton<AudioPlayerHandler>(audioHandler);
-  GetIt.I.registerSingleton<MyTheme>(MyTheme());
 }
 
 Future<void> openHiveBox(String boxName, {bool limit = false}) async {
