@@ -24,9 +24,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
+import 'package:universe/Services/app_state_service.dart';
+import 'package:universe/Services/error_service.dart';
 import 'package:universe/Services/innertube_service.dart';
 import 'package:universe/Services/yt_music.dart';
 import 'package:universe/Services/ytdlp_service.dart';
+import 'package:universe/main.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 class YouTubeServices {
@@ -43,9 +46,14 @@ class YouTubeServices {
     'Accept-Language': 'en-US,en;q=0.9',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
   };
+
   final YoutubeExplode yt = YoutubeExplode();
 
   YouTubeServices._privateConstructor();
+
+  factory YouTubeServices() {
+    return _instance;
+  }
 
   static final YouTubeServices _instance =
       YouTubeServices._privateConstructor();
@@ -181,84 +189,65 @@ class YouTubeServices {
   }
 
   Future<Map<String, List>> getMusicHome() async {
+    final appState = locator<AppStateService>();
+
     try {
       Logger.root.info('Fetching YouTube Music home using InnerTube API');
+
+      // Update loading state
+      appState.updateHomeData([], isLoading: true);
 
       // Try InnerTube API first
       final innerTubeResult = await InnerTubeService.instance.getMusicHome();
       if (innerTubeResult != null && innerTubeResult.isNotEmpty) {
         Logger.root.info('Successfully loaded YouTube Music home from InnerTube API');
+        appState.updateHomeData((innerTubeResult['body'] as List<Map<dynamic, dynamic>>?) ?? []);
         return innerTubeResult;
       }
 
       Logger.root.info('InnerTube API failed, falling back to search-based approach');
 
-      final List<Map> sections = [];      // Helper function to format video results for home page
-      Future<List<Map>> getFormattedVideos(String query, int limit) async {
+      // Fallback to search-based approach
+      final List<Map> sections = [];
+
+      // Define popular music queries for fallback
+      final queries = [
+        'popular music',
+        'trending songs',
+        'top hits',
+        'new releases',
+      ];
+
+      for (final query in queries.take(3)) {  // Limit to 3 sections for performance
         try {
-          final List<Video> searchResults = await yt.search.search(query);
-          final List<Map> formatted = [];
-          
-          for (final vid in searchResults.take(limit)) {
-            formatted.add({
-              'title': vid.title,
-              'type': 'video',
-              'description': vid.author,
-              'count': vid.duration?.toString() ?? '',
-              'videoId': vid.id.value,
-              'firstItemId': vid.id.value,
-              'image': vid.thumbnails.highResUrl,
-              'imageMin': vid.thumbnails.lowResUrl,
-              'imageMedium': vid.thumbnails.mediumResUrl,
-              'imageStandard': vid.thumbnails.highResUrl,
-              'imageMax': vid.thumbnails.maxResUrl,
-            });
+          final searchResults = await fetchSearchResults(query);
+          if (searchResults.isNotEmpty && searchResults[0]['items'] != null) {
+            final items = searchResults[0]['items'] as List;
+            if (items.isNotEmpty) {
+              sections.add({
+                'title': query,
+                'playlists': items.take(10).toList(),
+              });
+            }
           }
-          
-          return formatted;
         } catch (e) {
-          Logger.root.warning('Failed to fetch videos for "$query": $e');
-          return [];
+          Logger.root.warning('Failed to fetch section for query: $query', e);
         }
       }
-      
-      // Get trending music
-      final trending = await getFormattedVideos('trending music 2024', 12);
-      if (trending.isNotEmpty) {
-        sections.add({
-          'title': 'Trending Now',
-          'playlists': trending,
-        });
-      }
-      
-      // Get popular songs
-      final popular = await getFormattedVideos('popular songs', 12);
-      if (popular.isNotEmpty) {
-        sections.add({
-          'title': 'Popular Music',
-          'playlists': popular,
-        });
-      }
-      
-      // Get top charts
-      final charts = await getFormattedVideos('top music charts', 12);
-      if (charts.isNotEmpty) {
-        sections.add({
-          'title': 'Top Charts',
-          'playlists': charts,
-        });
-      }
-      
-      if (sections.isNotEmpty) {
-        Logger.root.info('Successfully created ${sections.length} sections with ${sections.fold<int>(0, (sum, s) => sum + (s['playlists'] as List).length)} videos');
-        return {'body': sections, 'head': []};
-      }
-      
-      Logger.root.severe('Failed to create any sections for YouTube Music home');
-      return {};
+
+      final result = {'body': sections, 'head': []};
+      appState.updateHomeData(sections);
+      return result;
+
     } catch (e, stackTrace) {
+      final errorMessage = locator<ErrorService>().getErrorMessage(e);
       Logger.root.severe('Error in getMusicHome: $e\n$stackTrace');
-      return {};
+
+      appState.updateHomeData([], error: errorMessage);
+      locator<ErrorService>().reportError('YouTubeServices.getMusicHome', e, stackTrace);
+
+      // Return empty result to prevent crashes
+      return {'body': [], 'head': []};
     }
   }
 

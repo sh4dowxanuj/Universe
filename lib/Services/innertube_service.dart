@@ -18,8 +18,11 @@
  */
 
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:universe/Services/cache_service.dart';
+import 'package:universe/Services/error_service.dart';
+import 'package:universe/Services/network_service.dart';
+import 'package:universe/main.dart';
 
 class InnerTubeService {
   static const String baseUrl = 'https://music.youtube.com/youtubei/v1';
@@ -52,6 +55,16 @@ class InnerTubeService {
   static InnerTubeService get instance => _instance;
 
   Future<Map<String, List>?> getMusicHome() async {
+    const String cacheKey = 'innertube_home';
+    const Duration cacheTTL = Duration(minutes: 15);
+
+    // Check cache first
+    final cached = locator<CacheService>().get<Map<String, List>>(cacheKey);
+    if (cached != null) {
+      Logger.root.info('Returning cached InnerTube home data');
+      return cached;
+    }
+
     try {
       Logger.root.info('Fetching YouTube Music home using InnerTube API');
 
@@ -62,10 +75,11 @@ class InnerTubeService {
         'browseId': 'FEmusic_home',
       };
 
-      final response = await http.post(
+      final response = await locator<NetworkService>().post(
         url,
         headers: headers,
         body: jsonEncode(body),
+        timeout: const Duration(seconds: 15),
       );
 
       if (response.statusCode == 200) {
@@ -134,8 +148,11 @@ class InnerTubeService {
         }
 
         if (sections.isNotEmpty) {
+          final result = {'body': sections, 'head': []};
+          // Cache the result
+          await locator<CacheService>().set(cacheKey, result, ttl: cacheTTL);
           Logger.root.info('Successfully fetched ${sections.length} sections from InnerTube API');
-          return {'body': sections, 'head': []};
+          return result;
         } else {
           Logger.root.warning('No sections found in InnerTube response, falling back to search-based approach');
           return null;
@@ -147,6 +164,7 @@ class InnerTubeService {
       }
     } catch (e, stackTrace) {
       Logger.root.severe('Error in InnerTube getMusicHome: $e\n$stackTrace');
+      locator<ErrorService>().reportError('InnerTube.getMusicHome', e, stackTrace);
       return null;
     }
   }
