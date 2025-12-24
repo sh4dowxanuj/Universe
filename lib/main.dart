@@ -18,25 +18,29 @@
  */
 
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'package:universe/Helpers/io_stub.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart'
+  if (dart.library.html) 'package:universe/Helpers/flutter_displaymode_stub.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:home_widget/home_widget.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
+import 'package:metadata_god/metadata_god.dart'
+  if (dart.library.html) 'package:universe/Helpers/metadata_stub.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart'
+  if (dart.library.html) 'package:universe/Helpers/receive_sharing_intent_stub.dart';
 import 'package:sizer/sizer.dart';
 import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/handle_native.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Helpers/logging.dart';
+import 'package:universe/Helpers/platform_utils.dart';
 import 'package:universe/Helpers/route_handler.dart';
 import 'package:universe/Screens/Common/routes.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
@@ -59,7 +63,9 @@ Future<void> initializeServices() async {
   await initializeLogging();
 
   // Initialize metadata handling
-  MetadataGod.initialize();
+  if (!platform.isWeb) {
+    MetadataGod.initialize();
+  }
 
   // Register core services
   GetIt.I.registerLazySingleton<ErrorService>(() => ErrorService());
@@ -86,9 +92,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Paint.enableDithering = true; No longer needed
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (platform.isDesktop) {
     await Hive.initFlutter('Universe/Database');
-  } else if (Platform.isIOS) {
+  } else if (platform.isIOS) {
     await Hive.initFlutter('Database');
   } else {
     await Hive.initFlutter();
@@ -99,7 +105,7 @@ Future<void> main() async {
       limit: box['limit'] as bool? ?? false,
     );
   }
-  if (Platform.isAndroid) {
+  if (platform.isAndroid) {
     setOptimalDisplayMode();
   }
   await initializeServices();
@@ -107,6 +113,7 @@ Future<void> main() async {
 }
 
 Future<void> setOptimalDisplayMode() async {
+  if (!platform.isAndroid) return;
   await FlutterDisplayMode.setHighRefreshRate();
   // final List<DisplayMode> supported = await FlutterDisplayMode.supported;
   // final DisplayMode active = await FlutterDisplayMode.active;
@@ -127,13 +134,18 @@ Future<void> setOptimalDisplayMode() async {
 }
 
 Future<void> openHiveBox(String boxName, {bool limit = false}) async {
+  if (platform.isWeb) {
+    await Hive.openBox(boxName);
+    return;
+  }
+
   final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
     Logger.root.severe('Failed to open $boxName Box', error, stackTrace);
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final String dirPath = dir.path;
+    final dir = await getApplicationDocumentsDirectory();
+    final dirPath = dir.path;
     File dbFile = File('$dirPath/$boxName.hive');
     File lockFile = File('$dirPath/$boxName.lock');
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (platform.isDesktop) {
       dbFile = File('$dirPath/Universe/$boxName.hive');
       lockFile = File('$dirPath/Universe/$boxName.lock');
     }
@@ -202,7 +214,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     // HomeWidget.setAppGroupId('com.shadow.universe');
     // HomeWidget.registerBackgroundCallback(backgroundCallback);
-    final String systemLangCode = Platform.localeName.substring(0, 2);
+    final String systemLangCode = platform.localeName.substring(0, 2);
     final String? lang = Hive.box('settings').get('lang') as String?;
     if (lang == null &&
         LanguageCodes.languageCodes.values.contains(systemLangCode)) {
@@ -215,7 +227,7 @@ class _MyAppState extends State<MyApp> {
       setState(() {});
     });
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (platform.isMobile) {
       // For sharing or opening urls/text coming from outside the app while the app is in the memory
       _intentTextStreamSubscription =
           ReceiveSharingIntent.getTextStream().listen(
@@ -300,13 +312,15 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    if (!platform.isWeb) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
