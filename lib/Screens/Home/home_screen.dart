@@ -25,8 +25,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
+import 'package:universe/Screens/Home/saavn.dart';
 import 'package:universe/Screens/Search/search.dart';
-import 'package:universe/Screens/YouTube/youtube_home.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -268,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ];
             },
-            body: const YouTube(),
+            body: SaavnHomePage(),
           ),
           if (!rotated)
             homeDrawer(

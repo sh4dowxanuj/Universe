@@ -49,11 +49,11 @@ class YouTubeServices {
 
   final YoutubeExplode yt = YoutubeExplode();
 
-  YouTubeServices._privateConstructor();
-
   factory YouTubeServices() {
     return _instance;
   }
+
+  YouTubeServices._privateConstructor();
 
   static final YouTubeServices _instance =
       YouTubeServices._privateConstructor();
