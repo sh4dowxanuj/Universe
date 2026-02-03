@@ -107,6 +107,7 @@ class AppStateService {
   }
 
   /// Update connectivity status
+  // ignore: use_setters_to_change_properties
   void updateConnectivity(bool online) {
     isOnline.value = online;
   }

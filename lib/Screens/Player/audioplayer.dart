@@ -58,6 +58,18 @@ import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Returns true when the item should be treated as an online stream.
+/// Some autoplay/up-next items start playback before a final stream URL is
+/// resolved, so fall back to artwork scheme to avoid hiding controls.
+bool isOnlineMediaItem(MediaItem mediaItem) {
+  final String url = mediaItem.extras?['url']?.toString() ?? '';
+  if (url.isNotEmpty) return url.startsWith('http');
+
+  final String? scheme = mediaItem.artUri?.scheme;
+  if (scheme == null || scheme.isEmpty) return false;
+  return scheme != 'file' && scheme != 'content';
+}
+
 class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key});
   @override
@@ -219,8 +231,7 @@ class _PlayScreenState extends State<PlayScreen> {
         builder: (context, snapshot) {
           final MediaItem? mediaItem = snapshot.data;
           if (mediaItem == null) return const SizedBox();
-          final offline =
-              !mediaItem.extras!['url'].toString().startsWith('http');
+          final offline = !isOnlineMediaItem(mediaItem);
           if (mediaItem.artUri != null && mediaItem.artUri.toString() != '') {
             mediaItem.artUri.toString().startsWith('file')
                 ? getColors(
@@ -742,7 +753,7 @@ class ControlButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MediaItem mediaItem = audioHandler.mediaItem.value!;
-    final bool online = mediaItem.extras!['url'].toString().startsWith('http');
+    final bool online = isOnlineMediaItem(mediaItem);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       mainAxisSize: MainAxisSize.min,
@@ -982,10 +993,9 @@ class NowPlayingStream extends StatelessWidget {
                             ),
                           ]
                         : [
-                            if (queue[queueStateIndex + index]
-                                .extras!['url']
-                                .toString()
-                                .startsWith('http')) ...[
+                            if (isOnlineMediaItem(
+                              queue[queueStateIndex + index],
+                            )) ...[
                               LikeButton(
                                 mediaItem: queue[queueStateIndex + index],
                               ),
