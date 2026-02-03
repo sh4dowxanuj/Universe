@@ -321,4 +321,11 @@ If you like this project, please consider:
 
 If you found this project helpful, please give it a ⭐!
 
+@sh4dowxanuj ➜ /workspaces/BlackHole (main) $ flutter --version
+Flutter 3.16.9 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision 41456452f2 (2 years ago) • 2024-01-25 10:06:23 -0800
+Engine • revision f40e976bed
+Tools • Dart 3.2.6 • DevTools 2.28.5
+@sh4dowxanuj ➜ /workspaces/BlackHole (main) $ 
+
 </div>
