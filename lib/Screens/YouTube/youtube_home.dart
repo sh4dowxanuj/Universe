@@ -17,6 +17,8 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
@@ -198,6 +200,7 @@ class _YouTubeState extends State<YouTube>
     final bodySections = homeResult['body']?.cast<Map<String, dynamic>>() ?? [];
     if (bodySections.isNotEmpty) {
       final List<HomeSection> next = [];
+      final List<Future<void>> fallbacks = [];
       for (int i = 0; i < bodySections.length; i++) {
         final sec = bodySections[i];
         final title = (sec['title'] ?? 'Discover').toString();
@@ -218,11 +221,17 @@ class _YouTubeState extends State<YouTube>
         section.isLoading = false;
         section.error = null;
         next.add(section);
-        // Persist sections using stable-key cache; any legacy data is migrated on read.
-        if (items.isNotEmpty) {
-          _writeSectionCache(title, items);
+        if (items.isEmpty) {
+          fallbacks.add(_fillSectionFromFallback(section));
+        } else {
+          section.items = _filterAndLimitItems(section.items);
+          _writeSectionCache(title, section.items);
         }
       }
+      if (fallbacks.isNotEmpty) {
+        await Future.wait(fallbacks);
+      }
+      _dedupeAndLimitSections(next);
       final continueSection = _sections.where((s) => s.id == 'continue').toList();
       _sections
         ..clear()
@@ -255,7 +264,8 @@ class _YouTubeState extends State<YouTube>
       section.error = null;
       if (items.isNotEmpty) {
         // Store into stable-key cache for this section.
-        _writeSectionCache(section.title, items);
+        section.items = _filterAndLimitItems(section.items);
+        _writeSectionCache(section.title, section.items);
       }
     } catch (e, st) {
       section.error = e.toString();
@@ -266,6 +276,166 @@ class _YouTubeState extends State<YouTube>
       if (mounted) {
         setState(() {});
       }
+    }
+  }
+
+  /// Populate a section when the API returns an empty shelf.
+  Future<List<Map<String, dynamic>>> _fallbackSearchSection(String title) async {
+    try {
+      final cached = _readFallbackCache(title);
+      if (cached.isNotEmpty) {
+        return cached;
+      }
+
+      final ytmItems = await _ytMusicFallback(title);
+      if (ytmItems.isNotEmpty) {
+        _writeFallbackCache(title, ytmItems);
+        return ytmItems;
+      }
+
+      final results = await YouTubeServices.instance.fetchSearchResults(title);
+      if (results.isNotEmpty && results.first['items'] is List) {
+        final fresh = (results.first['items'] as List)
+            .whereType<Map>()
+            .map((m) => m.cast<String, dynamic>())
+            .toList();
+        final filtered = _filterAndLimitItems(fresh);
+        if (filtered.isNotEmpty) {
+          _writeFallbackCache(title, filtered);
+        }
+        return filtered;
+      }
+    } catch (e, st) {
+      Logger.root.warning('Fallback search failed for "$title": $e');
+      locator<ErrorService>().reportError('YouTubeHome._fallbackSearchSection', e, st);
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  Future<void> _fillSectionFromFallback(HomeSection section) async {
+    final items = await _fallbackSearchSection(section.title);
+    section.items = _filterAndLimitItems(items);
+    section.isLoading = false;
+    if (section.items.isNotEmpty) {
+      _writeSectionCache(section.title, section.items);
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<List<Map<String, dynamic>>> _ytMusicFallback(String title) async {
+    try {
+      final results = await YtMusicService().search(title, filter: 'songs');
+      for (final section in results) {
+        if (section['items'] is List) {
+          final items = (section['items'] as List)
+              .whereType<Map>()
+              .map((m) => m.cast<String, dynamic>())
+              .map((m) {
+                final id = (m['id'] ?? '').toString();
+                final imageList = (m['images'] as List?) ?? [];
+                final image = imageList.isNotEmpty ? imageList.first.toString() : (m['image'] ?? '').toString();
+                return {
+                  'id': id,
+                  'title': (m['title'] ?? '').toString(),
+                  'artist': (m['artist'] ?? '').toString(),
+                  'album': (m['album'] ?? '').toString(),
+                  'duration': (m['duration'] ?? '').toString(),
+                  'image': image,
+                  'secondImage': image,
+                  'type': 'song',
+                  'perma_url': 'https://youtube.com/watch?v=$id',
+                };
+              })
+              .toList();
+          final filtered = _filterAndLimitItems(items);
+          if (filtered.isNotEmpty) return filtered;
+        }
+      }
+    } catch (e, st) {
+      Logger.root.warning('YT Music fallback failed for "$title": $e');
+      locator<ErrorService>().reportError('YouTubeHome._ytMusicFallback', e, st);
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  List<Map<String, dynamic>> _filterAndLimitItems(List<Map<String, dynamic>> items) {
+    final List<Map<String, dynamic>> cleaned = [];
+    for (final item in items) {
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty) continue;
+      final duration = _parseDurationSeconds((item['duration'] ?? '').toString());
+      if (duration != null && duration < 25) continue; // skip shorts/live teasers
+      cleaned.add(item);
+    }
+    return cleaned.take(12).toList();
+  }
+
+  int? _parseDurationSeconds(String value) {
+    if (value.isEmpty) return null;
+    if (RegExp(r'^\d+$').hasMatch(value)) return int.tryParse(value);
+    final parts = value.split(':').map((e) => e.trim()).toList();
+    if (parts.any((e) => e.isEmpty)) return null;
+    int seconds = 0;
+    for (int i = 0; i < parts.length; i++) {
+      final parsed = int.tryParse(parts[parts.length - 1 - i]);
+      if (parsed == null) return null;
+      seconds += parsed * (pow(60, i) as int);
+    }
+    return seconds;
+  }
+
+  void _dedupeAndLimitSections(List<HomeSection> sections) {
+    final Set<String> seen = <String>{};
+    for (final section in sections.where((s) => s.id != 'continue')) {
+      final List<Map<String, dynamic>> unique = [];
+      for (final item in section.items) {
+        final id = (item['id'] ?? '').toString();
+        final key = id.isEmpty
+            ? '${item['title'] ?? ''}-${item['image'] ?? ''}'
+            : id;
+        if (seen.contains(key)) continue;
+        seen.add(key);
+        unique.add(item);
+        if (unique.length >= 12) break;
+      }
+      section.items = unique;
+    }
+  }
+
+  List<Map<String, dynamic>> _readFallbackCache(String title) {
+    try {
+      final box = Hive.box('cache');
+      final stableKey = 'ytHome.section.${_sectionKeyForTitle(title)}.fallback';
+      if (!box.containsKey(stableKey)) return <Map<String, dynamic>>[];
+      final raw = box.get(stableKey);
+      if (raw is Map && raw['ts'] is int && raw['items'] is List) {
+        final ts = raw['ts'] as int;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now - ts < const Duration(minutes: 15).inMilliseconds) {
+          return (raw['items'] as List)
+              .whereType<Map>()
+              .map((m) => m.cast<String, dynamic>())
+              .toList();
+        }
+      }
+    } catch (e, st) {
+      Logger.root.warning('Failed to read fallback cache for "$title": $e');
+      locator<ErrorService>().reportError('YouTubeHome._readFallbackCache', e, st);
+    }
+    return <Map<String, dynamic>>[];
+  }
+
+  void _writeFallbackCache(String title, List<Map<String, dynamic>> items) {
+    try {
+      final box = Hive.box('cache');
+      final stableKey = 'ytHome.section.${_sectionKeyForTitle(title)}.fallback';
+      box.put(stableKey, {
+        'ts': DateTime.now().millisecondsSinceEpoch,
+        'items': items,
+      });
+    } catch (e, st) {
+      Logger.root.warning('Failed to write fallback cache for "$title": $e');
+      locator<ErrorService>().reportError('YouTubeHome._writeFallbackCache', e, st);
     }
   }
 
