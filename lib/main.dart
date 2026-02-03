@@ -51,6 +51,7 @@ import 'package:universe/providers/audio_service_provider.dart';
 import 'package:universe/theme/app_theme.dart';
 
 /// Service Locator for dependency injection
+// ignore: unreachable_from_main
 final GetIt locator = GetIt.instance;
 
 /// Initialize all services and dependencies
