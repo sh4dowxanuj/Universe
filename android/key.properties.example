@@ -2,7 +2,7 @@
 # Copy this file to `android/key.properties` and fill in the real values.
 # Do NOT commit your real `android/key.properties` or keystore to git.
 
-storeFile=/path/to/release-keystore.jks
+storeFile=../sh4dow.jks
 storePassword=YOUR_STORE_PASSWORD
-keyAlias=release_key
+keyAlias=sh4dow
 keyPassword=YOUR_KEY_PASSWORD

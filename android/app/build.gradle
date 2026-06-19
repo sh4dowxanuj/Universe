@@ -26,6 +26,14 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.chaquo.python'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
+def chaquopyBuildPython = "/usr/bin/python3.11"
+if (!new File(chaquopyBuildPython).exists()) {
+    chaquopyBuildPython = "/opt/chaquopy-python/bin/python3"
+}
+if (!new File(chaquopyBuildPython).exists()) {
+    chaquopyBuildPython = "/usr/bin/python3"
+}
+
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
@@ -53,7 +61,7 @@ android {
         
         python {
             version "3.11"
-            buildPython "/usr/bin/python3.11"
+            buildPython chaquopyBuildPython
             pyc {
                 src false
             }
@@ -67,7 +75,7 @@ android {
     signingConfigs {
         release {
             if (keystoreProperties['storeFile']) {
-                storeFile file(keystoreProperties['storeFile'])
+                storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
