@@ -4,6 +4,11 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+TARGET_BASHRC="$TARGET_HOME/.bashrc"
+
 echo "=========================================="
 echo "Universe Codespace Setup"
 echo "=========================================="
@@ -11,21 +16,37 @@ echo "=========================================="
 # Update system packages
 echo "Updating system packages..."
 sudo apt-get update
-sudo apt-get install -y git wget unzip zip curl
+sudo apt-get install -y git wget unzip zip curl software-properties-common
 
-# Install Python 3.11 (compatible with Chaquopy)
-echo "Installing Python 3.11 (3.11.14)..."
-# Python 3.11 is available from ppa.launchpadcontent.net (already configured in this environment)
-sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+# Install Python 3.11 (Chaquopy build host requirement)
+echo "Installing Python 3.11 for Chaquopy..."
+if ! command -v python3.11 >/dev/null 2>&1; then
+    sudo add-apt-repository -y ppa:deadsnakes/ppa
+    sudo apt-get update
+fi
+sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
 
-# Install pip for Python 3.11 (without changing default python)
-echo "Installing pip for Python 3.11..."
-sudo python3.11 -m ensurepip --upgrade 2>/dev/null || true
+# # Install Python 3.11 (compatible with Chaquopy)
+# echo "Installing Python 3.11 (3.11.14)..."
+# # Python 3.11 is available from ppa.launchpadcontent.net (already configured in this environment)
+# sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
 
-# Verify Python 3.11 is available
-echo "Python 3.11 version:"
-python3.11 --version
-python3.11 -m pip --version 2>/dev/null || echo "pip installation via ensurepip may have been skipped"
+# # Install pip for Python 3.11 (without changing default python)
+# echo "Installing pip for Python 3.11..."
+# sudo python3.11 -m ensurepip --upgrade 2>/dev/null || true
+
+# # Verify Python 3.11 is available
+# echo "Python 3.11 version:"
+# python3.11 --version
+# python3.11 -m pip --version 2>/dev/null || echo "pip installation via ensurepip may have been skipped"
+
+# Prepare a dedicated build Python for Chaquopy.
+echo "Preparing Chaquopy build Python environment..."
+CHAQUOPY_HOST_PYTHON="$(command -v python3.11)"
+sudo rm -rf /opt/chaquopy-python
+sudo "$CHAQUOPY_HOST_PYTHON" -m venv /opt/chaquopy-python
+sudo /opt/chaquopy-python/bin/python3 -m pip install --upgrade "pip==23.2.1" setuptools wheel
+sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/chaquopy-python
 
 # Install Java 17.0.17 (Microsoft build via SDKMAN)
 echo "Installing Java 17.0.17 (Microsoft build)..."
@@ -57,8 +78,8 @@ sdk default java 17.0.17-ms
 # Set JAVA_HOME from the installed java binary
 JAVA_BIN=$(readlink -f "$(which java)")
 export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
-echo "export JAVA_HOME=$JAVA_HOME" >> ~/.bashrc
-echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> ~/.bashrc
+echo "export JAVA_HOME=$JAVA_HOME" >> "$TARGET_BASHRC"
+echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> "$TARGET_BASHRC"
 
 # Verify Java version
 echo "Java version:"
@@ -70,17 +91,17 @@ ANDROID_HOME=/opt/android-sdk
 sudo mkdir -p $ANDROID_HOME/cmdline-tools
 cd /tmp
 wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O commandlinetools-linux-latest.zip
-sudo unzip -q commandlinetools-linux-latest.zip -d $ANDROID_HOME/cmdline-tools
+sudo unzip -oq commandlinetools-linux-latest.zip -d $ANDROID_HOME/cmdline-tools
 sudo mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest 2>/dev/null || true
-sudo chown -R $(whoami) $ANDROID_HOME
+sudo chown -R "$TARGET_USER":"$TARGET_USER" $ANDROID_HOME
 
 # Set Android environment variables
 export ANDROID_HOME=$ANDROID_HOME
 export ANDROID_SDK_ROOT=$ANDROID_HOME
 export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-echo "export ANDROID_HOME=$ANDROID_HOME" >> ~/.bashrc
-echo "export ANDROID_SDK_ROOT=$ANDROID_HOME" >> ~/.bashrc
-echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools" >> ~/.bashrc
+echo "export ANDROID_HOME=$ANDROID_HOME" >> "$TARGET_BASHRC"
+echo "export ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$TARGET_BASHRC"
+echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools" >> "$TARGET_BASHRC"
 
 # Accept Android SDK licenses
 echo "Accepting Android SDK licenses..."
@@ -108,7 +129,7 @@ if [ ! -d "/opt/flutter" ] || [ ! -d "/opt/flutter/.git" ]; then
     sudo rm -rf /opt/flutter
     cd /opt
     sudo git clone https://github.com/flutter/flutter.git -b 3.16.9 --depth 1
-    sudo chown -R $(whoami) /opt/flutter
+    sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/flutter
 else
     echo "Ensuring Flutter is on 3.16.9..."
     cd /opt/flutter
@@ -117,9 +138,13 @@ else
     git reset --hard
 fi
 
+sudo git config --system --add safe.directory /opt/flutter 2>/dev/null || true
+sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/flutter
+
 # Set Flutter environment variables
 export PATH=$PATH:/opt/flutter/bin
-echo "export PATH=\$PATH:/opt/flutter/bin" >> ~/.bashrc
+sudo ln -sf /opt/flutter/bin/flutter /usr/local/bin/flutter
+echo "export PATH=\$PATH:/opt/flutter/bin" >> "$TARGET_BASHRC"
 
 # Verify Flutter version
 echo "Flutter version:"
@@ -130,11 +155,11 @@ echo "Running Flutter doctor..."
 flutter doctor -v
 
 # Configure Flutter for Android
-flutter config --android-sdk $ANDROID_HOME
+sudo -u "$TARGET_USER" HOME="$TARGET_HOME" /usr/local/bin/flutter config --android-sdk "$ANDROID_HOME"
 
 # Install Flutter dependencies for the project
 echo "Installing Flutter dependencies..."
-cd /workspaces/BlackHole
+cd "$SCRIPT_DIR"
 flutter pub get
 
 # Clean any previous builds
@@ -150,7 +175,7 @@ echo "Important: Reload your shell to apply environment variables:"
 echo "  source ~/.bashrc"
 echo ""
 echo "Then you can build the APK with:"
-echo "  cd /workspaces/BlackHole"
+echo "  cd /workspaces/Universe"
 echo "  flutter build apk --debug"
 echo ""
 echo "Verify setup with:"
