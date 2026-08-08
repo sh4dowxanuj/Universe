@@ -18,7 +18,7 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/Services/player_service.dart';
 
 class PlaylistHead extends StatelessWidget {

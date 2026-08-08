@@ -18,7 +18,7 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -86,7 +86,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         child: Text(
                           AppLocalizations.of(context)!.restore,
                           style: TextStyle(
-                            color: Colors.grey.withOpacity(0.7),
+                            color: Colors.grey.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -100,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         child: Text(
                           AppLocalizations.of(context)!.skip,
                           style: TextStyle(
-                            color: Colors.grey.withOpacity(0.7),
+                            color: Colors.grey.withValues(alpha: 0.7),
                           ),
                         ),
                       ),
@@ -265,7 +265,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   child: Text(
                                     '${AppLocalizations.of(context)!.disclaimer} ${AppLocalizations.of(context)!.disclaimerText}',
                                     style: TextStyle(
-                                      color: Colors.grey.withOpacity(0.7),
+                                      color: Colors.grey.withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ),

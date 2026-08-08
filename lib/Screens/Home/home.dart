@@ -21,7 +21,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -310,7 +310,7 @@ class _HomePageState extends State<HomePage> {
                             indicatorColor: Theme.of(context)
                                 .colorScheme
                                 .secondary
-                                .withOpacity(0.2),
+                                .withValues(alpha: 0.2),
                             leading: homeDrawer(
                               context: context,
                               padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -388,11 +388,11 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black.withOpacity(0.9)
-                        : Colors.white.withOpacity(0.9),
+                        ? Colors.black.withValues(alpha: 0.9)
+                        : Colors.white.withValues(alpha: 0.9),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, -2),
                       ),
@@ -464,8 +464,8 @@ class _HomePageState extends State<HomePage> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.black.withOpacity(0.1),
+                          Colors.black.withValues(alpha: 0.8),
+                          Colors.black.withValues(alpha: 0.1),
                         ],
                       ).createShader(
                         Rect.fromLTRB(0, 0, rect.width, rect.height),
