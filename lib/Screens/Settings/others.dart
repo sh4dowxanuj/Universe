@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -170,7 +170,7 @@ class _OthersPageState extends State<OthersPage> {
                                           selectedColor: Theme.of(context)
                                               .colorScheme
                                               .secondary
-                                              .withOpacity(0.2),
+                                              .withValues(alpha: 0.2),
                                           labelStyle: TextStyle(
                                             color: !value
                                                 ? Theme.of(context)
@@ -206,7 +206,7 @@ class _OthersPageState extends State<OthersPage> {
                                           selectedColor: Theme.of(context)
                                               .colorScheme
                                               .secondary
-                                              .withOpacity(0.2),
+                                              .withValues(alpha: 0.2),
                                           labelStyle: TextStyle(
                                             color: value
                                                 ? Theme.of(context)

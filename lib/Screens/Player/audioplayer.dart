@@ -27,7 +27,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
 import 'package:flutter_lyric/lyrics_model_builder.dart';
 import 'package:flutter_lyric/lyrics_reader_model.dart';
@@ -1422,7 +1422,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
-                    color: Theme.of(context).cardColor.withOpacity(0.6),
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.6),
                     clipBehavior: Clip.antiAlias,
                     child: IconButton(
                       tooltip: AppLocalizations.of(context)!.copy,
@@ -1435,7 +1435,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                       },
                       icon: const Icon(Icons.copy_rounded),
                       color:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.6),
+                          Theme.of(context).iconTheme.color!.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -1486,7 +1486,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                         inactiveTrackColor: Theme.of(context)
                                             .colorScheme
                                             .secondary
-                                            .withOpacity(0.4),
+                                            .withValues(alpha: 0.4),
                                         trackShape:
                                             const RoundedRectSliderTrackShape(),
                                         disabledActiveTrackColor:
@@ -1497,7 +1497,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                             Theme.of(context)
                                                 .colorScheme
                                                 .secondary
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                       ),
                                       child: ExcludeSemantics(
                                         child: Slider(
@@ -1687,8 +1687,8 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                 decoration: BoxDecoration(
                                   gradient: RadialGradient(
                                     colors: [
-                                      Colors.black.withOpacity(0.4),
-                                      Colors.black.withOpacity(0.7),
+                                      Colors.black.withValues(alpha: 0.4),
+                                      Colors.black.withValues(alpha: 0.7),
                                     ],
                                   ),
                                 ),
@@ -1805,12 +1805,12 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                         colors: value == 1
                                             ? [
                                                 Colors.transparent,
-                                                Colors.black.withOpacity(0.4),
-                                                Colors.black.withOpacity(0.7),
+                                                Colors.black.withValues(alpha: 0.4),
+                                                Colors.black.withValues(alpha: 0.7),
                                               ]
                                             : [
-                                                Colors.black.withOpacity(0.7),
-                                                Colors.black.withOpacity(0.4),
+                                                Colors.black.withValues(alpha: 0.7),
+                                                Colors.black.withValues(alpha: 0.4),
                                                 Colors.transparent,
                                               ],
                                       ),
@@ -2219,11 +2219,11 @@ class NameNControls extends StatelessWidget {
                 : Theme.of(context).brightness == Brightness.dark
                     ? const Color.fromRGBO(0, 0, 0, 0.5)
                     : const Color.fromRGBO(255, 255, 255, 0.5),
-            // gradientColor![1]!.withOpacity(0.5),
+            // gradientColor![1]!.withValues(alpha: 0.5),
             // useBlurForNowPlaying
             // ? Theme.of(context).brightness == Brightness.dark
-            // Colors.black.withOpacity(0.2),
-            // : Colors.white.withOpacity(0.7)
+            // Colors.black.withValues(alpha: 0.2),
+            // : Colors.white.withValues(alpha: 0.7)
             // : Theme.of(context).brightness == Brightness.dark
             // ? Colors.black
             // : Colors.white,

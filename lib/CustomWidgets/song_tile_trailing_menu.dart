@@ -20,7 +20,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:universe/CustomWidgets/add_playlist.dart';
 import 'package:universe/Helpers/add_mediaitem_to_queue.dart';

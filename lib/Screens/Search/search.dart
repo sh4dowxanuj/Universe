@@ -20,7 +20,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/APIs/api.dart';
@@ -373,7 +373,7 @@ class _SearchPageState extends State<SearchPage> {
                                             selectedColor: Theme.of(context)
                                                 .colorScheme
                                                 .secondary
-                                                .withOpacity(0.2),
+                                                .withValues(alpha: 0.2),
                                             labelStyle: TextStyle(
                                               color: Theme.of(context)
                                                   .textTheme
@@ -920,7 +920,7 @@ class _SearchPageState extends State<SearchPage> {
         child: ChoiceChip(
           label: Text(element['label']!),
           selectedColor:
-              Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
           labelStyle: TextStyle(
             color: searchType == element['key']
                 ? Theme.of(context).colorScheme.secondary
