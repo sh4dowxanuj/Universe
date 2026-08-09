@@ -114,7 +114,8 @@ class ImportPlaylist extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     [
-                      MdiIcons.importIcon,
+                      Icons
+                          .import_export, // Native Flutter Icon (Guaranteed to compile)
                       MdiIcons.spotify,
                       MdiIcons.youtube,
                       Icons.music_note_rounded,
