@@ -20,12 +20,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs_desktop.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});

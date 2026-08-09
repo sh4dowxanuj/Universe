@@ -24,18 +24,18 @@ import 'package:audiotagger/models/tag.dart';
 // import 'package:ffmpeg_kit_flutter_audio/ffmpeg_kit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/lyrics.dart';
+import 'package:universe/Helpers/metadata_god_compat.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 import 'package:universe/Services/ytdlp_service.dart';
+// import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class Download with ChangeNotifier {
   static final Map<String, Download> _instances = {};
@@ -164,7 +164,6 @@ class Download with ChangeNotifier {
             }
           default:
             lastDownloadId = data['id'].toString();
-            break;
         }
       } else {
         showDialog(
@@ -418,7 +417,8 @@ class Download with ChangeNotifier {
         total = response.contentLength ?? 0;
 
         Logger.root.info(
-            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB',);
+          'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB',
+        );
 
         stream = response.stream.asBroadcastStream();
 
@@ -575,7 +575,7 @@ class Download with ChangeNotifier {
                 // discNumber: 1,
                 // discTotal: 5,
                 durationMs: int.parse(data['duration'].toString()) * 1000,
-                fileSize: file.lengthSync(),
+                fileSize: BigInt.from(file.lengthSync()),
                 picture: Picture(
                   data: bytes2,
                   mimeType: 'image/jpeg',

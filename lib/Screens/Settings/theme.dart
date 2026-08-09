@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
@@ -8,6 +7,7 @@ import 'package:universe/CustomWidgets/popup.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/config.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class ThemePage extends StatefulWidget {
   final Function? callback;
@@ -134,7 +134,6 @@ class _ThemePageState extends State<ThemePage> {
               ),
               onTap: () {
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {

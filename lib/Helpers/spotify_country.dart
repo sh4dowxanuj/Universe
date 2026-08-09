@@ -17,6 +17,8 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -32,7 +34,6 @@ class SpotifyCountry {
     }
 
     await showModalBottomSheet(
-      isDismissible: true,
       backgroundColor: Colors.transparent,
       context: context,
       builder: (BuildContext context) {
@@ -59,6 +60,7 @@ class SpotifyCountry {
                   title: Text(
                     countries[idx],
                   ),
+                  // Deprecated API: use RadioGroup ancestor when migrating.
                   leading: Radio(
                     value: countries[idx],
                     groupValue: region,
