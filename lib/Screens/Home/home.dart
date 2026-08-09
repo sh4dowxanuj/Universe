@@ -537,7 +537,7 @@ class _HomePageState extends State<HomePage> {
                                 horizontal: 20.0,
                               ),
                               leading: Icon(
-                                MdiIcons.folderMusic,
+                                Icons.folder_special_rounded,
                                 color: Theme.of(context).iconTheme.color,
                               ),
                               onTap: () {

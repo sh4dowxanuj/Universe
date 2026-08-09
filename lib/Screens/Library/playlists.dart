@@ -111,7 +111,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   dimension: 50,
                   child: Center(
                     child: Icon(
-                      MdiIcons.importIcon,
+                      Icons.import_export,
                       color: Theme.of(context).iconTheme.color,
                     ),
                   ),

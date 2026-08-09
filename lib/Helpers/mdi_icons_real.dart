@@ -1,1 +1,4 @@
-export 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:community_material_icon/community_material_icon.dart';
+export 'package:community_material_icon/community_material_icon.dart';
+
+typedef MdiIcons = CommunityMaterialIcons;

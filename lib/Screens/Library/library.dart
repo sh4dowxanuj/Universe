@@ -86,7 +86,7 @@ class _LibraryPageState extends State<LibraryPage> {
         ),
         LibraryTile(
           title: AppLocalizations.of(context)!.myMusic,
-          icon: MdiIcons.folderMusic,
+          icon: Icons.folder_special_rounded,
           onTap: () {
             Navigator.push(
               context,

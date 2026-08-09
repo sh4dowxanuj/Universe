@@ -136,7 +136,7 @@ class _NewSettingsPageState extends State<NewSettingsPage>
           context,
         )!
             .theme,
-        'icon': MdiIcons.themeLightDark,
+        'icon': Icons.brightness_medium_rounded,
         'onTap': ThemePage(
           callback: widget.callback,
         ),

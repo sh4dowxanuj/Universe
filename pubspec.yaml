@@ -42,7 +42,7 @@ dependencies:
   # just_audio_libwinmedia: ^0.0.4 # For windows and linux.
   logging: ^1.2.0
   marquee: ^2.2.3
-  material_design_icons_flutter: ^7.0.7296
+  community_material_icon: ^5.9.55
   metadata_god: ^1.1.0
   on_audio_query: ^2.9.0
   package_info_plus: ^10.2.1
