@@ -18,7 +18,6 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:universe/APIs/api.dart';
 import 'package:universe/CustomWidgets/artist_like_button.dart';
@@ -36,6 +35,7 @@ import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Models/url_image_generator.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class ArtistSearchPage extends StatefulWidget {
   final Map data;

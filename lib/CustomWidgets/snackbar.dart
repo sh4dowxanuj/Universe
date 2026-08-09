@@ -18,8 +18,8 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:logging/logging.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class ShowSnackBar {
   void showSnackBar(

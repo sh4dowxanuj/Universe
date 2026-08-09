@@ -27,15 +27,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
-import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
-import 'package:flutter_lyric/lyrics_model_builder.dart';
-import 'package:flutter_lyric/lyrics_reader_model.dart';
-import 'package:flutter_lyric/lyrics_reader_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -52,10 +47,12 @@ import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/audio_service_helper.dart';
 import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/dominant_color.dart';
+import 'package:universe/Helpers/flutter_lyric_compat.dart';
 import 'package:universe/Helpers/lyrics.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Returns true when the item should be treated as an online stream.
@@ -949,13 +946,14 @@ class NowPlayingStream extends StatelessWidget {
           header: SizedBox(
             height: head ? headHeight : 0,
           ),
-          onReorder: (int oldIndex, int newIndex) {
-            if (oldIndex < newIndex) {
-              newIndex--;
+          onReorderItem: (int oldIndex, int newIndex) {
+            int insertIndex = newIndex;
+            if (oldIndex < insertIndex) {
+              insertIndex--;
             }
             audioHandler.moveQueueItem(
               queueStateIndex + oldIndex,
-              queueStateIndex + newIndex,
+              queueStateIndex + insertIndex,
             );
           },
           scrollController: scrollController,
@@ -1434,8 +1432,10 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                         );
                       },
                       icon: const Icon(Icons.copy_rounded),
-                      color:
-                          Theme.of(context).iconTheme.color!.withValues(alpha: 0.6),
+                      color: Theme.of(context)
+                          .iconTheme
+                          .color!
+                          .withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -1805,12 +1805,16 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                         colors: value == 1
                                             ? [
                                                 Colors.transparent,
-                                                Colors.black.withValues(alpha: 0.4),
-                                                Colors.black.withValues(alpha: 0.7),
+                                                Colors.black
+                                                    .withValues(alpha: 0.4),
+                                                Colors.black
+                                                    .withValues(alpha: 0.7),
                                               ]
                                             : [
-                                                Colors.black.withValues(alpha: 0.7),
-                                                Colors.black.withValues(alpha: 0.4),
+                                                Colors.black
+                                                    .withValues(alpha: 0.7),
+                                                Colors.black
+                                                    .withValues(alpha: 0.4),
                                                 Colors.transparent,
                                               ],
                                       ),

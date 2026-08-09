@@ -154,7 +154,11 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
     Logger.root.info('checking connectivity & setting quality');
 
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
+      final ConnectivityResult result =
+          results.isNotEmpty ? results.first : ConnectivityResult.none;
       if (result == ConnectivityResult.mobile) {
         connectionType = 'mobile';
         Logger.root.info(
@@ -428,8 +432,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     addQueueItem(newItem);
   }
 
-  Future<AudioSource?> _itemToSource(MediaItem mediaItem,
-      {bool lazy = false,}) async {
+  Future<AudioSource?> _itemToSource(
+    MediaItem mediaItem, {
+    bool lazy = false,
+  }) async {
     AudioSource? audioSource;
     try {
       if (mediaItem.artUri.toString().startsWith('file:')) {
@@ -487,8 +493,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                 );
                 _mediaItemExpando[audioSource] = mediaItem;
                 return audioSource;
-              } else {
-              }
+              } else {}
             } catch (e) {
               Logger.root.warning('yt-dlp failed for ${mediaItem.id}: $e');
             }
@@ -517,8 +522,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                   );
                   _mediaItemExpando[audioSource] = mediaItem;
                   return audioSource;
-                } else {
-                }
+                } else {}
               }
             }
 
@@ -576,8 +580,10 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     return audioSource;
   }
 
-  Future<List<AudioSource>> _itemsToSources(List<MediaItem> mediaItems,
-      {bool lazy = false,}) async {
+  Future<List<AudioSource>> _itemsToSources(
+    List<MediaItem> mediaItems, {
+    bool lazy = false,
+  }) async {
     preferredMobileQuality = Hive.box('settings')
         .get('streamingQuality', defaultValue: '96 kbps')
         .toString();
@@ -593,7 +599,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
     // Process in parallel but with lazy flag for YouTube items
     final sources = await Future.wait(
-        mediaItems.map((item) => _itemToSource(item, lazy: lazy)),);
+      mediaItems.map((item) => _itemToSource(item, lazy: lazy)),
+    );
     return sources.whereType<AudioSource>().toList();
   }
 
@@ -732,7 +739,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       await _player!.seek(
         Duration.zero,
         index: _player!.shuffleModeEnabled
-            ? _player!.shuffleIndices![index]
+            ? _player!.shuffleIndices[index]
             : index,
       );
     } else {
@@ -842,7 +849,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   @override
   Future<void> updateMediaItem(MediaItem mediaItem) async {
     final index = queue.value.indexWhere((item) => item.id == mediaItem.id);
-    _mediaItemExpando[_player!.sequence![index]] = mediaItem;
+    _mediaItemExpando[_player!.sequence[index]] = mediaItem;
   }
 
   @override
@@ -903,14 +910,13 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     _player!.seek(
       Duration.zero,
       index:
-          _player!.shuffleModeEnabled ? _player!.shuffleIndices![index] : index,
+          _player!.shuffleModeEnabled ? _player!.shuffleIndices[index] : index,
     );
   }
 
   @override
   Future<void> play() async {
-    if (_player!.sequence != null && _player!.sequence!.isNotEmpty) {
-    }
+    if (_player!.sequence.isNotEmpty) {}
     try {
       await _player!.play();
     } catch (e) {
@@ -1106,7 +1112,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   void _playbackError(err) {
     if (err is PlatformException) {
-
       // Check if this is a 403 error (expired YouTube URL)
       if (err.message != null && err.message!.contains('403')) {
         _handle403Error();
@@ -1116,7 +1121,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     Logger.root.severe('Error from audioservice: ${err.code}', err);
     if (err is PlatformException &&
         err.code == 'abort' &&
-        err.message == 'Connection aborted') return;
+        err.message == 'Connection aborted') {
+      return;
+    }
     _onError(err, null);
   }
 
@@ -1136,7 +1143,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         return;
       }
 
-
       // Fetch fresh URL using active mode (lazy=false)
       final newSource = await _itemToSource(currentItem);
       if (newSource == null) {
@@ -1144,18 +1150,15 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         return;
       }
 
-
       // Remove old source and insert new one
       await _playlist.removeAt(currentIndex);
       await _playlist.insert(currentIndex, newSource);
-
 
       // Seek back to the same index to reload the source
       await _player!.seek(Duration.zero, index: currentIndex);
 
       // Resume playback
       await _player!.play();
-
     } catch (e, stackTrace) {
       Logger.root.severe('Failed to recover from 403 error', e, stackTrace);
       _onError(e, stackTrace);

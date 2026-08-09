@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Screens/Settings/player_gradient.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class AppUIPage extends StatefulWidget {
   final Function? callback;
@@ -171,14 +171,15 @@ class _AppUIPageState extends State<AppUIPage> {
                                 0,
                                 10,
                               ),
-                              onReorder: (int oldIndex, int newIndex) {
-                                if (oldIndex < newIndex) {
-                                  newIndex--;
+                              onReorderItem: (int oldIndex, int newIndex) {
+                                int insertIndex = newIndex;
+                                if (oldIndex < insertIndex) {
+                                  insertIndex--;
                                 }
                                 final temp = order.removeAt(
                                   oldIndex,
                                 );
-                                order.insert(newIndex, temp);
+                                order.insert(insertIndex, temp);
                                 setStt(
                                   () {},
                                 );
@@ -510,7 +511,6 @@ class _AppUIPageState extends State<AppUIPage> {
                 final GlobalKey<AnimatedListState> listKey =
                     GlobalKey<AnimatedListState>();
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {
@@ -694,14 +694,16 @@ class _AppUIPageState extends State<AppUIPage> {
                                 0,
                                 10,
                               ),
-                              onReorder: (int oldIndex, int newIndex) {
-                                if (oldIndex < newIndex) {
-                                  newIndex--;
+                              onReorderItem: (int oldIndex, int newIndex) {
+                                int insertIndex = newIndex;
+                                if (oldIndex < insertIndex) {
+                                  insertIndex--;
                                 }
                                 final temp = sectionsAvailableToShow.removeAt(
                                   oldIndex,
                                 );
-                                sectionsAvailableToShow.insert(newIndex, temp);
+                                sectionsAvailableToShow.insert(
+                                    insertIndex, temp);
                                 setStt(
                                   () {},
                                 );

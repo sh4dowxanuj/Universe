@@ -30,7 +30,7 @@ class Picker {
     String? message,
   }) async {
     final String? temp =
-        await FilePicker.platform.getDirectoryPath(dialogTitle: message);
+        await FilePicker.getDirectoryPath(dialogTitle: message);
     Logger.root.info('Selected folder: $temp');
     return (temp == '/' || temp == null) ? '' : temp;
   }
@@ -40,7 +40,7 @@ class Picker {
     // List<String>? ext,
     String? message,
   }) async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result = await FilePicker.pickFiles(
       // allowedExtensions: ext,
       dialogTitle: message,
     );

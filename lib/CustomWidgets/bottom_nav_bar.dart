@@ -85,7 +85,8 @@ class CustomBottomNavBar extends StatelessWidget {
                   return Material(
                     color: Color.lerp(
                       selectedColor.withValues(alpha: 0.0),
-                      selectedColor.withValues(alpha: selectedColorOpacity ?? 0.1),
+                      selectedColor.withValues(
+                          alpha: selectedColorOpacity ?? 0.1),
                       t,
                     ),
                     shape: itemShape,

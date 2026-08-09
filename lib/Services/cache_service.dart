@@ -31,8 +31,11 @@ class CacheService {
       final box = Hive.box(boxName);
       final cached = box.get(key);
 
-      if (cached is Map && cached.containsKey('data') && cached.containsKey('timestamp')) {
-        final timestamp = DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
+      if (cached is Map &&
+          cached.containsKey('data') &&
+          cached.containsKey('timestamp')) {
+        final timestamp =
+            DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
         final ttl = (cached['ttl'] as int?) ?? _defaultTTL.inMilliseconds;
 
         if (DateTime.now().difference(timestamp).inMilliseconds < ttl) {
@@ -51,7 +54,9 @@ class CacheService {
   }
 
   /// Set cached data with TTL
-  Future<void> set<T>(String key, T data, {
+  Future<void> set<T>(
+    String key,
+    T data, {
     String boxName = 'cache',
     Duration? ttl,
   }) async {
@@ -75,7 +80,8 @@ class CacheService {
       final cached = box.get(key);
 
       if (cached is Map && cached.containsKey('timestamp')) {
-        final timestamp = DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
+        final timestamp =
+            DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
         final ttl = (cached['ttl'] as int?) ?? _defaultTTL.inMilliseconds;
         return DateTime.now().difference(timestamp).inMilliseconds < ttl;
       }
@@ -127,7 +133,8 @@ class CacheService {
         if (cached is Map &&
             cached.containsKey('timestamp') &&
             cached.containsKey('ttl')) {
-          final timestamp = DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
+          final timestamp =
+              DateTime.fromMillisecondsSinceEpoch(cached['timestamp'] as int);
           final ttl = cached['ttl'] as int;
           if (DateTime.now().difference(timestamp).inMilliseconds >= ttl) {
             keysToRemove.add(key as String);

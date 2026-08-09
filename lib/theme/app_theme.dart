@@ -40,7 +40,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: UnderlineInputBorder(
           borderSide:
-          BorderSide(width: 1.5, color: currentTheme.currentColor()),
+              BorderSide(width: 1.5, color: currentTheme.currentColor()),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -101,7 +101,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         focusedBorder: UnderlineInputBorder(
           borderSide:
-          BorderSide(width: 1.5, color: currentTheme.currentColor()),
+              BorderSide(width: 1.5, color: currentTheme.currentColor()),
         ),
       ),
       listTileTheme: ListTileThemeData(

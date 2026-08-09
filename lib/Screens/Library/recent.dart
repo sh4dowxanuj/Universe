@@ -18,13 +18,13 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/empty_screen.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/like_button.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class RecentlyPlayed extends StatefulWidget {
   @override

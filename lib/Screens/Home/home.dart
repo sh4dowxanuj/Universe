@@ -21,10 +21,9 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -42,6 +41,7 @@ import 'package:universe/Screens/Settings/new_settings_page.dart';
 import 'package:universe/Screens/Top Charts/top.dart';
 import 'package:universe/Screens/YouTube/youtube_home.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
+import 'package:universe/localization/app_localizations.dart';
 // Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
 
@@ -273,7 +273,8 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
-        bottom: false, // Don't apply SafeArea to bottom to allow navigation bar to touch edge
+        bottom:
+            false, // Don't apply SafeArea to bottom to allow navigation bar to touch edge
         child: GradientContainer(
           child: Column(
             children: [
@@ -283,7 +284,8 @@ class _HomePageState extends State<HomePage> {
                     if (rotated)
                       ValueListenableBuilder(
                         valueListenable: _selectedIndex,
-                        builder: (BuildContext context, int indexValue, Widget? child) {
+                        builder: (BuildContext context, int indexValue,
+                            Widget? child) {
                           return NavigationRail(
                             minWidth: 70.0,
                             groupAlignment: 0.0,
@@ -302,8 +304,11 @@ class _HomePageState extends State<HomePage> {
                             unselectedLabelTextStyle: TextStyle(
                               color: Theme.of(context).iconTheme.color,
                             ),
-                            selectedIconTheme: Theme.of(context).iconTheme.copyWith(
-                                  color: Theme.of(context).colorScheme.secondary,
+                            selectedIconTheme: Theme.of(context)
+                                .iconTheme
+                                .copyWith(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
                                 ),
                             unselectedIconTheme: Theme.of(context).iconTheme,
                             useIndicator: screenWidth < 1050,
@@ -313,14 +318,16 @@ class _HomePageState extends State<HomePage> {
                                 .withValues(alpha: 0.2),
                             leading: homeDrawer(
                               context: context,
-                              padding: const EdgeInsets.symmetric(vertical: 5.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 5.0),
                             ),
                             destinations: sectionsToShow.map((e) {
                               switch (e) {
                                 case 'Home':
                                   return NavigationRailDestination(
                                     icon: const Icon(Icons.home_rounded),
-                                    label: Text(AppLocalizations.of(context)!.home),
+                                    label: Text(
+                                        AppLocalizations.of(context)!.home),
                                   );
                                 case 'Top Charts':
                                   return NavigationRailDestination(
@@ -331,13 +338,16 @@ class _HomePageState extends State<HomePage> {
                                   );
                                 case 'YouTube':
                                   return NavigationRailDestination(
-                                    icon: const Icon(MdiIcons.youtube),
-                                    label: Text(AppLocalizations.of(context)!.youTube),
+                                    icon: Icon(MdiIcons.youtube),
+                                    label: Text(
+                                        AppLocalizations.of(context)!.youTube),
                                   );
                                 case 'Library':
                                   return NavigationRailDestination(
-                                    icon: const Icon(Icons.my_library_music_rounded),
-                                    label: Text(AppLocalizations.of(context)!.library),
+                                    icon: const Icon(
+                                        Icons.my_library_music_rounded),
+                                    label: Text(
+                                        AppLocalizations.of(context)!.library),
                                   );
                                 default:
                                   return NavigationRailDestination(
@@ -399,7 +409,8 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   child: SafeArea(
-                    top: false, // Only apply SafeArea to bottom for navigation gesture area
+                    top:
+                        false, // Only apply SafeArea to bottom for navigation gesture area
                     child: ValueListenableBuilder(
                       valueListenable: _selectedIndex,
                       builder: (
@@ -413,8 +424,10 @@ class _HomePageState extends State<HomePage> {
                           onTap: onItemTapped,
                           backgroundColor: Colors.transparent,
                           elevation: 0,
-                          selectedItemColor: Theme.of(context).colorScheme.secondary,
-                          unselectedItemColor: Theme.of(context).iconTheme.color,
+                          selectedItemColor:
+                              Theme.of(context).colorScheme.secondary,
+                          unselectedItemColor:
+                              Theme.of(context).iconTheme.color,
                           items: _buildBottomNavItems(context),
                         );
                       },
@@ -532,21 +545,19 @@ class _HomePageState extends State<HomePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        (Platform.isWindows ||
-                                                Platform.isLinux ||
-                                                Platform.isMacOS)
-                                            ? const DownloadedSongsDesktop()
-                                            : const DownloadedSongs(
-                                                showPlaylists: true,
-                                              ),
+                                    builder: (context) => (Platform.isWindows ||
+                                            Platform.isLinux ||
+                                            Platform.isMacOS)
+                                        ? const DownloadedSongsDesktop()
+                                        : const DownloadedSongs(
+                                            showPlaylists: true,
+                                          ),
                                   ),
                                 );
                               },
                             ),
                             ListTile(
-                              title:
-                                  Text(AppLocalizations.of(context)!.downs),
+                              title: Text(AppLocalizations.of(context)!.downs),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20.0,
                               ),
@@ -589,8 +600,7 @@ class _HomePageState extends State<HomePage> {
                                   Theme.of(context).colorScheme.secondary,
                               onTap: () {
                                 Navigator.pop(context);
-                                final idx =
-                                    sectionsToShow.indexOf('Settings');
+                                final idx = sectionsToShow.indexOf('Settings');
                                 if (idx != -1) {
                                   if (_selectedIndex.value != idx) {
                                     onItemTapped(idx);
@@ -607,8 +617,7 @@ class _HomePageState extends State<HomePage> {
                               },
                             ),
                             ListTile(
-                              title:
-                                  Text(AppLocalizations.of(context)!.about),
+                              title: Text(AppLocalizations.of(context)!.about),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20.0,
                               ),
@@ -674,8 +683,8 @@ class _HomePageState extends State<HomePage> {
           );
         case 'YouTube':
           return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
+            icon: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Icon(MdiIcons.youtube),
             ),
             label: AppLocalizations.of(context)!.youTube,

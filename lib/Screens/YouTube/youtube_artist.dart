@@ -18,7 +18,6 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/bouncy_sliver_scroll_view.dart';
 import 'package:universe/CustomWidgets/copy_clipboard.dart';
@@ -27,6 +26,7 @@ import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Services/player_service.dart';
 import 'package:universe/Services/yt_music.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class YouTubeArtist extends StatefulWidget {
   final String artistId;

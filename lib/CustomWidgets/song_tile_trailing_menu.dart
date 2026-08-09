@@ -20,7 +20,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:universe/CustomWidgets/add_playlist.dart';
 import 'package:universe/Helpers/add_mediaitem_to_queue.dart';
@@ -30,6 +29,7 @@ import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
 import 'package:universe/Screens/Search/search.dart';
 import 'package:universe/Services/yt_music.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SongTileTrailingMenu extends StatefulWidget {
@@ -224,7 +224,6 @@ class _SongTileTrailingMenuState extends State<SongTileTrailingMenu> {
                 ),
               ),
             );
-            break;
         }
       },
     );
