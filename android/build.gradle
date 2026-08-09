@@ -1,5 +1,5 @@
 buildscript {
-   ext.kotlin_version = '1.8.22'
+    ext.kotlin_version = '2.2.20'
     repositories {
         google()
         mavenCentral()
@@ -7,9 +7,9 @@ buildscript {
     }
 
     dependencies {
-       classpath 'com.android.tools.build:gradle:7.1.3'
+        classpath 'com.android.tools.build:gradle:8.11.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.chaquo.python:gradle:14.0.2"
+        classpath "com.chaquo.python:gradle:16.0.0"
     }
 }
 
@@ -17,13 +17,61 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://chaquo.com/maven" }
     }
 }
 
 rootProject.buildDir = '../build'
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+
+    // Set compileSdk early for all Android submodules
+    def configureAndroid = { sub ->
+        if (sub.hasProperty('android')) {
+            sub.android {
+                compileSdk = 37
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
+
+    plugins.withId("com.android.library") { configureAndroid(project) }
+    plugins.withId("com.android.application") { configureAndroid(project) }
+
     project.evaluationDependsOn(':app')
+
+    def fixSubproject = { subproject ->
+        if (subproject.hasProperty('android')) {
+            // Fix missing namespace for legacy dependencies
+            if (subproject.android.namespace == null) {
+                subproject.android.namespace = subproject.group ?: "com.example.${subproject.name.replace('-', '_')}"
+            }
+            // Force subprojects to stick to pre-installed NDK
+            subproject.android.ndkVersion = "28.2.13676358"
+        }
+    }
+
+    if (project.state.executed) {
+        fixSubproject(project)
+    } else {
+        project.afterEvaluate { fixSubproject(project) }
+    }
+
+    // Force Kotlin to target 17 across ALL subprojects to match Java task defaults
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+    }
 }
 
 tasks.register("clean", Delete) {

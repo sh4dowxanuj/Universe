@@ -13,8 +13,6 @@ environment:
 dependencies:
   app_links: ^7.2.1
   audio_service: ^0.18.12
-  audiotagger:
-    2.2.1
   # bitsdojo_window: ^0.1.1+1 #For Desktops
   cached_network_image: ^3.3.0
   carousel_slider: ^5.1.2

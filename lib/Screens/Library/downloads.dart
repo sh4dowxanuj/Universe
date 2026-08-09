@@ -19,14 +19,14 @@
 
 import 'dart:io';
 
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
+import 'package:metadata_god/metadata_god.dart';
+import 'package:mime/mime.dart';
 // import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/custom_physics.dart';
@@ -551,8 +551,6 @@ Future<Map> editTags(Map song, BuildContext context) async {
   await showDialog(
     context: context,
     builder: (BuildContext context) {
-      final tagger = Audiotagger();
-
       FileImage songImage = FileImage(File(song['image'].toString()));
 
       final titlecontroller =
@@ -569,6 +567,8 @@ Future<Map> editTags(Map song, BuildContext context) async {
           TextEditingController(text: song['year'].toString());
       final pathcontroller =
           TextEditingController(text: song['path'].toString());
+
+      String? pickedImagePath;
 
       return AlertDialog(
         shape: RoundedRectangleBorder(
@@ -590,28 +590,9 @@ Future<Map> editTags(Map song, BuildContext context) async {
                       message: 'Pick Image',
                     );
                     if (filePath != '') {
-                      final imagePath = filePath;
-                      File(imagePath).copy(song['image'].toString());
-
-                      songImage = FileImage(File(imagePath));
-
-                      final Tag tag = Tag(
-                        artwork: imagePath,
-                      );
-                      try {
-                        await [
-                          Permission.manageExternalStorage,
-                        ].request();
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
-                        );
-                      } catch (e) {
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
-                        );
-                      }
+                      pickedImagePath = filePath;
+                      File(pickedImagePath!).copy(song['image'].toString());
+                      songImage = FileImage(File(pickedImagePath!));
                     }
                   },
                   child: Card(
@@ -784,33 +765,44 @@ Future<Map> editTags(Map song, BuildContext context) async {
               song['genre'] = genrecontroller.text;
               song['year'] = yearcontroller.text;
               song['path'] = pathcontroller.text;
-              final tag = Tag(
+
+              Picture? picture;
+              if (pickedImagePath != null && pickedImagePath!.isNotEmpty) {
+                picture = Picture(
+                  data: await File(pickedImagePath!).readAsBytes(),
+                  mimeType: lookupMimeType(pickedImagePath!) ?? 'image/jpeg',
+                );
+              }
+
+              final metadata = Metadata(
                 title: titlecontroller.text,
                 artist: artistcontroller.text,
                 album: albumcontroller.text,
                 genre: genrecontroller.text,
-                year: yearcontroller.text,
+                year: int.tryParse(yearcontroller.text),
                 albumArtist: albumArtistController.text,
+                picture: picture,
               );
+
               try {
                 try {
                   await [
                     Permission.manageExternalStorage,
                   ].request();
-                  tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
+                  await MetadataGod.writeMetadata(
+                    file: song['path'].toString(),
+                    metadata: metadata,
                   );
                 } catch (e) {
-                  await tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
-                  );
-                  ShowSnackBar().showSnackBar(
-                    context,
-                    AppLocalizations.of(context)!.successTagEdit,
+                  await MetadataGod.writeMetadata(
+                    file: song['path'].toString(),
+                    metadata: metadata,
                   );
                 }
+                ShowSnackBar().showSnackBar(
+                  context,
+                  AppLocalizations.of(context)!.successTagEdit,
+                );
               } catch (e) {
                 Logger.root.severe('Failed to edit tags', e);
                 ShowSnackBar().showSnackBar(
@@ -864,7 +856,8 @@ class _DownSongsTabState extends State<DownSongsTab>
 
     try {
       await file.create();
-      final image = await Audiotagger().readArtwork(path: songFilePath);
+      final metadata = await MetadataGod.readMetadata(file: songFilePath);
+      final image = metadata.picture?.data;
       if (image != null) {
         file.writeAsBytesSync(image);
       }
