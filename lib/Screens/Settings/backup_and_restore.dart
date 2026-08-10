@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
@@ -9,6 +8,7 @@ import 'package:universe/Helpers/backup_restore.dart';
 import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/picker.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class BackupAndRestorePage extends StatefulWidget {
   const BackupAndRestorePage({super.key});
@@ -68,7 +68,6 @@ class _BackupAndRestorePageState extends State<BackupAndRestorePage> {
               dense: true,
               onTap: () {
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {

@@ -85,7 +85,8 @@ class NetworkService {
           return http.Response(
             responseData['body'] as String,
             responseData['statusCode'] as int,
-            headers: Map<String, String>.from((responseData['headers'] as Map?) ?? {}),
+            headers: Map<String, String>.from(
+                (responseData['headers'] as Map?) ?? {}),
             request: http.Request('GET', Uri.parse(url)),
           );
         } catch (e) {
@@ -116,7 +117,8 @@ class NetworkService {
       } on TimeoutException catch (e) {
         attempt++;
         if (attempt >= _maxRetries) {
-          _logger.severe('Request timeout after $_maxRetries attempts: $url', e);
+          _logger.severe(
+              'Request timeout after $_maxRetries attempts: $url', e);
           rethrow;
         }
         await Future.delayed(_retryDelay * attempt);

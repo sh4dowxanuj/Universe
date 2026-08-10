@@ -20,7 +20,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/APIs/api.dart';
 import 'package:universe/CustomWidgets/collage.dart';
@@ -38,6 +37,7 @@ import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/Screens/Search/artists.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 bool fetched = false;
 List preferredLanguage = Hive.box('settings')

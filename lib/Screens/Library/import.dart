@@ -19,10 +19,9 @@
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/APIs/spotify_api.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
@@ -32,6 +31,7 @@ import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Helpers/search_add_playlist.dart';
 import 'package:universe/Helpers/spotify_helper.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ImportPlaylist extends StatelessWidget {
@@ -114,7 +114,8 @@ class ImportPlaylist extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     [
-                      MdiIcons.import,
+                      Icons
+                          .import_export, // Native Flutter Icon (Guaranteed to compile)
                       MdiIcons.spotify,
                       MdiIcons.youtube,
                       Icons.music_note_rounded,
@@ -167,7 +168,7 @@ Future<void> connectToSpotify(
       mode: LaunchMode.externalApplication,
     );
     final appLinks = AppLinks();
-    appLinks.allUriLinkStream.listen(
+    appLinks.uriLinkStream.listen(
       (uri) async {
         final link = uri.toString();
         if (link.contains('code=')) {
@@ -414,7 +415,6 @@ Future<void> fetchPlaylists(
   final List spotifyPlaylists =
       await SpotifyApi().getUserPlaylists(accessToken);
   showModalBottomSheet(
-    isDismissible: true,
     backgroundColor: Colors.transparent,
     context: context,
     builder: (BuildContext contxt) {

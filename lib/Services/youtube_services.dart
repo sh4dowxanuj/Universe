@@ -44,7 +44,8 @@ class YouTubeServices {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
   };
 
   final YoutubeExplode yt = YoutubeExplode();
@@ -110,7 +111,9 @@ class YouTubeServices {
     // Get quality setting from Hive
     String quality;
     try {
-      quality = Hive.box('settings').get('streamingQuality', defaultValue: 'High').toString();
+      quality = Hive.box('settings')
+          .get('streamingQuality', defaultValue: 'High')
+          .toString();
       // Convert kbps format to High/Low
       if (quality.contains('320') || quality.contains('256')) {
         quality = 'High';
@@ -121,12 +124,13 @@ class YouTubeServices {
       Logger.root.warning('Failed to get quality setting: $e');
       quality = 'High'; // Default to high quality
     }
-    
+
     try {
       // Use yt-dlp first (bypasses POTOKEN authentication)
-      Logger.root.info('Refreshing link using yt-dlp for $id (quality: $quality)');
+      Logger.root
+          .info('Refreshing link using yt-dlp for $id (quality: $quality)');
       final ytdlpData = await YtDlpService.instance.getAudioStream(id);
-      
+
       if (ytdlpData != null && ytdlpData['url'] != null) {
         // Get basic video info for metadata
         Video? videoInfo;
@@ -135,7 +139,7 @@ class YouTubeServices {
         } catch (e) {
           Logger.root.warning('Failed to get video metadata: $e');
         }
-        
+
         // Build response with yt-dlp URL and metadata
         final result = {
           'id': id,
@@ -144,7 +148,7 @@ class YouTubeServices {
           'genre': 'YouTube',
           'language': 'YouTube',
         };
-        
+
         // Add metadata if available
         if (videoInfo != null) {
           result.addAll({
@@ -156,13 +160,13 @@ class YouTubeServices {
             'secondImage': videoInfo.thumbnails.highResUrl,
           });
         }
-        
+
         Logger.root.info('Successfully refreshed link for $id via yt-dlp');
         return result;
       }
-      
+
       Logger.root.warning('yt-dlp failed for $id, trying YTMusic as fallback');
-      
+
       // youtube_explode_dart REMOVED - Try YTMusic as fallback
       if (!useYTM) {
         final Map res = await YtMusicService().getSongData(
@@ -174,7 +178,7 @@ class YouTubeServices {
           return res;
         }
       }
-      
+
       Logger.root.severe('All methods failed to refresh link for $id');
       return null;
     } catch (e) {
@@ -200,12 +204,15 @@ class YouTubeServices {
       // Try InnerTube API first
       final innerTubeResult = await InnerTubeService.instance.getMusicHome();
       if (innerTubeResult != null && innerTubeResult.isNotEmpty) {
-        Logger.root.info('Successfully loaded YouTube Music home from InnerTube API');
-        appState.updateHomeData((innerTubeResult['body'] as List<Map<dynamic, dynamic>>?) ?? []);
+        Logger.root
+            .info('Successfully loaded YouTube Music home from InnerTube API');
+        appState.updateHomeData(
+            (innerTubeResult['body'] as List<Map<dynamic, dynamic>>?) ?? []);
         return innerTubeResult;
       }
 
-      Logger.root.info('InnerTube API failed, falling back to search-based approach');
+      Logger.root
+          .info('InnerTube API failed, falling back to search-based approach');
 
       // Fallback to search-based approach
       final List<Map> sections = [];
@@ -218,7 +225,8 @@ class YouTubeServices {
         'new releases',
       ];
 
-      for (final query in queries.take(3)) {  // Limit to 3 sections for performance
+      for (final query in queries.take(3)) {
+        // Limit to 3 sections for performance
         try {
           final searchResults = await fetchSearchResults(query);
           if (searchResults.isNotEmpty && searchResults[0]['items'] != null) {
@@ -238,13 +246,13 @@ class YouTubeServices {
       final result = {'body': sections, 'head': []};
       appState.updateHomeData(sections);
       return result;
-
     } catch (e, stackTrace) {
       final errorMessage = locator<ErrorService>().getErrorMessage(e);
       Logger.root.severe('Error in getMusicHome: $e\n$stackTrace');
 
       appState.updateHomeData([], error: errorMessage);
-      locator<ErrorService>().reportError('YouTubeServices.getMusicHome', e, stackTrace);
+      locator<ErrorService>()
+          .reportError('YouTubeServices.getMusicHome', e, stackTrace);
 
       // Return empty result to prevent crashes
       return {'body': [], 'head': []};
@@ -422,39 +430,43 @@ class YouTubeServices {
         Logger.root.warning('Video duration is null for ${video.id.value}');
         return null;
       }
-      
+
       List<String> allUrls = [];
       List<Map> urlsData = [];
       String finalUrl = '';
       String expireAt = '0';
-      
+
       if (getUrl) {
         try {
           // Try yt-dlp first for authenticated URLs that bypass 403 errors
-          final ytdlpData = await YtDlpService.instance.getAudioStream(video.id.value);
-          
+          final ytdlpData =
+              await YtDlpService.instance.getAudioStream(video.id.value);
+
           if (ytdlpData != null && ytdlpData['url'] != null) {
             // yt-dlp success - use its URL
             finalUrl = ytdlpData['url'] as String;
             expireAt = ytdlpData['expire_at']?.toString() ?? '0';
-            
+
             // Create urlsData in expected format for compatibility
-            urlsData = [{
-              'url': finalUrl,
-              'expireAt': expireAt,
-              'bitrate': ytdlpData['bitrate'] ?? 0,
-              'codec': ytdlpData['codec'] ?? 'mp4',
-              'size': ytdlpData['size'] ?? '0 MB',
-              'quality': ytdlpData['quality'] ?? '',
-            }];
+            urlsData = [
+              {
+                'url': finalUrl,
+                'expireAt': expireAt,
+                'bitrate': ytdlpData['bitrate'] ?? 0,
+                'codec': ytdlpData['codec'] ?? 'mp4',
+                'size': ytdlpData['size'] ?? '0 MB',
+                'quality': ytdlpData['quality'] ?? '',
+              }
+            ];
             allUrls = [finalUrl];
-            
+
             Logger.root.info('yt-dlp fetched URL for ${video.id.value}');
           } else {
             // yt-dlp failed - youtube_explode_dart is commented out (causes 403 errors)
-            Logger.root.severe('No URLs available for ${video.id.value} - yt-dlp failed');
+            Logger.root.severe(
+                'No URLs available for ${video.id.value} - yt-dlp failed');
             return null;
-            
+
             /* COMMENTED OUT - youtube_explode_dart causes 403 errors
             // yt-dlp failed, fallback to youtube_explode_dart
             print('⚠️ Search: yt-dlp failed, trying youtube_explode_dart fallback');
@@ -504,7 +516,7 @@ class YouTubeServices {
           expireAt = '0';
         }
       }
-      
+
       return {
         'id': video.id.value,
         'album': (data?['album'] ?? '') != ''
@@ -586,20 +598,20 @@ class YouTubeServices {
     try {
       Logger.root.info('Searching YouTube for: $query');
       final List<Video> searchResults = await yt.search.search(query);
-      
+
       if (searchResults.isEmpty) {
         Logger.root.warning('No search results found for: $query');
         return [];
       }
-      
+
       Logger.root.info('Found ${searchResults.length} search results');
       final List<Map> videoResult = [];
-      
+
       for (final Video vid in searchResults) {
         try {
           final res = await formatVideo(
-            video: vid, 
-            quality: 'High', 
+            video: vid,
+            quality: 'High',
             getUrl: false,
           );
           if (res != null) {
@@ -611,7 +623,7 @@ class YouTubeServices {
           continue;
         }
       }
-      
+
       return [
         {
           'title': 'Videos',
@@ -693,7 +705,8 @@ class YouTubeServices {
       Logger.root.warning('Failed to extract expire time from URL: $e');
     }
     // Default to 5.5 hours from now if extraction fails
-    final defaultExpire = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5;
+    final defaultExpire =
+        DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600 * 5.5;
     Logger.root.info('Using default expire time: $defaultExpire');
     return defaultExpire.toString();
   }
@@ -704,11 +717,13 @@ class YouTubeServices {
 
       // ALWAYS fetch fresh URLs (don't use cache) to avoid 403 errors
       // YouTube URLs expire quickly and cached URLs often fail
-      Logger.root.info('Fetching FRESH stream URLs for $videoId (bypassing cache)');
+      Logger.root
+          .info('Fetching FRESH stream URLs for $videoId (bypassing cache)');
       urlData = await getUri(videoId);
 
       if (urlData.isEmpty) {
-        Logger.root.warning('No URLs fetched for $videoId, checking cache as fallback');
+        Logger.root.warning(
+            'No URLs fetched for $videoId, checking cache as fallback');
         // Only use cache if fresh fetch completely fails
         if (Hive.box('ytlinkcache').containsKey(videoId)) {
           final cachedData = Hive.box('ytlinkcache').get(videoId);
@@ -722,14 +737,13 @@ class YouTubeServices {
       // Update cache with fresh URLs for future fallback use
       if (urlData.isNotEmpty) {
         try {
-          await Hive.box('ytlinkcache')
-              .put(videoId, urlData)
-              .onError(
+          await Hive.box('ytlinkcache').put(videoId, urlData).onError(
                 (error, stackTrace) => Logger.root.severe(
                   'Hive Error updating cache for $videoId: $error',
                 ),
               );
-          Logger.root.info('Cache updated with ${urlData.length} fresh URLs for $videoId');
+          Logger.root.info(
+              'Cache updated with ${urlData.length} fresh URLs for $videoId');
         } catch (e) {
           Logger.root.severe('Error updating cache for $videoId: $e');
         }
@@ -748,23 +762,20 @@ class YouTubeServices {
   ) async {
     final List<AudioOnlyStreamInfo> sortedStreamInfo =
         await getStreamInfo(videoId);
-    
-    
-    final result = sortedStreamInfo
-        .map(
-          (e) {
-            return {
-              'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
-              'codec': e.codec.subtype,
-              'qualityLabel': e.qualityLabel,
-              'size': e.size.totalMegaBytes.toStringAsFixed(2),
-              'url': e.url.toString(),
-              'expireAt': getExpireAt(e.url.toString()),
-            };
-          },
-        )
-        .toList();
-    
+
+    final result = sortedStreamInfo.map(
+      (e) {
+        return {
+          'bitrate': e.bitrate.kiloBitsPerSecond.round().toString(),
+          'codec': e.codec.subtype,
+          'qualityLabel': e.qualityLabel,
+          'size': e.size.totalMegaBytes.toStringAsFixed(2),
+          'url': e.url.toString(),
+          'expireAt': getExpireAt(e.url.toString()),
+        };
+      },
+    ).toList();
+
     return result;
   }
 
@@ -776,26 +787,27 @@ class YouTubeServices {
       Logger.root.info('Fetching stream manifest for video: $videoId');
       final StreamManifest manifest =
           await yt.videos.streamsClient.getManifest(VideoId(videoId));
-      
+
       if (manifest.audioOnly.isEmpty) {
         Logger.root.severe('No audio streams available for $videoId');
         throw Exception('No audio streams available for this video');
       }
-      
+
       final List<AudioOnlyStreamInfo> sortedStreamInfo = manifest.audioOnly
           .toList()
         ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
-      
+
       Logger.root.info(
         'Found ${sortedStreamInfo.length} audio streams for $videoId',
       );
-      
+
       // Prefer M4A/MP4 codec for iOS/macOS for better compatibility
       if (onlyMp4 || Platform.isIOS || Platform.isMacOS) {
         final List<AudioOnlyStreamInfo> m4aStreams = sortedStreamInfo
-            .where((element) => 
-              element.audioCodec.contains('mp4') || 
-              element.audioCodec.contains('m4a'),
+            .where(
+              (element) =>
+                  element.audioCodec.contains('mp4') ||
+                  element.audioCodec.contains('m4a'),
             )
             .toList();
 

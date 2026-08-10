@@ -21,12 +21,12 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Screens/Home/saavn.dart';
 import 'package:universe/Screens/Search/search.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({

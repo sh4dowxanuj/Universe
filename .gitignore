@@ -36,7 +36,6 @@ installers/dmg_creator/*.dmg
 /build/
 
 # Web related
-lib/generated_plugin_registrant.dart
 
 # Symbolication related
 app.*.symbols
@@ -59,3 +58,9 @@ build/
 
 # Python requirements for embedded Chaquopy
 android/app/src/main/python/requirements.txt
+android/.kotlin/sessions/kotlin-compiler-16324678164830780749.salive
+android/build.gradle
+
+*.jks
+*.keystore
+sh4dow.jks

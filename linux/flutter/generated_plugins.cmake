@@ -3,11 +3,13 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audiotags
+  gtk
   url_launcher_linux
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  metadata_god
+  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

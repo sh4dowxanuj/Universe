@@ -18,10 +18,10 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:universe/CustomWidgets/copy_clipboard.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatefulWidget {
@@ -196,8 +196,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           foregroundColor: Colors.transparent,
                         ),
                         onPressed: () {
-                          const String upiUrl =
-                              'upi://null';
+                          const String upiUrl = 'upi://null';
                           launchUrl(
                             Uri.parse(upiUrl),
                             mode: LaunchMode.externalApplication,
