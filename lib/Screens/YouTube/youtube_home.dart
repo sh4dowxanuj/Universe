@@ -22,7 +22,6 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
@@ -34,6 +33,7 @@ import 'package:universe/Services/error_service.dart';
 import 'package:universe/Services/player_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/main.dart';
 
 // Refactor: local per-section state replaces globals and app-wide flags.
@@ -54,7 +54,6 @@ class HomeSection {
     this.error,
   }) : items = items ?? <Map<String, dynamic>>[];
 }
-
 
 class YouTube extends StatefulWidget {
   const YouTube({super.key});
@@ -87,7 +86,7 @@ class _YouTubeState extends State<YouTube>
     _controller.dispose();
     super.dispose();
   }
-  
+
   /// Seed UI from cache and create default sections.
   void _bootstrapFromCache() {
     try {
@@ -129,7 +128,12 @@ class _YouTubeState extends State<YouTube>
           }
         }
       } else {
-        const defaults = ['Popular Music', 'Trending Songs', 'Top Hits', 'New Releases'];
+        const defaults = [
+          'Popular Music',
+          'Trending Songs',
+          'Top Hits',
+          'New Releases'
+        ];
         for (int i = 0; i < defaults.length; i++) {
           final title = defaults[i];
           final stableKey = _sectionKeyForTitle(title);
@@ -162,7 +166,8 @@ class _YouTubeState extends State<YouTube>
       }
     } catch (e, st) {
       Logger.root.warning('Bootstrap cache failed: $e');
-      locator<ErrorService>().reportError('YouTubeHome._bootstrapFromCache', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._bootstrapFromCache', e, st);
     }
   }
 
@@ -182,7 +187,8 @@ class _YouTubeState extends State<YouTube>
       homeResult = await YouTubeServices.instance.getMusicHome();
     } catch (e, st) {
       Logger.root.warning('Home fetch failed; using fallbacks: $e');
-      locator<ErrorService>().reportError('YouTubeHome._refreshAllSections', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._refreshAllSections', e, st);
     }
 
     final newHead = homeResult['head']?.cast<Map<String, dynamic>>() ?? [];
@@ -193,7 +199,8 @@ class _YouTubeState extends State<YouTube>
         Hive.box('cache').put('ytHomeHead', _headItems);
       } catch (e, st) {
         Logger.root.warning('Failed to cache ytHomeHead: $e');
-        locator<ErrorService>().reportError('YouTubeHome._refreshAllSections.head', e, st);
+        locator<ErrorService>()
+            .reportError('YouTubeHome._refreshAllSections.head', e, st);
       }
     }
 
@@ -213,7 +220,8 @@ class _YouTubeState extends State<YouTube>
               .map((m) => m.cast<String, dynamic>())
               .toList();
         }
-        final existing = _sections.where((s) => s.cacheKey == newCacheKey).toList();
+        final existing =
+            _sections.where((s) => s.cacheKey == newCacheKey).toList();
         final section = existing.isNotEmpty
             ? existing.first
             : HomeSection(id: 'server-$i', title: title, cacheKey: newCacheKey);
@@ -232,14 +240,18 @@ class _YouTubeState extends State<YouTube>
         await Future.wait(fallbacks);
       }
       _dedupeAndLimitSections(next);
-      final continueSection = _sections.where((s) => s.id == 'continue').toList();
+      final continueSection =
+          _sections.where((s) => s.id == 'continue').toList();
       _sections
         ..clear()
         ..addAll(continueSection)
         ..addAll(_applyDailyOrderVariation(next));
     } else {
-      await Future.wait(_sections.where((s) => s.id != 'continue').map(_loadSectionIndependently));
-      final continueSection = _sections.where((s) => s.id == 'continue').toList();
+      await Future.wait(_sections
+          .where((s) => s.id != 'continue')
+          .map(_loadSectionIndependently));
+      final continueSection =
+          _sections.where((s) => s.id == 'continue').toList();
       final others = _sections.where((s) => s.id != 'continue').toList();
       _sections
         ..clear()
@@ -255,7 +267,8 @@ class _YouTubeState extends State<YouTube>
   Future<void> _loadSectionIndependently(HomeSection section) async {
     try {
       section.isLoading = true;
-      final results = await YouTubeServices.instance.fetchSearchResults(section.title);
+      final results =
+          await YouTubeServices.instance.fetchSearchResults(section.title);
       List<Map<String, dynamic>> items = [];
       if (results.isNotEmpty && results.first['items'] is List) {
         items = (results.first['items'] as List).cast<Map<String, dynamic>>();
@@ -270,7 +283,8 @@ class _YouTubeState extends State<YouTube>
     } catch (e, st) {
       section.error = e.toString();
       Logger.root.warning('Section load failed for "${section.title}": $e');
-      locator<ErrorService>().reportError('YouTubeHome._loadSectionIndependently', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._loadSectionIndependently', e, st);
     } finally {
       section.isLoading = false;
       if (mounted) {
@@ -280,7 +294,8 @@ class _YouTubeState extends State<YouTube>
   }
 
   /// Populate a section when the API returns an empty shelf.
-  Future<List<Map<String, dynamic>>> _fallbackSearchSection(String title) async {
+  Future<List<Map<String, dynamic>>> _fallbackSearchSection(
+      String title) async {
     try {
       final cached = _readFallbackCache(title);
       if (cached.isNotEmpty) {
@@ -307,7 +322,8 @@ class _YouTubeState extends State<YouTube>
       }
     } catch (e, st) {
       Logger.root.warning('Fallback search failed for "$title": $e');
-      locator<ErrorService>().reportError('YouTubeHome._fallbackSearchSection', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._fallbackSearchSection', e, st);
     }
     return <Map<String, dynamic>>[];
   }
@@ -331,40 +347,45 @@ class _YouTubeState extends State<YouTube>
               .whereType<Map>()
               .map((m) => m.cast<String, dynamic>())
               .map((m) {
-                final id = (m['id'] ?? '').toString();
-                final imageList = (m['images'] as List?) ?? [];
-                final image = imageList.isNotEmpty ? imageList.first.toString() : (m['image'] ?? '').toString();
-                return {
-                  'id': id,
-                  'title': (m['title'] ?? '').toString(),
-                  'artist': (m['artist'] ?? '').toString(),
-                  'album': (m['album'] ?? '').toString(),
-                  'duration': (m['duration'] ?? '').toString(),
-                  'image': image,
-                  'secondImage': image,
-                  'type': 'song',
-                  'perma_url': 'https://youtube.com/watch?v=$id',
-                };
-              })
-              .toList();
+            final id = (m['id'] ?? '').toString();
+            final imageList = (m['images'] as List?) ?? [];
+            final image = imageList.isNotEmpty
+                ? imageList.first.toString()
+                : (m['image'] ?? '').toString();
+            return {
+              'id': id,
+              'title': (m['title'] ?? '').toString(),
+              'artist': (m['artist'] ?? '').toString(),
+              'album': (m['album'] ?? '').toString(),
+              'duration': (m['duration'] ?? '').toString(),
+              'image': image,
+              'secondImage': image,
+              'type': 'song',
+              'perma_url': 'https://youtube.com/watch?v=$id',
+            };
+          }).toList();
           final filtered = _filterAndLimitItems(items);
           if (filtered.isNotEmpty) return filtered;
         }
       }
     } catch (e, st) {
       Logger.root.warning('YT Music fallback failed for "$title": $e');
-      locator<ErrorService>().reportError('YouTubeHome._ytMusicFallback', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._ytMusicFallback', e, st);
     }
     return <Map<String, dynamic>>[];
   }
 
-  List<Map<String, dynamic>> _filterAndLimitItems(List<Map<String, dynamic>> items) {
+  List<Map<String, dynamic>> _filterAndLimitItems(
+      List<Map<String, dynamic>> items) {
     final List<Map<String, dynamic>> cleaned = [];
     for (final item in items) {
       final id = (item['id'] ?? '').toString();
       if (id.isEmpty) continue;
-      final duration = _parseDurationSeconds((item['duration'] ?? '').toString());
-      if (duration != null && duration < 25) continue; // skip shorts/live teasers
+      final duration =
+          _parseDurationSeconds((item['duration'] ?? '').toString());
+      if (duration != null && duration < 25)
+        continue; // skip shorts/live teasers
       cleaned.add(item);
     }
     return cleaned.take(12).toList();
@@ -390,9 +411,8 @@ class _YouTubeState extends State<YouTube>
       final List<Map<String, dynamic>> unique = [];
       for (final item in section.items) {
         final id = (item['id'] ?? '').toString();
-        final key = id.isEmpty
-            ? '${item['title'] ?? ''}-${item['image'] ?? ''}'
-            : id;
+        final key =
+            id.isEmpty ? '${item['title'] ?? ''}-${item['image'] ?? ''}' : id;
         if (seen.contains(key)) continue;
         seen.add(key);
         unique.add(item);
@@ -420,7 +440,8 @@ class _YouTubeState extends State<YouTube>
       }
     } catch (e, st) {
       Logger.root.warning('Failed to read fallback cache for "$title": $e');
-      locator<ErrorService>().reportError('YouTubeHome._readFallbackCache', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._readFallbackCache', e, st);
     }
     return <Map<String, dynamic>>[];
   }
@@ -435,7 +456,8 @@ class _YouTubeState extends State<YouTube>
       });
     } catch (e, st) {
       Logger.root.warning('Failed to write fallback cache for "$title": $e');
-      locator<ErrorService>().reportError('YouTubeHome._writeFallbackCache', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._writeFallbackCache', e, st);
     }
   }
 
@@ -452,7 +474,8 @@ class _YouTubeState extends State<YouTube>
       }
     } catch (e, st) {
       Logger.root.warning('Hive cache read failed for key "$key": $e');
-      locator<ErrorService>().reportError('YouTubeHome._safeReadCacheMapList.$key', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._safeReadCacheMapList.$key', e, st);
     }
     return [];
   }
@@ -475,8 +498,10 @@ class _YouTubeState extends State<YouTube>
           box.delete(legacyKey);
         }
       } catch (e, st) {
-        Logger.root.warning('Failed migrating legacy cache "$legacyKey" to "$stableKey": $e');
-        locator<ErrorService>().reportError('YouTubeHome._safeReadSectionCache.migrate', e, st);
+        Logger.root.warning(
+            'Failed migrating legacy cache "$legacyKey" to "$stableKey": $e');
+        locator<ErrorService>()
+            .reportError('YouTubeHome._safeReadSectionCache.migrate', e, st);
       }
       return legacy;
     }
@@ -490,7 +515,8 @@ class _YouTubeState extends State<YouTube>
       Hive.box('cache').put(stableKey, items);
     } catch (e, st) {
       Logger.root.warning('Failed to write section cache for "$stableKey": $e');
-      locator<ErrorService>().reportError('YouTubeHome._writeSectionCache', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._writeSectionCache', e, st);
     }
   }
 
@@ -502,7 +528,8 @@ class _YouTubeState extends State<YouTube>
       return isMusic ? 'ytm' : 'yt';
     } catch (e, st) {
       Logger.root.warning('Failed to read searchYtMusic setting: $e');
-      locator<ErrorService>().reportError('YouTubeHome._getYoutubeSearchType', e, st);
+      locator<ErrorService>()
+          .reportError('YouTubeHome._getYoutubeSearchType', e, st);
       return 'ytm';
     }
   }
@@ -515,16 +542,20 @@ class _YouTubeState extends State<YouTube>
     if (t.contains('top')) return 'top_hits';
     if (t.contains('new release') || t.contains('new')) return 'new_releases';
     if (t.contains('discover')) return 'discover';
-    if (t.contains('recommended') || t.contains('for you')) return 'recommended';
+    if (t.contains('recommended') || t.contains('for you'))
+      return 'recommended';
     if (t.contains('mix')) return 'mixes';
     if (t.contains('chart')) return 'charts';
     if (t.contains('editor')) return 'editors_picks';
     // Fallback: slugify simplified title
-    return t.replaceAll(RegExp('[^a-z0-9]+'), '_').replaceAll(RegExp('_+'), '_');
+    return t
+        .replaceAll(RegExp('[^a-z0-9]+'), '_')
+        .replaceAll(RegExp('_+'), '_');
   }
 
   // Legacy key used previously derived from raw titles.
-  String _legacyKeyForTitle(String title) => 'ytHome.section.${title.toLowerCase()}';
+  String _legacyKeyForTitle(String title) =>
+      'ytHome.section.${title.toLowerCase()}';
 
   // UI-only normalized shelf titles for a premium feel.
   String _normalizedUiTitle(String title) {
@@ -632,7 +663,8 @@ class _YouTubeState extends State<YouTube>
                           BuildContext context,
                           int index,
                           int pageViewIndex,
-                        ) => GestureDetector(
+                        ) =>
+                            GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
@@ -663,7 +695,8 @@ class _YouTubeState extends State<YouTube>
                                 fit: BoxFit.cover,
                                 image: AssetImage('assets/ytCover.png'),
                               ),
-                              imageUrl: _headItems[index]['image']?.toString() ?? '',
+                              imageUrl:
+                                  _headItems[index]['image']?.toString() ?? '',
                               placeholder: (context, url) => const Image(
                                 fit: BoxFit.cover,
                                 image: AssetImage('assets/ytCover.png'),
@@ -678,7 +711,9 @@ class _YouTubeState extends State<YouTube>
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10.0),
-                          color: Theme.of(context).cardColor.withOpacity(0.15),
+                          color: Theme.of(context)
+                              .cardColor
+                              .withValues(alpha: 0.15),
                         ),
                       ),
 
@@ -693,7 +728,8 @@ class _YouTubeState extends State<YouTube>
                         final section = _sections[index];
                         return Column(
                           // Preserve per-section state & scroll position.
-                          key: PageStorageKey<String>('yt_section_${section.cacheKey}_${section.id}'),
+                          key: PageStorageKey<String>(
+                              'yt_section_${section.cacheKey}_${section.id}'),
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -702,11 +738,14 @@ class _YouTubeState extends State<YouTube>
                               child: Row(
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.fromLTRB(10, 10, 0, 5),
+                                    padding:
+                                        const EdgeInsets.fromLTRB(10, 10, 0, 5),
                                     child: Text(
                                       _normalizedUiTitle(section.title),
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary,
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800,
                                       ),
@@ -720,8 +759,11 @@ class _YouTubeState extends State<YouTube>
                                         height: 14,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Theme.of(context).colorScheme.secondary,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .secondary,
                                           ),
                                         ),
                                       ),
@@ -742,103 +784,133 @@ class _YouTubeState extends State<YouTube>
                                   height: boxSize + 10,
                                   width: double.infinity,
                                   child: ListView.builder(
-                                    key: PageStorageKey<String>('yt_section_list_${section.cacheKey}'),
+                                    key: PageStorageKey<String>(
+                                        'yt_section_list_${section.cacheKey}'),
                                     physics: const BouncingScrollPhysics(),
                                     scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5),
                                     itemCount: itemCount,
                                     itemBuilder: (context, idx) {
                                       if (section.items.isEmpty) {
-                                        final double tileWidth = (boxSize - 30) * (16 / 9);
+                                        final double tileWidth =
+                                            (boxSize - 30) * (16 / 9);
                                         return _SkeletonCard(
-                                          key: ValueKey<String>('skeleton_${section.cacheKey}_$idx'),
+                                          key: ValueKey<String>(
+                                              'skeleton_${section.cacheKey}_$idx'),
                                           width: tileWidth,
                                           height: boxSize - 10,
                                         );
                                       }
-                                  final item = section.items[idx];
-                                  final String type = (item['type'] ?? 'video').toString();
-                                  final String title = (item['title'] ?? '').toString();
-                                  final String image = (item['image'] ?? item['secondImage'] ?? '').toString();
-                                  final String subtitle = (
-                                    item['subtitle'] ?? (item['artist'] ?? item['album'] ?? '')
-                                  ).toString();
-                                  final String? playlistId = item['playlistId']?.toString();
-                                  return GestureDetector(
-                                    key: ValueKey<String>('item_${section.cacheKey}_${item['id'] ?? idx}'),
-                                    onTap: () async {
-                                      if (type == 'playlist' && playlistId != null && playlistId.isNotEmpty) {
-                                        Navigator.push(
-                                          context,
-                                          PageRouteBuilder(
-                                            opaque: false,
-                                            pageBuilder: (_, __, ___) => YouTubePlaylist(
-                                              playlistId: playlistId,
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
+                                      final item = section.items[idx];
+                                      final String type =
+                                          (item['type'] ?? 'video').toString();
+                                      final String title =
+                                          (item['title'] ?? '').toString();
+                                      final String image = (item['image'] ??
+                                              item['secondImage'] ??
+                                              '')
+                                          .toString();
+                                      final String subtitle =
+                                          (item['subtitle'] ??
+                                                  (item['artist'] ??
+                                                      item['album'] ??
+                                                      ''))
+                                              .toString();
+                                      final String? playlistId =
+                                          item['playlistId']?.toString();
+                                      return GestureDetector(
+                                        key: ValueKey<String>(
+                                            'item_${section.cacheKey}_${item['id'] ?? idx}'),
+                                        onTap: () async {
+                                          if (type == 'playlist' &&
+                                              playlistId != null &&
+                                              playlistId.isNotEmpty) {
+                                            Navigator.push(
+                                              context,
+                                              PageRouteBuilder(
+                                                opaque: false,
+                                                pageBuilder: (_, __, ___) =>
+                                                    YouTubePlaylist(
+                                                  playlistId: playlistId,
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
 
-                                      final String itemType = type.toLowerCase();
-                                      if (itemType == 'song' || itemType == 'video') {
-                                        final String id = (item['id'] ?? '').toString();
-                                        if (id.isEmpty) {
-                                          ShowSnackBar().showSnackBar(
-                                            context,
-                                            AppLocalizations.of(context)!.ytLiveAlert,
-                                          );
-                                          return;
-                                        }
-
-                                        final Map? response = (itemType == 'video')
-                                            ? await YouTubeServices.instance.formatVideoFromId(
-                                                id: id,
-                                                data: item,
-                                              )
-                                            : await YtMusicService().getSongData(
-                                                videoId: id,
-                                                data: item,
-                                                quality: Hive.box('settings')
-                                                    .get('ytQuality', defaultValue: 'Low')
-                                                    .toString(),
+                                          final String itemType =
+                                              type.toLowerCase();
+                                          if (itemType == 'song' ||
+                                              itemType == 'video') {
+                                            final String id =
+                                                (item['id'] ?? '').toString();
+                                            if (id.isEmpty) {
+                                              ShowSnackBar().showSnackBar(
+                                                context,
+                                                AppLocalizations.of(context)!
+                                                    .ytLiveAlert,
                                               );
+                                              return;
+                                            }
 
-                                        if (response != null) {
-                                          PlayerInvoke.init(
-                                            songsList: [response],
-                                            index: 0,
-                                            isOffline: false,
-                                          );
-                                        } else {
-                                          ShowSnackBar().showSnackBar(
-                                            context,
-                                            AppLocalizations.of(context)!.ytLiveAlert,
-                                          );
-                                        }
-                                      } else {
-                                        // Fallback for non-playlist, non-song/video types: keep current search behavior.
-                                        Navigator.push(
-                                          context,
-                                          PageRouteBuilder(
-                                            opaque: false,
-                                            pageBuilder: (_, __, ___) => SearchPage(
-                                              query: title,
-                                              searchType: _getYoutubeSearchType(),
-                                              fromDirectSearch: true,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: _ShelfCard(
-                                      boxSize: boxSize,
-                                      type: type,
-                                      title: title,
-                                      subtitle: subtitle,
-                                      image: image,
-                                      extra: item,
-                                    ),
+                                            final Map? response = (itemType ==
+                                                    'video')
+                                                ? await YouTubeServices.instance
+                                                    .formatVideoFromId(
+                                                    id: id,
+                                                    data: item,
+                                                  )
+                                                : await YtMusicService()
+                                                    .getSongData(
+                                                    videoId: id,
+                                                    data: item,
+                                                    quality:
+                                                        Hive.box('settings')
+                                                            .get('ytQuality',
+                                                                defaultValue:
+                                                                    'Low')
+                                                            .toString(),
+                                                  );
+
+                                            if (response != null) {
+                                              PlayerInvoke.init(
+                                                songsList: [response],
+                                                index: 0,
+                                                isOffline: false,
+                                              );
+                                            } else {
+                                              ShowSnackBar().showSnackBar(
+                                                context,
+                                                AppLocalizations.of(context)!
+                                                    .ytLiveAlert,
+                                              );
+                                            }
+                                          } else {
+                                            // Fallback for non-playlist, non-song/video types: keep current search behavior.
+                                            Navigator.push(
+                                              context,
+                                              PageRouteBuilder(
+                                                opaque: false,
+                                                pageBuilder: (_, __, ___) =>
+                                                    SearchPage(
+                                                  query: title,
+                                                  searchType:
+                                                      _getYoutubeSearchType(),
+                                                  fromDirectSearch: true,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: _ShelfCard(
+                                          boxSize: boxSize,
+                                          type: type,
+                                          title: title,
+                                          subtitle: subtitle,
+                                          image: image,
+                                          extra: item,
+                                        ),
                                       );
                                     },
                                   ),
@@ -976,7 +1048,7 @@ class _ShelfCard extends StatelessWidget {
                     Align(
                       alignment: Alignment.centerRight,
                       child: Container(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         width: tileWidth / 2.5,
                         margin: const EdgeInsets.all(4.0),
                         child: Column(
@@ -1083,8 +1155,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).cardColor.withOpacity(0.10);
-    final highlightColor = Theme.of(context).cardColor.withOpacity(0.20);
+    final baseColor = Theme.of(context).cardColor.withValues(alpha: 0.10);
+    final highlightColor = Theme.of(context).cardColor.withValues(alpha: 0.20);
     return SizedBox(
       width: widget.width,
       height: widget.height,

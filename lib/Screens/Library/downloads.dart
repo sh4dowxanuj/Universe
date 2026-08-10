@@ -19,13 +19,12 @@
 
 import 'dart:io';
 
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
+import 'package:audiotags/audiotags.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 // import 'package:path_provider/path_provider.dart';
@@ -553,7 +552,7 @@ Future<Map> editTags(Map song, BuildContext context) async {
   await showDialog(
     context: context,
     builder: (BuildContext context) {
-      final tagger = Audiotagger();
+      // final tagger = AudioTags();
 
       FileImage songImage = FileImage(File(song['image'].toString()));
 
@@ -597,21 +596,27 @@ Future<Map> editTags(Map song, BuildContext context) async {
 
                       songImage = FileImage(File(imagePath));
 
-                      final Tag tag = Tag(
-                        artwork: imagePath,
+                      final tag = Tag(
+                        pictures: [
+                          Picture(
+                            bytes: File(imagePath).readAsBytesSync(),
+                            mimeType: MimeType.jpeg,
+                            pictureType: PictureType.coverFront,
+                          ),
+                        ],
                       );
                       try {
                         await [
                           Permission.manageExternalStorage,
                         ].request();
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
+                        await AudioTags.write(
+                          song['path'].toString(),
+                          tag,
                         );
                       } catch (e) {
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
+                        await AudioTags.write(
+                          song['path'].toString(),
+                          tag,
                         );
                       }
                     }
@@ -788,25 +793,26 @@ Future<Map> editTags(Map song, BuildContext context) async {
               song['path'] = pathcontroller.text;
               final tag = Tag(
                 title: titlecontroller.text,
-                artist: artistcontroller.text,
+                trackArtist: artistcontroller.text,
                 album: albumcontroller.text,
                 genre: genrecontroller.text,
-                year: yearcontroller.text,
+                year: int.tryParse(yearcontroller.text),
                 albumArtist: albumArtistController.text,
+                pictures: [],
               );
               try {
                 try {
                   await [
                     Permission.manageExternalStorage,
                   ].request();
-                  tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
+                  await AudioTags.write(
+                    song['path'].toString(),
+                    tag,
                   );
                 } catch (e) {
-                  await tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
+                  await AudioTags.write(
+                    song['path'].toString(),
+                    tag,
                   );
                   ShowSnackBar().showSnackBar(
                     context,
@@ -866,9 +872,12 @@ class _DownSongsTabState extends State<DownSongsTab>
 
     try {
       await file.create();
-      final image = await Audiotagger().readArtwork(path: songFilePath);
-      if (image != null) {
-        file.writeAsBytesSync(image);
+      final Tag? tag = await AudioTags.read(songFilePath);
+      final Uint8List? imageBytes = tag?.pictures.firstOrNull?.bytes;
+      if (imageBytes != null) {
+        file.writeAsBytesSync(imageBytes);
+      } else {
+        throw Exception('No embedded artwork found');
       }
     } catch (e) {
       final HttpClientRequest request2 =

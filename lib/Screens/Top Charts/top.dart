@@ -19,7 +19,6 @@
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/APIs/spotify_api.dart';
 import 'package:universe/CustomWidgets/custom_physics.dart';
@@ -31,6 +30,7 @@ import 'package:universe/Helpers/spotify_helper.dart';
 // import 'package:universe/Helpers/countrycodes.dart';
 import 'package:universe/Screens/Search/search.dart';
 import 'package:universe/constants/countrycodes.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 List localSongs = [];
@@ -187,7 +187,7 @@ Future<void> scrapData(String type, {bool signIn = false}) async {
       mode: LaunchMode.externalApplication,
     );
     final appLinks = AppLinks();
-    appLinks.allUriLinkStream.listen(
+    appLinks.uriLinkStream.listen(
       (uri) async {
         final link = uri.toString();
         if (link.contains('code=')) {

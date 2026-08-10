@@ -1,3 +1,10 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.chaquo.python"
+}
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -6,43 +13,126 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
+
+
+// ============================================================
+// Cross-platform Chaquopy Python detection
+// ============================================================
+
+def chaquopyBuildPython = null
+
+def isWindows = System.getProperty("os.name")
+        .toLowerCase()
+        .contains("windows")
+
+if (isWindows) {
+
+    // Try "python" first.
+    try {
+        def process = ["python", "-c", "import sys; print(sys.executable)"].execute()
+        process.waitFor()
+
+        if (process.exitValue() == 0) {
+            def detectedPython = process.text.trim()
+
+            if (detectedPython && new File(detectedPython).exists()) {
+                chaquopyBuildPython = detectedPython
+            }
+        }
+    } catch (Exception ignored) {
+        // Try the Windows Python launcher below.
+    }
+
+    // If "python" wasn't found, try "py".
+    if (chaquopyBuildPython == null) {
+        try {
+            def process = ["py", "-3", "-c", "import sys; print(sys.executable)"].execute()
+            process.waitFor()
+
+            if (process.exitValue() == 0) {
+                def detectedPython = process.text.trim()
+
+                if (detectedPython && new File(detectedPython).exists()) {
+                    chaquopyBuildPython = detectedPython
+                }
+            }
+        } catch (Exception ignored) {
+            // Python not found.
+        }
+    }
+
+} else {
+
+    // Linux/macOS: try python3 first.
+    try {
+        def process = ["python3", "-c", "import sys; print(sys.executable)"].execute()
+        process.waitFor()
+
+        if (process.exitValue() == 0) {
+            def detectedPython = process.text.trim()
+
+            if (detectedPython && new File(detectedPython).exists()) {
+                chaquopyBuildPython = detectedPython
+            }
+        }
+    } catch (Exception ignored) {
+        // Try python below.
+    }
+
+    // Fallback to "python".
+    if (chaquopyBuildPython == null) {
+        try {
+            def process = ["python", "-c", "import sys; print(sys.executable)"].execute()
+            process.waitFor()
+
+            if (process.exitValue() == 0) {
+                def detectedPython = process.text.trim()
+
+                if (detectedPython && new File(detectedPython).exists()) {
+                    chaquopyBuildPython = detectedPython
+                }
+            }
+        } catch (Exception ignored) {
+            // Python not found.
+        }
+    }
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
+
+if (chaquopyBuildPython == null) {
+    throw new GradleException(
+        "Chaquopy could not find a usable Python interpreter. " +
+        "Please make sure Python is installed and available in PATH."
+    )
 }
 
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
+println("Chaquopy build Python: " + chaquopyBuildPython)
 
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'com.chaquo.python'
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-
-def chaquopyBuildPython = "/usr/bin/python3.11"
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/opt/chaquopy-python/bin/python3"
-}
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/usr/bin/python3"
-}
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+
 android {
-    compileSdkVersion 34
-    ndkVersion "21.4.7075529"
+    namespace "com.shadow.universe"
+
+    compileSdkVersion 37
+    ndkVersion "28.2.13676358"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -50,28 +140,33 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
-        minSdkVersion 21
-        targetSdkVersion 34
+
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 36
+
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        
+
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            abiFilters "armeabi-v7a", "arm64-v8a"
         }
-        
+
         python {
             version "3.11"
+
             buildPython chaquopyBuildPython
+
             pyc {
                 src false
             }
+
             pip {
                 install "yt-dlp>=2023.11.16"
             }
         }
     }
 
-    // remove signingConfigs when running debug version
+
     signingConfigs {
         release {
             if (keystoreProperties['storeFile']) {
@@ -79,56 +174,65 @@ android {
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
+
                 v1SigningEnabled true
                 v2SigningEnabled true
             }
         }
     }
 
+
     buildTypes {
-        // replace release with "debug" when running on debug version
         release {
-            // TODO: Add your own signing config for the release build.
-            // replace with "debug" when running on debug version
-                // Only assign the release signing config if keystore properties are present
-                if (keystoreProperties['storeFile']) {
-                    signingConfig signingConfigs.release
-                }
-            // Enable code shrinking and resource shrinking for smaller APKs
-            // Note: minification may require additional ProGuard rules for some plugins.
+            if (keystoreProperties['storeFile']) {
+                signingConfig signingConfigs.release
+            }
+
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Strip native debug symbols from release builds to save size
+
+            // Cleaned up: only points to your custom proguard rules file
+            proguardFiles 'proguard-rules.pro'
+
             ndk {
                 debugSymbolLevel 'NONE'
             }
         }
     }
 
+
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
     }
-    // Exclude some common metadata files from APK to reduce size
+
+
     packagingOptions {
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/NOTICE.txt'
-        exclude 'META-INF/*.kotlin_module'
+        resources {
+            excludes += [
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/*.kotlin_module'
+            ]
+        }
     }
+
+
     buildFeatures {
         viewBinding true
     }
 }
 
+
 flutter {
     source '../..'
 }
 
+
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.20"
     implementation 'com.google.code.gson:gson:2.10.1'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0"
 }

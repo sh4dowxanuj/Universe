@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  audiotags
   connectivity_plus
   permission_handler_windows
   share_plus
@@ -11,7 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  metadata_god
+  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

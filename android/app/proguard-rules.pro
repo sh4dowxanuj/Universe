@@ -4,6 +4,8 @@
 -keep class io.flutter.embedding.** { *; }
 -keep class io.flutter.plugin.** { *; }
 -keep class io.flutter.plugins.** { *; }
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
 
 # Keep Kotlin Metadata
 -keepclassmembers class kotlin.Metadata { *; }
