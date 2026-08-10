@@ -27,7 +27,7 @@ class Metadata {
   final String genre;
   final int year;
   final int durationMs;
-  final BigInt fileSize;
+  final int fileSize;
   final Picture picture;
 }
 

@@ -19,14 +19,14 @@
 
 import 'dart:io';
 
+import 'package:audiotags/audiotags.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
-import 'package:mime/mime.dart';
 // import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/custom_physics.dart';
@@ -39,7 +39,6 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/picker.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/Services/player_service.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class Downloads extends StatefulWidget {
   const Downloads({super.key});
@@ -215,6 +214,7 @@ class _DownloadsState extends State<Downloads>
               .toUpperCase()
               .compareTo(b['dateAdded'].toString().toUpperCase()),
         );
+        break;
     }
 
     if (order == 1) {
@@ -271,6 +271,7 @@ class _DownloadsState extends State<Downloads>
             .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
         _sortedGenreKeysList
             .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
+        break;
     }
   }
 
@@ -551,6 +552,8 @@ Future<Map> editTags(Map song, BuildContext context) async {
   await showDialog(
     context: context,
     builder: (BuildContext context) {
+      // final tagger = AudioTags();
+
       FileImage songImage = FileImage(File(song['image'].toString()));
 
       final titlecontroller =
@@ -567,8 +570,6 @@ Future<Map> editTags(Map song, BuildContext context) async {
           TextEditingController(text: song['year'].toString());
       final pathcontroller =
           TextEditingController(text: song['path'].toString());
-
-      String? pickedImagePath;
 
       return AlertDialog(
         shape: RoundedRectangleBorder(
@@ -590,9 +591,34 @@ Future<Map> editTags(Map song, BuildContext context) async {
                       message: 'Pick Image',
                     );
                     if (filePath != '') {
-                      pickedImagePath = filePath;
-                      File(pickedImagePath!).copy(song['image'].toString());
-                      songImage = FileImage(File(pickedImagePath!));
+                      final imagePath = filePath;
+                      File(imagePath).copy(song['image'].toString());
+
+                      songImage = FileImage(File(imagePath));
+
+                      final tag = Tag(
+                        pictures: [
+                          Picture(
+                            bytes: File(imagePath).readAsBytesSync(),
+                            mimeType: MimeType.jpeg,
+                            pictureType: PictureType.coverFront,
+                          ),
+                        ],
+                      );
+                      try {
+                        await [
+                          Permission.manageExternalStorage,
+                        ].request();
+                        await AudioTags.write(
+                          song['path'].toString(),
+                          tag,
+                        );
+                      } catch (e) {
+                        await AudioTags.write(
+                          song['path'].toString(),
+                          tag,
+                        );
+                      }
                     }
                   },
                   child: Card(
@@ -765,44 +791,34 @@ Future<Map> editTags(Map song, BuildContext context) async {
               song['genre'] = genrecontroller.text;
               song['year'] = yearcontroller.text;
               song['path'] = pathcontroller.text;
-
-              Picture? picture;
-              if (pickedImagePath != null && pickedImagePath!.isNotEmpty) {
-                picture = Picture(
-                  data: await File(pickedImagePath!).readAsBytes(),
-                  mimeType: lookupMimeType(pickedImagePath!) ?? 'image/jpeg',
-                );
-              }
-
-              final metadata = Metadata(
+              final tag = Tag(
                 title: titlecontroller.text,
-                artist: artistcontroller.text,
+                trackArtist: artistcontroller.text,
                 album: albumcontroller.text,
                 genre: genrecontroller.text,
                 year: int.tryParse(yearcontroller.text),
                 albumArtist: albumArtistController.text,
-                picture: picture,
+                pictures: [],
               );
-
               try {
                 try {
                   await [
                     Permission.manageExternalStorage,
                   ].request();
-                  await MetadataGod.writeMetadata(
-                    file: song['path'].toString(),
-                    metadata: metadata,
+                  await AudioTags.write(
+                    song['path'].toString(),
+                    tag,
                   );
                 } catch (e) {
-                  await MetadataGod.writeMetadata(
-                    file: song['path'].toString(),
-                    metadata: metadata,
+                  await AudioTags.write(
+                    song['path'].toString(),
+                    tag,
+                  );
+                  ShowSnackBar().showSnackBar(
+                    context,
+                    AppLocalizations.of(context)!.successTagEdit,
                   );
                 }
-                ShowSnackBar().showSnackBar(
-                  context,
-                  AppLocalizations.of(context)!.successTagEdit,
-                );
               } catch (e) {
                 Logger.root.severe('Failed to edit tags', e);
                 ShowSnackBar().showSnackBar(
@@ -856,10 +872,12 @@ class _DownSongsTabState extends State<DownSongsTab>
 
     try {
       await file.create();
-      final metadata = await MetadataGod.readMetadata(file: songFilePath);
-      final image = metadata.picture?.data;
-      if (image != null) {
-        file.writeAsBytesSync(image);
+      final Tag? tag = await AudioTags.read(songFilePath);
+      final Uint8List? imageBytes = tag?.pictures.firstOrNull?.bytes;
+      if (imageBytes != null) {
+        file.writeAsBytesSync(imageBytes);
+      } else {
+        throw Exception('No embedded artwork found');
       }
     } catch (e) {
       final HttpClientRequest request2 =

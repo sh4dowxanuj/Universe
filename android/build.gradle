@@ -1,5 +1,6 @@
 buildscript {
     ext.kotlin_version = '2.2.20'
+
     repositories {
         google()
         mavenCentral()
@@ -26,48 +27,36 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 
-    // Configure compileSdk for all modules
-    def configureAndroid = { sub ->
-        if (sub.hasProperty('android')) {
-            sub.android {
+    project.afterEvaluate { proj ->
+        if (proj.hasProperty('android')) {
+            proj.android {
                 compileSdk = 37
+
+                // Force Java 17 for all Android modules
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+
+                // Fix missing namespace in older Flutter plugins
+                if (namespace == null) {
+                    namespace = proj.group ?: "com.example.${proj.name.replace('-', '_')}"
+                }
+
+                // Use installed NDK version
+                ndkVersion = "28.2.13676358"
+            }
+        }
+
+        // Force Kotlin JVM target to Java 17 across all subprojects
+        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
             }
         }
     }
-
-    plugins.withId("com.android.library") { configureAndroid(project) }
-    plugins.withId("com.android.application") { configureAndroid(project) }
 
     project.evaluationDependsOn(':app')
-
-    def fixSubproject = { subproject ->
-        if (subproject.hasProperty('android')) {
-            // Fix missing namespace for legacy dependencies
-            if (subproject.android.namespace == null) {
-                subproject.android.namespace = subproject.group ?: "com.example.${subproject.name.replace('-', '_')}"
-            }
-            // Force subprojects to stick to pre-installed NDK
-            subproject.android.ndkVersion = "28.2.13676358"
-        }
-    }
-
-    if (project.state.executed) {
-        fixSubproject(project)
-    } else {
-        project.afterEvaluate { fixSubproject(project) }
-    }
-
-    // Direct resolution: Force both JavaCompile and KotlinCompile to target Java 17 across all subprojects
-    tasks.withType(JavaCompile).configureEach {
-        sourceCompatibility = JavaVersion.VERSION_17.toString()
-        targetCompatibility = JavaVersion.VERSION_17.toString()
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
-    }
 }
 
 tasks.register("clean", Delete) {
