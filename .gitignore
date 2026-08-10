@@ -60,3 +60,7 @@ build/
 android/app/src/main/python/requirements.txt
 android/.kotlin/sessions/kotlin-compiler-16324678164830780749.salive
 android/build.gradle
+
+*.jks
+*.keystore
+sh4dow.jks
