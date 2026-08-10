@@ -19,9 +19,9 @@
 
 import 'dart:convert';
 
+import 'package:audiotags/audiotags.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
 import 'package:universe/APIs/spotify_api.dart';
 import 'package:universe/Helpers/matcher.dart';
 import 'package:universe/Helpers/spotify_helper.dart';
@@ -126,6 +126,7 @@ class Lyrics {
           limit: 1,
         );
         try {
+          // Logger.root.info(jsonEncode(value['tracks']['items'][0]));
           if (value['tracks']['items'].length == 0) {
             Logger.root.info('No song found');
             return result;
@@ -264,8 +265,8 @@ class Lyrics {
 
   static Future<String> getOffLyrics(String path) async {
     try {
-      await MetadataGod.readMetadata(file: path);
-      return '';
+      final Tag? tags = await AudioTags.read(path);
+      return tags?.lyrics ?? '';
     } catch (e) {
       return '';
     }

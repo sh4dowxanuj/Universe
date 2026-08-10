@@ -43,7 +43,7 @@ dependencies:
   logging: ^1.2.0
   marquee: ^2.2.3
   community_material_icon: ^5.9.55
-  metadata_god: ^1.1.0
+  audiotags: ^1.4.5
   on_audio_query: ^2.9.0
   package_info_plus: ^10.2.1
   palette_generator: ^0.3.3+3

@@ -16,25 +16,112 @@ if (localPropertiesFile.exists()) {
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
 
-def chaquopyBuildPython = "C:/Python311/python.exe"
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/usr/bin/python3.11"
+
+// ============================================================
+// Cross-platform Chaquopy Python detection
+// ============================================================
+
+def chaquopyBuildPython = null
+
+def isWindows = System.getProperty("os.name")
+        .toLowerCase()
+        .contains("windows")
+
+if (isWindows) {
+
+    // Try "python" first.
+    try {
+        def process = ["python", "-c", "import sys; print(sys.executable)"].execute()
+        process.waitFor()
+
+        if (process.exitValue() == 0) {
+            def detectedPython = process.text.trim()
+
+            if (detectedPython && new File(detectedPython).exists()) {
+                chaquopyBuildPython = detectedPython
+            }
+        }
+    } catch (Exception ignored) {
+        // Try the Windows Python launcher below.
+    }
+
+    // If "python" wasn't found, try "py".
+    if (chaquopyBuildPython == null) {
+        try {
+            def process = ["py", "-3", "-c", "import sys; print(sys.executable)"].execute()
+            process.waitFor()
+
+            if (process.exitValue() == 0) {
+                def detectedPython = process.text.trim()
+
+                if (detectedPython && new File(detectedPython).exists()) {
+                    chaquopyBuildPython = detectedPython
+                }
+            }
+        } catch (Exception ignored) {
+            // Python not found.
+        }
+    }
+
+} else {
+
+    // Linux/macOS: try python3 first.
+    try {
+        def process = ["python3", "-c", "import sys; print(sys.executable)"].execute()
+        process.waitFor()
+
+        if (process.exitValue() == 0) {
+            def detectedPython = process.text.trim()
+
+            if (detectedPython && new File(detectedPython).exists()) {
+                chaquopyBuildPython = detectedPython
+            }
+        }
+    } catch (Exception ignored) {
+        // Try python below.
+    }
+
+    // Fallback to "python".
+    if (chaquopyBuildPython == null) {
+        try {
+            def process = ["python", "-c", "import sys; print(sys.executable)"].execute()
+            process.waitFor()
+
+            if (process.exitValue() == 0) {
+                def detectedPython = process.text.trim()
+
+                if (detectedPython && new File(detectedPython).exists()) {
+                    chaquopyBuildPython = detectedPython
+                }
+            }
+        } catch (Exception ignored) {
+            // Python not found.
+        }
+    }
 }
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/opt/chaquopy-python/bin/python3"
+
+
+if (chaquopyBuildPython == null) {
+    throw new GradleException(
+        "Chaquopy could not find a usable Python interpreter. " +
+        "Please make sure Python is installed and available in PATH."
+    )
 }
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/usr/bin/python3"
-}
+
+println("Chaquopy build Python: " + chaquopyBuildPython)
+
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+
 android {
     namespace "com.shadow.universe"
+
     compileSdkVersion 37
     ndkVersion "28.2.13676358"
 
@@ -53,26 +140,32 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
+
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
+
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        
+
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
-        
+
         python {
             version "3.11"
+
             buildPython chaquopyBuildPython
+
             pyc {
                 src false
             }
+
             pip {
                 install "yt-dlp>=2023.11.16"
             }
         }
     }
+
 
     signingConfigs {
         release {
@@ -81,30 +174,38 @@ android {
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
+
                 v1SigningEnabled true
                 v2SigningEnabled true
             }
         }
     }
 
+
     buildTypes {
         release {
             if (keystoreProperties['storeFile']) {
                 signingConfig signingConfigs.release
             }
+
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+            // Cleaned up: only points to your custom proguard rules file
+            proguardFiles 'proguard-rules.pro'
+
             ndk {
                 debugSymbolLevel 'NONE'
             }
         }
     }
 
+
     lintOptions {
         checkReleaseBuilds false
         abortOnError false
     }
+
 
     packagingOptions {
         resources {
@@ -118,14 +219,17 @@ android {
         }
     }
 
+
     buildFeatures {
         viewBinding true
     }
 }
 
+
 flutter {
     source '../..'
 }
+
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.20"

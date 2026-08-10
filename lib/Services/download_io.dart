@@ -19,23 +19,19 @@
 
 import 'dart:io';
 
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
-// import 'package:ffmpeg_kit_flutter_audio/ffmpeg_kit.dart';
+import 'package:audiotags/audiotags.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/lyrics.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 import 'package:universe/Services/ytdlp_service.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class Download with ChangeNotifier {
   static final Map<String, Download> _instances = {};
@@ -418,7 +414,8 @@ class Download with ChangeNotifier {
         total = response.contentLength ?? 0;
 
         Logger.root.info(
-            'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB',);
+          'Download size: ${(total / 1024 / 1024).toStringAsFixed(2)} MB',
+        );
 
         stream = response.stream.asBroadcastStream();
 
@@ -528,23 +525,24 @@ class Download with ChangeNotifier {
           try {
             final Tag tag = Tag(
               title: data['title'].toString(),
-              artist: data['artist'].toString(),
+              trackArtist: data['artist'].toString(),
               albumArtist: data['album_artist']?.toString() ??
                   data['artist']?.toString().split(', ')[0] ??
                   '',
-              artwork: filepath2,
+              pictures: [
+                Picture(
+                  bytes: bytes2,
+                  mimeType: MimeType.jpeg,
+                  pictureType: PictureType.coverFront,
+                ),
+              ],
               album: data['album'].toString(),
               genre: data['language'].toString(),
-              year: data['year'].toString(),
+              year: int.tryParse(data['year'].toString()),
               lyrics: lyrics,
-              comment: 'Universe',
             );
             Logger.root.info('Started tag editing');
-            final tagger = Audiotagger();
-            await tagger.writeTags(
-              path: filepath!,
-              tag: tag,
-            );
+            await AudioTags.write(filepath!, tag);
             // await Future.delayed(const Duration(seconds: 1), () async {
             //   if (await file2.exists()) {
             //     await file2.delete();
@@ -557,31 +555,25 @@ class Download with ChangeNotifier {
           // Set metadata to file
           if (data['language'].toString() == 'YouTube') {
             // skipping metadata for saavn for the time being as it corrupts the file
-            await MetadataGod.writeMetadata(
-              file: filepath!,
-              metadata: Metadata(
-                title: data['title'].toString(),
-                artist: data['artist'].toString(),
-                albumArtist: data['album_artist']?.toString() ??
-                    data['artist']?.toString().split(', ')[0] ??
-                    '',
-                album: data['album'].toString(),
-                genre: data['language'].toString(),
-                year: int.parse(data['year'].toString()),
-                // lyrics: lyrics,
-                // comment: 'Universe',
-                // trackNumber: 1,
-                // trackTotal: 12,
-                // discNumber: 1,
-                // discTotal: 5,
-                durationMs: int.parse(data['duration'].toString()) * 1000,
-                fileSize: file.lengthSync(),
-                picture: Picture(
-                  data: bytes2,
-                  mimeType: 'image/jpeg',
+            final tag = Tag(
+              title: data['title'].toString(),
+              trackArtist: data['artist'].toString(),
+              albumArtist: data['album_artist']?.toString() ??
+                  data['artist']?.toString().split(', ')[0] ??
+                  '',
+              album: data['album'].toString(),
+              genre: data['language'].toString(),
+              year: int.tryParse(data['year'].toString()),
+              pictures: [
+                Picture(
+                  bytes: bytes2,
+                  mimeType: MimeType.jpeg,
+                  pictureType: PictureType.coverFront,
                 ),
-              ),
+              ],
             );
+
+            await AudioTags.write(filepath!, tag);
           }
         }
         Logger.root.info('Closing connection & notifying listeners');
