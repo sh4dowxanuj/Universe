@@ -84,19 +84,18 @@ class CustomBottomNavBar extends StatelessWidget {
 
                   return Material(
                     color: Color.lerp(
-                      selectedColor.withValues(alpha: 0.0),
-                      selectedColor.withValues(
-                          alpha: selectedColorOpacity ?? 0.1),
+                      selectedColor.withOpacity(0.0),
+                      selectedColor.withOpacity(selectedColorOpacity ?? 0.1),
                       t,
                     ),
                     shape: itemShape,
                     child: InkWell(
                       onTap: () => onTap?.call(items.indexOf(item)),
                       customBorder: itemShape,
-                      focusColor: selectedColor.withValues(alpha: 0.1),
-                      highlightColor: selectedColor.withValues(alpha: 0.1),
-                      splashColor: selectedColor.withValues(alpha: 0.1),
-                      hoverColor: selectedColor.withValues(alpha: 0.1),
+                      focusColor: selectedColor.withOpacity(0.1),
+                      highlightColor: selectedColor.withOpacity(0.1),
+                      splashColor: selectedColor.withOpacity(0.1),
+                      hoverColor: selectedColor.withOpacity(0.1),
                       child: Padding(
                         padding: itemPadding -
                             (Directionality.of(context) == TextDirection.ltr
@@ -142,7 +141,7 @@ class CustomBottomNavBar extends StatelessWidget {
                                     child: DefaultTextStyle(
                                       style: TextStyle(
                                         color: Color.lerp(
-                                          selectedColor.withValues(alpha: 0.0),
+                                          selectedColor.withOpacity(0.0),
                                           selectedColor,
                                           t,
                                         ),

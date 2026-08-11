@@ -20,6 +20,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/collage.dart';
 import 'package:universe/CustomWidgets/custom_physics.dart';
@@ -34,7 +35,6 @@ import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Helpers/songs_count.dart' as songs_count;
 import 'package:universe/Screens/Library/show_songs.dart';
 import 'package:universe/Services/player_service.dart';
-import 'package:universe/localization/app_localizations.dart';
 // import 'package:path_provider/path_provider.dart';
 
 final ValueNotifier<bool> selectMode = ValueNotifier<bool>(false);
@@ -253,6 +253,7 @@ class _LikedSongsState extends State<LikedSongs>
               .toUpperCase()
               .compareTo(b['dateAdded'].toString().toUpperCase()),
         );
+        break;
     }
 
     if (order == 1) {
@@ -708,13 +709,12 @@ class _SongsTabState extends State<SongsTab>
               ),
               Expanded(
                 child: ReorderableListView.builder(
-                  onReorderItem: (oldIndex, newIndex) {
-                    int insertIndex = newIndex;
-                    if (insertIndex > oldIndex) {
-                      insertIndex -= 1;
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) {
+                      newIndex -= 1;
                     }
                     final item = widget.songs.removeAt(oldIndex);
-                    widget.songs.insert(insertIndex, item);
+                    widget.songs.insert(newIndex, item);
                     _saveItems();
                   },
                   // controller: widget.scrollController,

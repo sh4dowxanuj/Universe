@@ -21,6 +21,7 @@ import 'dart:io';
 
 // import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -34,7 +35,6 @@ import 'package:universe/CustomWidgets/playlist_head.dart';
 import 'package:universe/Helpers/audio_query.dart';
 // import 'package:universe/Screens/LocalMusic/localplaylists.dart';
 import 'package:universe/Services/player_service.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class DownloadedSongsDesktop extends StatefulWidget {
   final List<Map>? cachedSongs;

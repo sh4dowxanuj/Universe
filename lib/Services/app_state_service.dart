@@ -79,8 +79,7 @@ class AppStateService {
   }
 
   /// Update search results
-  void updateSearchResults(List<Map> results,
-      {bool isSearching = false, String? error}) {
+  void updateSearchResults(List<Map> results, {bool isSearching = false, String? error}) {
     searchResults.value = results;
     this.isSearching.value = isSearching;
     searchError.value = error;

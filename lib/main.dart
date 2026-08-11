@@ -23,18 +23,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:home_widget/home_widget.dart';
 import 'package:logging/logging.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:sizer/sizer.dart';
 import 'package:universe/Helpers/config.dart';
+import 'package:universe/Helpers/handle_native.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Helpers/logging.dart';
-import 'package:universe/Helpers/metadata_god_compat.dart';
 import 'package:universe/Helpers/route_handler.dart';
 import 'package:universe/Screens/Common/routes.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
@@ -45,7 +47,6 @@ import 'package:universe/Services/network_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/constants/constants.dart';
 import 'package:universe/constants/languagecodes.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/providers/audio_service_provider.dart';
 import 'package:universe/theme/app_theme.dart';
 
@@ -216,9 +217,32 @@ class _MyAppState extends State<MyApp> {
     });
 
     if (Platform.isAndroid || Platform.isIOS) {
+      // For sharing or opening urls/text coming from outside the app while the app is in the memory
+      _intentTextStreamSubscription =
+          ReceiveSharingIntent.getTextStream().listen(
+        (String value) {
+          Logger.root.info('Received intent on stream: $value');
+          handleSharedText(value, navigatorKey);
+        },
+        onError: (err) {
+          Logger.root.severe('ERROR in getTextStream', err);
+        },
+      );
+
+      // For sharing or opening urls/text coming from outside the app while the app is closed
+      ReceiveSharingIntent.getInitialText().then(
+        (String? value) {
+          Logger.root.info('Received Intent initially: $value');
+          if (value != null) handleSharedText(value, navigatorKey);
+        },
+        onError: (err) {
+          Logger.root.severe('ERROR in getInitialTextStream', err);
+        },
+      );
+
       // For sharing files coming from outside the app while the app is in the memory
       _intentDataStreamSubscription =
-          ReceiveSharingIntent.instance.getMediaStream().listen(
+          ReceiveSharingIntent.getMediaStream().listen(
         (List<SharedMediaFile> value) {
           if (value.isNotEmpty) {
             for (final file in value) {
@@ -245,8 +269,7 @@ class _MyAppState extends State<MyApp> {
       );
 
       // For sharing files coming from outside the app while the app is closed
-      ReceiveSharingIntent.instance
-          .getInitialMedia()
+      ReceiveSharingIntent.getInitialMedia()
           .then((List<SharedMediaFile> value) {
         if (value.isNotEmpty) {
           for (final file in value) {
@@ -309,13 +332,7 @@ class _MyAppState extends State<MyApp> {
         builder: (context, constraints) {
           return OrientationBuilder(
             builder: (context, orientation) {
-              Device.setScreenSize(
-                context,
-                constraints,
-                orientation,
-                599,
-                1200,
-              );
+              SizerUtil.setScreenSize(constraints, orientation);
               return MaterialApp(
                 title: 'Universe',
                 restorationScopeId: 'universe',

@@ -20,6 +20,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/APIs/api.dart';
@@ -42,7 +43,6 @@ import 'package:universe/Screens/YouTube/youtube_playlist.dart';
 import 'package:universe/Services/player_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class SearchPage extends StatefulWidget {
   final String query;
@@ -120,13 +120,11 @@ class _SearchPageState extends State<SearchPage> {
             } catch (e) {
               // No Songs section found, try Videos or any section with items
               try {
-                final videoSection = value.firstWhere((element) =>
-                    element['title'] == 'Videos' &&
-                    (element['items'] as List?)?.isNotEmpty == true);
+                final videoSection =
+                    value.firstWhere((element) => element['title'] == 'Videos' && (element['items'] as List?)?.isNotEmpty == true);
                 videoSection['allowViewAll'] = true;
               } catch (e2) {
-                Logger.root.warning(
-                    'No Songs or Videos section found in search results');
+                Logger.root.warning('No Songs or Videos section found in search results');
               }
             }
             searchedList = value;
@@ -375,7 +373,7 @@ class _SearchPageState extends State<SearchPage> {
                                             selectedColor: Theme.of(context)
                                                 .colorScheme
                                                 .secondary
-                                                .withValues(alpha: 0.2),
+                                                .withOpacity(0.2),
                                             labelStyle: TextStyle(
                                               color: Theme.of(context)
                                                   .textTheme
@@ -922,7 +920,7 @@ class _SearchPageState extends State<SearchPage> {
         child: ChoiceChip(
           label: Text(element['label']!),
           selectedColor:
-              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
+              Theme.of(context).colorScheme.secondary.withOpacity(0.2),
           labelStyle: TextStyle(
             color: searchType == element['key']
                 ? Theme.of(context).colorScheme.secondary

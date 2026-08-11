@@ -26,7 +26,21 @@ if ! command -v python3.11 >/dev/null 2>&1; then
 fi
 sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
 
-# Prepare a dedicated build Python for Chaquopy
+# # Install Python 3.11 (compatible with Chaquopy)
+# echo "Installing Python 3.11 (3.11.14)..."
+# # Python 3.11 is available from ppa.launchpadcontent.net (already configured in this environment)
+# sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+
+# # Install pip for Python 3.11 (without changing default python)
+# echo "Installing pip for Python 3.11..."
+# sudo python3.11 -m ensurepip --upgrade 2>/dev/null || true
+
+# # Verify Python 3.11 is available
+# echo "Python 3.11 version:"
+# python3.11 --version
+# python3.11 -m pip --version 2>/dev/null || echo "pip installation via ensurepip may have been skipped"
+
+# Prepare a dedicated build Python for Chaquopy.
 echo "Preparing Chaquopy build Python environment..."
 CHAQUOPY_HOST_PYTHON="$(command -v python3.11)"
 sudo rm -rf /opt/chaquopy-python
@@ -35,7 +49,7 @@ sudo /opt/chaquopy-python/bin/python3 -m pip install --upgrade "pip==23.2.1" set
 sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/chaquopy-python
 
 # Install Java 17.0.17 (Microsoft build via SDKMAN)
-echo "Installing Java 17 (Microsoft build)..."
+echo "Installing Java 17.0.17 (Microsoft build)..."
 if ! command -v java >/dev/null 2>&1; then
     sudo apt-get install -y zip unzip curl
 fi
@@ -61,7 +75,7 @@ else
 fi
 sdk default java 17.0.17-ms
 
-# Set JAVA_HOME from installed java binary
+# Set JAVA_HOME from the installed java binary
 JAVA_BIN=$(readlink -f "$(which java)")
 export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
 echo "export JAVA_HOME=$JAVA_HOME" >> "$TARGET_BASHRC"
@@ -71,7 +85,7 @@ echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> "$TARGET_BASHRC"
 echo "Java version:"
 java -version
 
-# Install Android SDK command line tools
+# Install Android SDK command line tools (cmdline-tools 20.0)
 echo "Installing Android SDK..."
 ANDROID_HOME=/opt/android-sdk
 sudo mkdir -p $ANDROID_HOME/cmdline-tools
@@ -93,30 +107,35 @@ echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/
 echo "Accepting Android SDK licenses..."
 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-# Install required Android SDK components for AGP 8.8+ & Flutter
+# Install required Android SDK components (match current codespace)
 echo "Installing Android SDK components..."
 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
     "platform-tools" \
+    "platforms;android-28" \
+    "platforms;android-30" \
+    "platforms;android-31" \
+    "platforms;android-33" \
     "platforms;android-34" \
     "platforms;android-35" \
-    "build-tools;34.0.0" \
+    "platforms;android-36" \
+    "build-tools;30.0.3" \
     "build-tools;35.0.0" \
-    "cmake;3.22.1" \
-    "ndk;25.1.8937393"
+    "cmake;3.18.1" \
+    "ndk;21.4.7075529"
 
-# Install stable Flutter SDK
+# Install Flutter 3.16.9 (stable)
 if [ ! -d "/opt/flutter" ] || [ ! -d "/opt/flutter/.git" ]; then
-    echo "Installing Flutter (stable branch)..."
+    echo "Installing Flutter 3.16.9..."
     sudo rm -rf /opt/flutter
     cd /opt
-    sudo git clone https://github.com/flutter/flutter.git -b stable --depth 1
+    sudo git clone https://github.com/flutter/flutter.git -b 3.16.9 --depth 1
     sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/flutter
 else
-    echo "Ensuring Flutter is on stable branch..."
+    echo "Ensuring Flutter is on 3.16.9..."
     cd /opt/flutter
-    git fetch origin stable
-    git checkout stable
-    git pull origin stable
+    git fetch --tags
+    git checkout 3.16.9
+    git reset --hard
 fi
 
 sudo git config --system --add safe.directory /opt/flutter 2>/dev/null || true
@@ -135,10 +154,10 @@ flutter --version
 echo "Running Flutter doctor..."
 flutter doctor -v
 
-# Configure Flutter for Android SDK path
+# Configure Flutter for Android
 sudo -u "$TARGET_USER" HOME="$TARGET_HOME" /usr/local/bin/flutter config --android-sdk "$ANDROID_HOME"
 
-# Install Flutter dependencies for project
+# Install Flutter dependencies for the project
 echo "Installing Flutter dependencies..."
 cd "$SCRIPT_DIR"
 flutter pub get
@@ -146,19 +165,6 @@ flutter pub get
 # Clean any previous builds
 echo "Cleaning previous builds..."
 flutter clean
-
-sudo chown -R $USER:$USER /opt/flutter
-
-# 1. Export ANDROID_HOME for current session
-export ANDROID_HOME=/opt/android-sdk
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-
-# 2. Tell Flutter explicitly where the SDK is located
-flutter config --android-sdk /opt/android-sdk
-
-# 3. Accept Android SDK licenses
-yes | flutter doctor --android-licenses
-
 
 echo ""
 echo "=========================================="
@@ -168,7 +174,12 @@ echo ""
 echo "Important: Reload your shell to apply environment variables:"
 echo "  source ~/.bashrc"
 echo ""
-echo "Then build your release APK with:"
+echo "Then you can build the APK with:"
 echo "  cd /workspaces/Universe"
-echo "  flutter build apk --release"
+echo "  flutter build apk --debug"
+echo ""
+echo "Verify setup with:"
+echo "  flutter doctor -v"
+echo "  python3 --version  # Should show 3.11.x"
+echo "  java -version      # Should show OpenJDK 17"
 echo ""

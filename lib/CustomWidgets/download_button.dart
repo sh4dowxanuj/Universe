@@ -18,11 +18,11 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/APIs/api.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Services/download.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class DownloadButton extends StatefulWidget {
   final Map data;

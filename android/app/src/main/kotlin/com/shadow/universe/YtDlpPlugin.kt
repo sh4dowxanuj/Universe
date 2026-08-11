@@ -72,11 +72,7 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         audioOptions!!.callAttr("__setitem__", "quiet", true)
         audioOptions!!.callAttr("__setitem__", "no_warnings", true)
         audioOptions!!.callAttr("__setitem__", "skip_download", true)
-        audioOptions!!.callAttr(
-            "__setitem__",
-            "format",
-            "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio"
-        )
+        audioOptions!!.callAttr("__setitem__", "format", "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio")
         audioOptions!!.callAttr("__setitem__", "extract_flat", false)
         audioOptions!!.callAttr("__setitem__", "noplaylist", true)
         audioOptions!!.callAttr("__setitem__", "socket_timeout", 10)
@@ -122,76 +118,54 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         return Gson().fromJson(jsonStr, Map::class.java) as Map<String, Any?>
     }
 
-    override fun onAttachedToEngine(
-        flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
-    ) {
-        channel = MethodChannel(
-            flutterPluginBinding.binaryMessenger,
-            "ytdlp_channel"
-        )
+    companion object {
+        @JvmStatic
+        fun registerWith(registrar: io.flutter.plugin.common.PluginRegistry.Registrar) {
+            val channel = MethodChannel(registrar.messenger(), "ytdlp_channel")
+            val plugin = YtDlpPlugin()
+            channel.setMethodCallHandler(plugin)
+            plugin.ensurePythonStarted(registrar.context())
+        }
+    }
 
+    override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "ytdlp_channel")
         channel.setMethodCallHandler(this)
-
-        ensurePythonStarted(
-            flutterPluginBinding.applicationContext
-        )
+        ensurePythonStarted(flutterPluginBinding.applicationContext)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         Log.d(TAG, "Method call: ${call.method}")
-
         when (call.method) {
             "getAudioStream" -> {
                 val videoId = call.argument<String>("videoId")
                 val quality = call.argument<String>("quality") ?: "High"
-
                 if (videoId == null) {
-                    result.error(
-                        "INVALID_ARGUMENT",
-                        "videoId is required",
-                        null
-                    )
+                    result.error("INVALID_ARGUMENT", "videoId is required", null)
                     return
                 }
-
                 getAudioStream(videoId, quality, result)
             }
-
             "getVideoInfo" -> {
                 val videoId = call.argument<String>("videoId")
-
                 if (videoId == null) {
-                    result.error(
-                        "INVALID_ARGUMENT",
-                        "videoId is required",
-                        null
-                    )
+                    result.error("INVALID_ARGUMENT", "videoId is required", null)
                     return
                 }
-
                 getVideoInfo(videoId, result)
             }
-
             "searchVideos" -> {
                 val query = call.argument<String>("query")
                 val maxResults = call.argument<Int>("maxResults") ?: 10
-
                 if (query == null) {
-                    result.error(
-                        "INVALID_ARGUMENT",
-                        "query is required",
-                        null
-                    )
+                    result.error("INVALID_ARGUMENT", "query is required", null)
                     return
                 }
-
                 searchVideos(query, maxResults, result)
             }
-
             "getPerformanceStats" -> {
                 result.success(getPerformanceStats())
             }
-
             else -> result.notImplemented()
         }
     }
@@ -201,166 +175,85 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
             "totalCalls" to totalCalls,
             "cacheHits" to cacheHits,
             "pythonInitialized" to (pythonInstance != null),
-            "extractorsReady" to (
-                audioExtractor != null &&
-                    infoExtractor != null &&
-                    searchExtractor != null
-                )
+            "extractorsReady" to (audioExtractor != null && infoExtractor != null && searchExtractor != null)
         )
     }
 
-    private fun getAudioStream(
-        videoId: String,
-        quality: String,
-        result: Result
-    ) {
-        Log.d(
-            TAG,
-            "Getting audio stream for: $videoId (quality: $quality)"
-        )
-
+    private fun getAudioStream(videoId: String, quality: String, result: Result) {
+        Log.d(TAG, "Getting audio stream for: $videoId (quality: $quality)")
         scope.launch {
             try {
                 val startTime = System.currentTimeMillis()
-
                 val audioData = withContext(Dispatchers.IO) {
                     executeYtDlp(videoId, quality)
                 }
-
-                val duration =
-                    System.currentTimeMillis() - startTime
-
-                Log.i(
-                    TAG,
-                    "Successfully extracted audio for $videoId in ${duration}ms"
-                )
-
+                val duration = System.currentTimeMillis() - startTime
+                Log.i(TAG, "Successfully extracted audio for $videoId in ${duration}ms")
                 result.success(audioData)
             } catch (e: Exception) {
-                Log.e(
-                    TAG,
-                    "Failed to get audio stream for $videoId: ${e.message}",
-                    e
-                )
-
-                result.error(
-                    "PYTHON_ERROR",
-                    e.message,
-                    null
-                )
+                Log.e(TAG, "Failed to get audio stream for $videoId: ${e.message}", e)
+                result.error("PYTHON_ERROR", e.message, null)
             }
         }
     }
 
-    private fun getVideoInfo(
-        videoId: String,
-        result: Result
-    ) {
+    private fun getVideoInfo(videoId: String, result: Result) {
         scope.launch {
             try {
                 val info = withContext(Dispatchers.IO) {
                     executeYtDlpInfo(videoId)
                 }
-
                 @Suppress("UNCHECKED_CAST")
-                val javaMap =
-                    (info as? PyObject)?.toJava(Map::class.java)
-                        as? Map<String, Any?>
-                        ?: info as? Map<String, Any?>
-
+                val javaMap = (info as? PyObject)?.toJava(Map::class.java) as? Map<String, Any?>
+                    ?: info as? Map<String, Any?>
                 if (javaMap != null) {
                     result.success(javaMap)
                 } else {
-                    result.error(
-                        "PYTHON_ERROR",
-                        "Failed to convert result to Map",
-                        null
-                    )
+                    result.error("PYTHON_ERROR", "Failed to convert result to Map", null)
                 }
             } catch (e: Exception) {
-                Log.e(
-                    TAG,
-                    "Error getting video info",
-                    e
-                )
-
-                result.error(
-                    "PYTHON_ERROR",
-                    e.message,
-                    null
-                )
+                Log.e(TAG, "Error getting video info", e)
+                result.error("PYTHON_ERROR", e.message, null)
             }
         }
     }
 
-    private fun searchVideos(
-        query: String,
-        maxResults: Int,
-        result: Result
-    ) {
+    private fun searchVideos(query: String, maxResults: Int, result: Result) {
         scope.launch {
             try {
                 val results = withContext(Dispatchers.IO) {
                     executeYtDlpSearch(query, maxResults)
                 }
-
                 // Convert list of PyObject maps to list of Java maps if needed
                 val javaList = when (results) {
                     is List<*> -> results.map {
-                        (it as? PyObject)?.toJava(Map::class.java)
-                            as? Map<String, Any?>
-                            ?: it
+                        (it as? PyObject)?.toJava(Map::class.java) as? Map<String, Any?> ?: it
                     }
-
                     else -> results
                 }
-
                 result.success(javaList)
             } catch (e: Exception) {
-                Log.e(
-                    TAG,
-                    "Error searching videos",
-                    e
-                )
-
-                result.error(
-                    "PYTHON_ERROR",
-                    e.message,
-                    null
-                )
+                Log.e(TAG, "Error searching videos", e)
+                result.error("PYTHON_ERROR", e.message, null)
             }
         }
     }
 
-    private fun executeYtDlp(
-        videoId: String,
-        quality: String = "High"
-    ): Map<String, Any?> {
+    private fun executeYtDlp(videoId: String, quality: String = "High"): Map<String, Any?> {
         totalCalls++
+        Log.d(TAG, "YTDLP: Extracting audio for $videoId (quality: $quality, call #$totalCalls)")
 
-        Log.d(
-            TAG,
-            "YTDLP: Extracting audio for $videoId " +
-                "(quality: $quality, call #$totalCalls)"
-        )
-
-        val info = audioExtractor!!.callAttr(
-            "extract_info",
-            "https://www.youtube.com/watch?v=$videoId",
-            false
-        ) ?: throw Exception("Failed to extract info")
+        val info = audioExtractor!!.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
+            ?: throw Exception("Failed to extract info")
 
         val infoMap = pyToMap(info)
-
-        val formats =
-            infoMap["formats"] as? List<*>
-                ?: throw Exception("No formats found")
+        val formats = infoMap["formats"] as? List<*> ?: throw Exception("No formats found")
 
         // Quality-aware format selection
         val targetBitrate = when (quality.lowercase()) {
-            "low" -> 128
-            "medium" -> 160
-            "high" -> 256
+            "low" -> 128  // Target ~128 kbps for low quality
+            "medium" -> 160  // Target ~160 kbps for medium quality
+            "high" -> 256  // Target ~256+ kbps for high quality
             else -> 256
         }
 
@@ -368,59 +261,26 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         var bestScore = 0
 
         formats.forEach { item ->
-            val f = item as? Map<String, Any?>
-                ?: return@forEach
-
-            val acodec =
-                f["acodec"]?.toString()?.lowercase()
-
-            val vcodec =
-                f["vcodec"]?.toString()?.lowercase()
-
-            val ext =
-                f["ext"]?.toString()?.lowercase()
-
-            val abr =
-                (f["abr"] as? Number)?.toInt() ?: 0
-
-            val url =
-                f["url"]?.toString()
+            val f = item as? Map<String, Any?> ?: return@forEach
+            val acodec = f["acodec"]?.toString()?.lowercase()
+            val vcodec = f["vcodec"]?.toString()?.lowercase()
+            val ext = f["ext"]?.toString()?.lowercase()
+            val abr = (f["abr"] as? Number)?.toInt() ?: 0
+            val url = f["url"]?.toString()
 
             // Only consider audio-only formats
-            if (
-                acodec != null &&
-                acodec != "none" &&
-                (vcodec == null || vcodec == "none") &&
-                url != null
-            ) {
-                // Score based on quality preference and proximity
-                // to target bitrate
+            if (acodec != null && acodec != "none" && (vcodec == null || vcodec == "none") && url != null) {
+                // Score based on quality preference and proximity to target bitrate
                 var score = when (quality.lowercase()) {
-                    "low" ->
-                        if (abr <= 128) {
-                            1000 - (128 - abr)
-                        } else {
-                            0
-                        }
-
-                    "medium" ->
-                        if (abr in 129..192) {
-                            1000 - kotlin.math.abs(160 - abr)
-                        } else {
-                            0
-                        }
-
-                    "high" -> abr
-
+                    "low" -> if (abr <= 128) 1000 - (128 - abr) else 0  // Prefer <= 128kbps
+                    "medium" -> if (abr in 129..192) 1000 - kotlin.math.abs(160 - abr) else 0  // Prefer ~160kbps
+                    "high" -> abr  // Prefer highest bitrate
                     else -> abr
                 }
 
                 // Bonus for preferred formats
-                if (ext == "m4a") {
-                    score += 100
-                } else if (ext == "mp3") {
-                    score += 50
-                }
+                if (ext == "m4a") score += 100
+                else if (ext == "mp3") score += 50
 
                 if (score > bestScore) {
                     bestScore = score
@@ -429,34 +289,15 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
             }
         }
 
-        if (bestFormat == null) {
-            throw Exception("No suitable audio format found")
-        }
+        if (bestFormat == null) throw Exception("No suitable audio format found")
 
-        val title =
-            infoMap["title"]?.toString() ?: ""
+        val title = infoMap["title"]?.toString() ?: ""
+        val duration = (infoMap["duration"] as? Number)?.toInt() ?: (infoMap["duration"] as? Double)?.toInt() ?: 0
+        val thumbnail = infoMap["thumbnail"]?.toString() ?: ""
+        val uploader = infoMap["uploader"]?.toString() ?: ""
+        val bitrate = (bestFormat!!["abr"] as? Number)?.toInt() ?: (bestFormat!!["tbr"] as? Number)?.toInt() ?: 128
 
-        val duration =
-            (infoMap["duration"] as? Number)?.toInt()
-                ?: (infoMap["duration"] as? Double)?.toInt()
-                ?: 0
-
-        val thumbnail =
-            infoMap["thumbnail"]?.toString() ?: ""
-
-        val uploader =
-            infoMap["uploader"]?.toString() ?: ""
-
-        val bitrate =
-            (bestFormat!!["abr"] as? Number)?.toInt()
-                ?: (bestFormat!!["tbr"] as? Number)?.toInt()
-                ?: 128
-
-        Log.d(
-            TAG,
-            "Selected format: ${bitrate}kbps for quality: $quality"
-        )
-
+        Log.d(TAG, "Selected format: ${bitrate}kbps for quality: $quality")
         return mapOf(
             "url" to bestFormat!!["url"],
             "title" to title,
@@ -467,129 +308,49 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         )
     }
 
-    private fun executeYtDlpInfo(
-        videoId: String
-    ): Map<String, Any?> {
-        Log.d(
-            TAG,
-            "YTDLP: Getting info for $videoId"
-        )
+    private fun executeYtDlpInfo(videoId: String): Map<String, Any?> {
+        Log.d(TAG, "YTDLP: Getting info for $videoId")
 
-        val info = infoExtractor!!.callAttr(
-            "extract_info",
-            "https://www.youtube.com/watch?v=$videoId",
-            false
-        ) ?: throw Exception("Failed to extract info")
+        val info = infoExtractor!!.callAttr("extract_info", "https://www.youtube.com/watch?v=$videoId", false)
+            ?: throw Exception("Failed to extract info")
 
         val infoMap = pyToMap(info)
 
         return mapOf(
-            "id" to (
-                infoMap["id"]?.toString()
-                    ?: videoId
-                ),
-
-            "title" to (
-                infoMap["title"]?.toString()
-                    ?: ""
-                ),
-
-            "duration" to (
-                (infoMap["duration"] as? Number)?.toInt()
-                    ?: (infoMap["duration"] as? Double)?.toInt()
-                    ?: 0
-                ),
-
-            "thumbnail" to (
-                infoMap["thumbnail"]?.toString()
-                    ?: ""
-                ),
-
-            "uploader" to (
-                infoMap["uploader"]?.toString()
-                    ?: ""
-                ),
-
-            "view_count" to (
-                (infoMap["view_count"] as? Number)?.toInt()
-                    ?: (infoMap["view_count"] as? Double)?.toInt()
-                    ?: 0
-                ),
-
-            "description" to (
-                infoMap["description"]?.toString()
-                    ?: ""
-                )
+            "id" to (infoMap["id"]?.toString() ?: videoId),
+            "title" to (infoMap["title"]?.toString() ?: ""),
+            "duration" to ((infoMap["duration"] as? Number)?.toInt() ?: (infoMap["duration"] as? Double)?.toInt() ?: 0),
+            "thumbnail" to (infoMap["thumbnail"]?.toString() ?: ""),
+            "uploader" to (infoMap["uploader"]?.toString() ?: ""),
+            "view_count" to ((infoMap["view_count"] as? Number)?.toInt() ?: (infoMap["view_count"] as? Double)?.toInt() ?: 0),
+            "description" to (infoMap["description"]?.toString() ?: "")
         )
     }
 
-    private fun executeYtDlpSearch(
-        query: String,
-        maxResults: Int
-    ): List<Map<String, Any?>> {
-        Log.d(
-            TAG,
-            "YTDLP: Searching for '$query' (max $maxResults results)"
-        )
+    private fun executeYtDlpSearch(query: String, maxResults: Int): List<Map<String, Any?>> {
+        Log.d(TAG, "YTDLP: Searching for '$query' (max $maxResults results)")
 
-        val searchExpr =
-            "ytsearch$maxResults:$query"
-
-        val result = searchExtractor!!.callAttr(
-            "extract_info",
-            searchExpr,
-            false
-        ) ?: throw Exception("Search failed")
+        val searchExpr = "ytsearch$maxResults:$query"
+        val result = searchExtractor!!.callAttr("extract_info", searchExpr, false)
+            ?: throw Exception("Search failed")
 
         val resultMap = pyToMap(result)
-
-        val entries =
-            resultMap["entries"] as? List<*>
-                ?: return emptyList()
+        val entries = resultMap["entries"] as? List<*> ?: return emptyList()
 
         return entries.mapNotNull { item ->
-            val e = item as? Map<String, Any?>
-                ?: return@mapNotNull null
-
+            val e = item as? Map<String, Any?> ?: return@mapNotNull null
             mapOf(
-                "id" to (
-                    e["id"]?.toString()
-                        ?: ""
-                    ),
-
-                "title" to (
-                    e["title"]?.toString()
-                        ?: ""
-                    ),
-
-                "duration" to (
-                    (e["duration"] as? Number)?.toInt()
-                        ?: (e["duration"] as? Double)?.toInt()
-                        ?: 0
-                    ),
-
-                "thumbnail" to (
-                    e["thumbnail"]?.toString()
-                        ?: ""
-                    ),
-
-                "uploader" to (
-                    e["uploader"]?.toString()
-                        ?: ""
-                    ),
-
-                "view_count" to (
-                    (e["view_count"] as? Number)?.toInt()
-                        ?: (e["view_count"] as? Double)?.toInt()
-                        ?: 0
-                    )
+                "id" to (e["id"]?.toString() ?: ""),
+                "title" to (e["title"]?.toString() ?: ""),
+                "duration" to ((e["duration"] as? Number)?.toInt() ?: (e["duration"] as? Double)?.toInt() ?: 0),
+                "thumbnail" to (e["thumbnail"]?.toString() ?: ""),
+                "uploader" to (e["uploader"]?.toString() ?: ""),
+                "view_count" to ((e["view_count"] as? Number)?.toInt() ?: (e["view_count"] as? Double)?.toInt() ?: 0)
             )
         }
     }
 
-    override fun onDetachedFromEngine(
-        binding: FlutterPlugin.FlutterPluginBinding
-    ) {
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
 }

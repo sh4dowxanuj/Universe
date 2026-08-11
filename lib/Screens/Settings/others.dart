@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,7 +12,6 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/picker.dart';
 import 'package:universe/constants/languagecodes.dart';
-import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/main.dart';
 
 class OthersPage extends StatefulWidget {
@@ -127,6 +127,7 @@ class _OthersPageState extends State<OthersPage> {
                 final GlobalKey<AnimatedListState> listKey =
                     GlobalKey<AnimatedListState>();
                 showModalBottomSheet(
+                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {
@@ -169,7 +170,7 @@ class _OthersPageState extends State<OthersPage> {
                                           selectedColor: Theme.of(context)
                                               .colorScheme
                                               .secondary
-                                              .withValues(alpha: 0.2),
+                                              .withOpacity(0.2),
                                           labelStyle: TextStyle(
                                             color: !value
                                                 ? Theme.of(context)
@@ -205,7 +206,7 @@ class _OthersPageState extends State<OthersPage> {
                                           selectedColor: Theme.of(context)
                                               .colorScheme
                                               .secondary
-                                              .withValues(alpha: 0.2),
+                                              .withOpacity(0.2),
                                           labelStyle: TextStyle(
                                             color: value
                                                 ? Theme.of(context)
@@ -353,11 +354,10 @@ class _OthersPageState extends State<OthersPage> {
                       .toString(),
                   keyboardType: TextInputType.number,
                   onSubmitted: (String value, BuildContext context) {
-                    String text = value.trim();
-                    if (text == '') {
-                      text = '0';
+                    if (value.trim() == '') {
+                      value = '0';
                     }
-                    Hive.box('settings').put('minDuration', int.parse(text));
+                    Hive.box('settings').put('minDuration', int.parse(value));
                     Navigator.pop(context);
                   },
                 );
