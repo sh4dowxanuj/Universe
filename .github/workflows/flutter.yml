@@ -1,74 +1,105 @@
-name: Build
+name: Universe Revamped - Android Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+      - master
 
-env:
-  JAVA_VERSION: "17"
-  FLUTTER_CHANNEL: "stable"
-  PROPERTIES_PATH: "./android/key.properties"
+  pull_request:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
+    name: Build Universe Revamped
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # ---------------------------------------------------------
+      # Checkout
+      # ---------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      # Setup Java environment in order to build the Android app.
-      - uses: actions/setup-java@v4
+      # ---------------------------------------------------------
+      # Flutter
+      # ---------------------------------------------------------
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          java-version: ${{env.JAVA_VERSION}}
-          distribution: 'temurin'
-          cache: "gradle"
-
-      # Gradle cache for faster builds
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # Setup the flutter environment.
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{env.FLUTTER_CHANNEL}}
+          flutter-version: '3.16.9'
+          channel: stable
           cache: true
-      
-      - run: |
-          echo storePassword=${{ secrets.STORE_PASSWORD }} >> ${{env.PROPERTIES_PATH}}
-          echo keyPassword=${{ secrets.KEY_PASSWORD }} >> ${{env.PROPERTIES_PATH}}
-          echo keyAlias=${{ secrets.KEY_ALIAS }} >> ${{env.PROPERTIES_PATH}}
-          echo storeFile=/home/runner/work/BlackHole/BlackHole/android/app/keystore.jks >> ${{env.PROPERTIES_PATH}}
-          echo ${{ secrets.KEYSTORE }} | base64 --decode > /home/runner/work/BlackHole/BlackHole/android/app/keystore.jks
 
-      # Get flutter dependencies.
-      - run: flutter pub get
-
-      # Check for any formatting issues in the code.
-      - run: dart format --set-exit-if-changed .
-
-      # Statically analyze the Dart code for any errors.
-      - run: flutter analyze .
-
-      # Run widget tests for our flutter project.
-      - run: flutter test
-
-      # Build apk.
-      - run: flutter build apk --release --split-per-abi
-
-      # Upload generated apk to the artifacts.
-      - uses: actions/upload-artifact@v4
+      # ---------------------------------------------------------
+      # Python / Chaquopy
+      # ---------------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          name: app-arm64-v8a-release.apk
-          path: build/app/outputs/apk/release/app-arm64-v8a-release.apk
+          python-version: '3.11'
 
-      - uses: actions/upload-artifact@v4
+      - name: Verify Python
+        run: python --version
+
+      - name: Verify Flutter
+        run: flutter --version
+
+      # ---------------------------------------------------------
+      # Flutter Dependencies
+      # ---------------------------------------------------------
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ---------------------------------------------------------
+      # Code Analysis
+      # ---------------------------------------------------------
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      # ---------------------------------------------------------
+      # Tests
+      # ---------------------------------------------------------
+      - name: Test
+        run: flutter test
+
+      # ---------------------------------------------------------
+      # Android Release Signing
+      # ---------------------------------------------------------
+
+      - name: Decode Android Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+
+      - name: Create key.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+      # ---------------------------------------------------------
+      # Build Signed Release APK
+      # ---------------------------------------------------------
+      - name: Build APK
+        run: flutter build apk --release
+
+      # ---------------------------------------------------------
+      # Upload Signed APK
+      # ---------------------------------------------------------
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
         with:
-          name: app-armeabi-v7a-release.apk
-          path: build/app/outputs/apk/release/app-armeabi-v7a-release.apk
+          name: universe-revamped-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
