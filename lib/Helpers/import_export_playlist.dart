@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +30,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/picker.dart';
 import 'package:universe/Helpers/songs_count.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 Future<void> exportPlaylist(
   BuildContext context,

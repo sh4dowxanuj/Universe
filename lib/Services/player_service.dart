@@ -188,13 +188,13 @@ class PlayerInvoke {
     // final bool cacheSong =
     // Hive.box('settings').get('cacheSong', defaultValue: true) as bool;
     final int expiredAt = int.parse((playItem['expire_at'] ?? '0').toString());
-
+    
     // Increased buffer time from 350 to 600 seconds for better reliability
     if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 600 > expiredAt) {
       Logger.root.info(
         'YouTube link expired for ${playItem["title"]}, refreshing...',
       );
-
+      
       // Check cache first
       if (Hive.box('ytlinkcache').containsKey(playItem['id'])) {
         final cache = await Hive.box('ytlinkcache').get(playItem['id']);
@@ -216,7 +216,7 @@ class PlayerInvoke {
             try {
               final newData = await YouTubeServices.instance
                   .refreshLink(playItem['id'].toString());
-
+              
               if (newData != null && newData.isNotEmpty) {
                 playItem['url'] = newData['url'];
                 playItem['duration'] = newData['duration'];
@@ -250,7 +250,7 @@ class PlayerInvoke {
           try {
             final newData = await YouTubeServices.instance
                 .refreshLink(playItem['id'].toString());
-
+            
             if (newData != null && newData.isNotEmpty) {
               playItem['url'] = newData['url'];
               playItem['duration'] = newData['duration'];
@@ -270,7 +270,7 @@ class PlayerInvoke {
         try {
           final newData = await YouTubeServices.instance
               .refreshLink(playItem['id'].toString());
-
+          
           if (newData != null && newData.isNotEmpty) {
             playItem['url'] = newData['url'];
             playItem['duration'] = newData['duration'];
@@ -292,11 +292,11 @@ class PlayerInvoke {
     // String? playlistBox,
   }) async {
     final List<MediaItem> queue = [];
-
+    
     // REMOVED: Pre-fetching YouTube links (causes delays)
     // Links will be fetched lazily when needed by audio_service
     // This dramatically speeds up playback start time
-
+    
     queue.addAll(
       response.map(
         (song) => MediaItemConverter.mapToMediaItem(

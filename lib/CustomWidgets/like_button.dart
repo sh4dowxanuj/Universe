@@ -19,10 +19,10 @@
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/playlist.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class LikeButton extends StatefulWidget {
   final MediaItem? mediaItem;

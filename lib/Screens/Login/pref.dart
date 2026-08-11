@@ -18,6 +18,7 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:sizer/sizer.dart';
@@ -27,7 +28,6 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/backup_restore.dart';
 import 'package:universe/Helpers/config.dart';
 import 'package:universe/constants/countrycodes.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class PrefScreen extends StatefulWidget {
   const PrefScreen({super.key});
@@ -100,7 +100,7 @@ class _PrefScreenState extends State<PrefScreen> {
                         child: Text(
                           AppLocalizations.of(context)!.restore,
                           style: TextStyle(
-                            color: Colors.grey.withValues(alpha: 0.7),
+                            color: Colors.grey.withOpacity(0.7),
                           ),
                         ),
                       ),
@@ -111,7 +111,7 @@ class _PrefScreenState extends State<PrefScreen> {
                         child: Text(
                           AppLocalizations.of(context)!.skip,
                           style: TextStyle(
-                            color: Colors.grey.withValues(alpha: 0.7),
+                            color: Colors.grey.withOpacity(0.7),
                           ),
                         ),
                       ),
@@ -225,6 +225,7 @@ class _PrefScreenState extends State<PrefScreen> {
                                     dense: true,
                                     onTap: () {
                                       showModalBottomSheet(
+                                        isDismissible: true,
                                         backgroundColor: Colors.transparent,
                                         context: context,
                                         builder: (BuildContext context) {
@@ -420,6 +421,7 @@ class _PrefScreenState extends State<PrefScreen> {
                                     dense: true,
                                     onTap: () {
                                       showModalBottomSheet(
+                                        isDismissible: true,
                                         backgroundColor: Colors.transparent,
                                         context: context,
                                         builder: (BuildContext context) {
