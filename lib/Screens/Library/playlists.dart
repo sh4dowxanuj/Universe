@@ -18,9 +18,10 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:universe/CustomWidgets/collage.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
@@ -28,7 +29,6 @@ import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Screens/Library/import.dart';
 import 'package:universe/Screens/Library/liked.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class PlaylistScreen extends StatefulWidget {
   @override
@@ -87,18 +87,16 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                     keyboardType: TextInputType.name,
                     onSubmitted: (String value, BuildContext context) async {
                       final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
-                      String name = value
-                          .replaceAll(avoid, '')
-                          .replaceAll('  ', ' ')
-                          .trim();
-                      if (name == '') {
-                        name = 'Playlist ${playlistNames.length}';
+                      value.replaceAll(avoid, '').replaceAll('  ', ' ');
+                      if (value.trim() == '') {
+                        value = 'Playlist ${playlistNames.length}';
                       }
-                      while (playlistNames.contains(name) ||
-                          await Hive.boxExists(name)) {
-                        name = '$name (1)';
+                      while (playlistNames.contains(value) ||
+                          await Hive.boxExists(value)) {
+                        // ignore: use_string_buffers
+                        value = '$value (1)';
                       }
-                      playlistNames.add(name);
+                      playlistNames.add(value);
                       settingsBox.put('playlistNames', playlistNames);
                       Navigator.pop(context);
                     },
@@ -111,7 +109,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                   dimension: 50,
                   child: Center(
                     child: Icon(
-                      Icons.import_export,
+                      MdiIcons.import,
                       color: Theme.of(context).iconTheme.color,
                     ),
                   ),
@@ -629,7 +627,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 1,
                               child: Row(
                                 children: [
-                                  Icon(MdiIcons.export),
+                                  const Icon(MdiIcons.export),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.export,
@@ -641,7 +639,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 2,
                               child: Row(
                                 children: [
-                                  Icon(MdiIcons.share),
+                                  const Icon(MdiIcons.share),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.share,

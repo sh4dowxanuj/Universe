@@ -9,10 +9,8 @@ class YtDlpService {
   static const MethodChannel _channel = MethodChannel('ytdlp_channel');
 
   /// Get audio stream URL and metadata for a YouTube video
-  Future<Map<String, dynamic>?> getAudioStream(
-    String videoId, {
-    String quality = 'High',
-  }) async {
+  Future<Map<String, dynamic>?> getAudioStream(String videoId,
+      {String quality = 'High',}) async {
     try {
       final result = await _channel.invokeMethod('getAudioStream', {
         'videoId': videoId,
@@ -75,9 +73,7 @@ class YtDlpService {
 
   /// Format video data for compatibility with existing YouTube service
   Map<String, dynamic> formatVideoData(
-    Map<String, dynamic> ytdlpData,
-    String videoId,
-  ) {
+      Map<String, dynamic> ytdlpData, String videoId,) {
     return {
       'id': videoId,
       'title': ytdlpData['title'] ?? 'Unknown Title',

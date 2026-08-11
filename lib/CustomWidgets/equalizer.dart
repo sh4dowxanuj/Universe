@@ -20,10 +20,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class Equalizer extends StatefulWidget {
   const Equalizer({super.key});
@@ -51,7 +51,7 @@ class _EqualizerState extends State<Equalizer> {
             SwitchListTile(
               title: Text(AppLocalizations.of(context)!.equalizer),
               value: enabled,
-              activeThumbColor: Theme.of(context).colorScheme.secondary,
+              activeColor: Theme.of(context).colorScheme.secondary,
               onChanged: (value) {
                 enabled = value;
                 Hive.box('settings').put('setEqualizer', value);
@@ -169,7 +169,7 @@ class _VerticalSliderState extends State<VerticalSlider> {
           child: Slider(
             activeColor: Theme.of(context).colorScheme.secondary,
             inactiveColor:
-                Theme.of(context).colorScheme.secondary.withValues(alpha: 0.4),
+                Theme.of(context).colorScheme.secondary.withOpacity(0.4),
             value: sliderValue ?? widget.value!,
             min: widget.min!,
             max: widget.max!,

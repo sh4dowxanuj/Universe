@@ -19,6 +19,7 @@
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:universe/CustomWidgets/collage.dart';
@@ -27,7 +28,6 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/audio_query.dart';
 import 'package:universe/Helpers/playlist.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class AddToOffPlaylist {
   OfflineAudioQuery offlineAudioQuery = OfflineAudioQuery();
@@ -36,6 +36,7 @@ class AddToOffPlaylist {
     List<PlaylistModel> playlistDetails =
         await offlineAudioQuery.getPlaylists();
     showModalBottomSheet(
+      isDismissible: true,
       backgroundColor: Colors.transparent,
       context: context,
       builder: (BuildContext context) {
@@ -145,6 +146,7 @@ class AddToPlaylist {
 
   void addToPlaylist(BuildContext context, MediaItem? mediaItem) {
     showModalBottomSheet(
+      isDismissible: true,
       backgroundColor: Colors.transparent,
       context: context,
       builder: (BuildContext context) {
@@ -177,18 +179,15 @@ class AddToPlaylist {
                       title: AppLocalizations.of(context)!.createNewPlaylist,
                       onSubmitted: (String value, BuildContext context) async {
                         final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
-                        String name = value
-                            .replaceAll(avoid, '')
-                            .replaceAll('  ', ' ')
-                            .trim();
-                        if (name == '') {
-                          name = 'Playlist ${playlistNames.length}';
+                        value.replaceAll(avoid, '').replaceAll('  ', ' ');
+                        if (value.trim() == '') {
+                          value = 'Playlist ${playlistNames.length}';
                         }
-                        if (playlistNames.contains(name) ||
-                            await Hive.boxExists(name)) {
-                          name = '$name (1)';
+                        if (playlistNames.contains(value) ||
+                            await Hive.boxExists(value)) {
+                          value = '$value (1)';
                         }
-                        playlistNames.add(name);
+                        playlistNames.add(value);
                         settingsBox.put('playlistNames', playlistNames);
                         Navigator.pop(context);
                       },
