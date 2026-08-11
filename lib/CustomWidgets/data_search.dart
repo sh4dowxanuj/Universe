@@ -19,13 +19,13 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:universe/CustomWidgets/download_button.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Helpers/audio_query.dart';
 import 'package:universe/Services/player_service.dart';
-import 'package:universe/localization/app_localizations.dart';
 
 class DataSearch extends SearchDelegate {
   final List<SongModel> data;

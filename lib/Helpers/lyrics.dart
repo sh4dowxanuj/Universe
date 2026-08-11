@@ -19,7 +19,8 @@
 
 import 'dart:convert';
 
-import 'package:audiotags/audiotags.dart';
+import 'package:audiotagger/audiotagger.dart';
+import 'package:audiotagger/models/tag.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/APIs/spotify_api.dart';
@@ -265,7 +266,8 @@ class Lyrics {
 
   static Future<String> getOffLyrics(String path) async {
     try {
-      final Tag? tags = await AudioTags.read(path);
+      final Audiotagger tagger = Audiotagger();
+      final Tag? tags = await tagger.readTags(path: path);
       return tags?.lyrics ?? '';
     } catch (e) {
       return '';

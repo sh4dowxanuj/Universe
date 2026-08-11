@@ -533,11 +533,11 @@ class YtMusicService {
         'contentPlaybackContext': {'signatureTimestamp': signatureTimestamp},
       };
       body['video_id'] = videoId;
-
+      
       Logger.root.info('Fetching song data for video: $videoId');
       final Map response =
           await sendRequest(endpoints['get_song']!, body, headers);
-
+      
       if (response.isEmpty) {
         Logger.root.warning('Empty response from YTMusic for $videoId');
         return {
@@ -554,47 +554,42 @@ class YtMusicService {
           'error': 'No video details found. The track may be unavailable.',
         };
       }
-
+      
       List<String> urls = [];
       List<Map> urlsData = [];
       String finalUrl = '';
       String expireAt = '0';
-
+      
       if (getUrl) {
         try {
           // Use yt-dlp instead of youtube_explode_dart to avoid 403 errors
-          Logger.root.info(
-              'YTMusic: Fetching stream URL using yt-dlp for $videoId (quality: $quality)');
-          final ytdlpData = await YtDlpService.instance
-              .getAudioStream(videoId, quality: quality);
-
+          Logger.root.info('YTMusic: Fetching stream URL using yt-dlp for $videoId (quality: $quality)');
+          final ytdlpData = await YtDlpService.instance.getAudioStream(videoId, quality: quality);
+          
           if (ytdlpData != null && ytdlpData['url'] != null) {
             finalUrl = ytdlpData['url'] as String;
             expireAt = ytdlpData['expire_at']?.toString() ?? '0';
-
+            
             // Create urlsData in expected format
-            urlsData = [
-              {
-                'url': finalUrl,
-                'expireAt': expireAt,
-                'bitrate': ytdlpData['bitrate'] ?? 0,
-                'codec': ytdlpData['codec'] ?? 'mp4',
-              }
-            ];
+            urlsData = [{
+              'url': finalUrl,
+              'expireAt': expireAt,
+              'bitrate': ytdlpData['bitrate'] ?? 0,
+              'codec': ytdlpData['codec'] ?? 'mp4',
+            }];
             urls = [finalUrl];
-
+            
             Logger.root.info('YTMusic: yt-dlp SUCCESS - Got stream URL');
           } else {
             Logger.root.warning('YTMusic: yt-dlp failed for $videoId');
           }
-
+          
           // youtube_explode_dart REMOVED - causes 403 errors
+          
         } catch (e) {
-          Logger.root
-              .severe('YTMusic: Error fetching stream URL for $videoId: $e');
+          Logger.root.severe('YTMusic: Error fetching stream URL for $videoId: $e');
           return {
-            'error':
-                'Failed to fetch stream URL. Please check your connection or try another track.',
+            'error': 'Failed to fetch stream URL. Please check your connection or try another track.',
           };
         }
       }

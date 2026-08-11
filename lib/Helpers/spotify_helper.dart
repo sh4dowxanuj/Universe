@@ -71,7 +71,7 @@ Future<void> callSpotifyFunction({
       mode: LaunchMode.externalApplication,
     );
     final appLinks = AppLinks();
-    appLinks.uriLinkStream.listen(
+    appLinks.allUriLinkStream.listen(
       (uri) async {
         final link = uri.toString();
         if (link.contains('code=')) {
