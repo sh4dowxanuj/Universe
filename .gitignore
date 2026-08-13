@@ -56,6 +56,6 @@ build/
 # Ignore signing keystore and key properties
 /android/key.properties
 /android/*.jks
-
+/android/app/*.pfx
 # Python requirements for embedded Chaquopy
 android/app/src/main/python/requirements.txt
