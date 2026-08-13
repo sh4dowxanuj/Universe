@@ -127,7 +127,6 @@ class _OthersPageState extends State<OthersPage> {
                 final GlobalKey<AnimatedListState> listKey =
                     GlobalKey<AnimatedListState>();
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {

@@ -134,7 +134,6 @@ class _ThemePageState extends State<ThemePage> {
               ),
               onTap: () {
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {
