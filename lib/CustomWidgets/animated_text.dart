@@ -18,7 +18,7 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:marquee/marquee.dart' as wrapped;
+import 'package:marquee_plus/marquee.dart' as wrapped;
 
 class AnimatedText extends StatelessWidget {
   final String text;

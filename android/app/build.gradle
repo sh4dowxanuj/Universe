@@ -26,13 +26,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.chaquo.python'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
-def chaquopyBuildPython = "/usr/bin/python3.11"
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/opt/chaquopy-python/bin/python3"
-}
-if (!new File(chaquopyBuildPython).exists()) {
-    chaquopyBuildPython = "/usr/bin/python3"
-}
+def chaquopyBuildPython = "python"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -56,7 +50,7 @@ android {
         versionName flutterVersionName
         
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            abiFilters "armeabi-v7a", "arm64-v8a"
         }
         
         python {
@@ -90,15 +84,17 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // replace with "debug" when running on debug version
-                // Only assign the release signing config if keystore properties are present
-                if (keystoreProperties['storeFile']) {
-                    signingConfig signingConfigs.release
-                }
+            // Only assign the release signing config if keystore properties are present
+            if (keystoreProperties['storeFile']) {
+                signingConfig signingConfigs.release
+            }
+
             // Enable code shrinking and resource shrinking for smaller APKs
             // Note: minification may require additional ProGuard rules for some plugins.
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
             // Strip native debug symbols from release builds to save size
             ndk {
                 debugSymbolLevel 'NONE'
@@ -110,6 +106,7 @@ android {
         checkReleaseBuilds false
         abortOnError false
     }
+
     // Exclude some common metadata files from APK to reduce size
     packagingOptions {
         exclude 'META-INF/LICENSE'
@@ -118,6 +115,7 @@ android {
         exclude 'META-INF/NOTICE.txt'
         exclude 'META-INF/*.kotlin_module'
     }
+
     buildFeatures {
         viewBinding true
     }
