@@ -219,7 +219,6 @@ class _DownloadPageState extends State<DownloadPage> {
               dense: true,
               onTap: () {
                 showModalBottomSheet(
-                  isDismissible: true,
                   backgroundColor: Colors.transparent,
                   context: context,
                   builder: (BuildContext context) {
