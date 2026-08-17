@@ -21,16 +21,18 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'com.chaquo.python'
-
 def chaquopyBuildPython = "python"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+plugins {
+    id "com.android.application" version "7.4.2"
+    id "org.jetbrains.kotlin.android" version "1.8.22"
+    id "com.chaquo.python" version "14.0.2"
 }
 
 android {
@@ -124,7 +126,6 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
 }
