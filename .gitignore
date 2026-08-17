@@ -1,33 +1,24 @@
 ```
-# Gradle and Android build artifacts
+# Gradle
 .gradle/
 build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android
 *.apk
 *.aar
-*.jar
-*.class
+*.ap_
+proguard/
 
-# Android specific
-local.properties
-captures/
-.externalNativeBuild/
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
 
-# Dependencies
-node_modules/
-vendor/bundle/
-
-# Logs
-*.log
-
-# Environment
+# Environment specific
 .env
 .env.local
-.env.*
-
-# Editor/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+*.env.*
 ```
