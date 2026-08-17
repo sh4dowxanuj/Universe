@@ -1,49 +1,803 @@
-```
-# Dependencies
-.dart_tool/
-.build/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
+# Gradle
+.gradle/
+build/
 
-# Generated plugin build files
-android/.gradle/
-android/build/
-android/app/build/
-ios/Pods/
-ios/build/
-
-# Distribution
-*.app.dSYM.zip
-*.ipa
+# Android
 *.apk
-*.aab
-*.aab.signed
+*.aar
+*.so
+*.dex
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# Logs
+*.log
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Logs
-*.log
-**/logs
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
 
-# OS
+# Temp files
+*.tmp
+*.temp
+*~
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
-*.coverage
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/modules/
+*.sublime-workspace
 
-# Temporary files
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+target/
+out/
+bin/
+obj/
+lib/
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+desktop.ini
+
+# Testing
+coverage/
+.nyc_output/
+istanbul.out
+.mocha
+.test*
+
+# Security
+id_dsa
+id_rsa
+id_ecdsa
+id_ed25519
+*.key
+*.pem
+*.crt
+*.cert
+
+# Database
+*.sqlite
+*.db
+
+# Browsers
+*.css.map
+*.js.map
+
+# Compression
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar
+*.gz
+*.bz2
+*.xz
+*.zst
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# C/C++
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.out
+*.obj
+
+# Ruby
+*.gem
+.bundle
+Gemfile.lock
+
+# Go
+*.exe
+*.test
+*.prof
+go.mod
+go.sum
+
+# Rust
+Cargo.lock
+*.rlib
+*.so
+*.dylib
+*.dll
+target/
+
+# Julia
+.julia/
+*.ji
+*.jl.cov
+*.jl.mem
+deps/build.jl
+logs/
+
+# Zig
+zig-cache/
+zig-out/
+
+# Temporary folders
+tmp/
+temp/
+.DS_Store
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+
+# Editor-specific
+.vs/
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript v1 declaration files
+typings/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Codegen
+codegen/
+
+# Prisma
+prisma/migrations/
+
+# Supabase
+supabase/migrations/
+
+# Docker
+.docker/
+
+# Kubernetes
+.kube/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfvars
+
+# Ansible
+.retry
+
+# Vagrant
+.vagrant/
+
+# VirtualEnv
+.venv/
+venv/
+env/
+
+# Conda
+.conda/
+
+# Pipenv
+.Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# Pip
+requirements.txt
+requirements-dev.txt
+
+# Gradle
+.gradle/
+build/
+!gradle-wrapper.properties
+
+# Android
+*.apk
+*.aab
+*.aar
+*.so
+*.dex
+local.properties
+
+# iOS
+*.ipa
+*.app
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+*.xcconfig
+*.xctest
+*.xcscheme
+*.plist
+*.mobileprovision
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# C#
+*.sln
+*.csproj
+*.user
+*.userosscache
+*.suo
+*.pch
+*.pidb
+*.svclog
+*.sdf
+*.opendb
+*.mdb
+*.resharper
+*.[Rr]e[Ss]harper
+*.[Rr]e[Ss]harper.*
+*.DotSettings.user
+*.tlog
+*.tlg
+*.apk
+*.ap_
+Local\ Settings\History
+Temp\.NETFramework,
+*.VC.db
+*.VC.VC.opendb
+
+# Visual Studio Code
+.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+*.aj
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Eclipse
+.metadata
+bin/
+tmp/
 *.tmp
-*.temp
-```
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# IntelliJ IDEA
+out/
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+
+# WebStorm
+.idea/
+*.iml
+*.iws
+*.aux
+*.toc
+
+# PhpStorm
+.idea/
+*.iml
+*.iws
+*.aux
+*.toc
+
+# RubyMine
+.idea/
+*.iml
+*.iws
+*.aux
+*.toc
+
+# AppCode
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.workspace
+*.xcworkspacedata
+DerivedData
+
+# CLion
+*.o
+*.a
+*.so
+.idea/
+cmake-build-*/
+
+# GoLand
+.idea/
+*.iml
+*.iws
+*.aux
+*.toc
+
+# DataGrip
+.idea/
+*.iml
+*.iws
+*.aux
+*.toc
+
+# Rider
+*.sln
+*.csproj
+*.user
+*.suo
+*.pdb
+*.userosscache
+*.cache
+*.ide
+*.obj
+*.bin
+*.log
+*.locks
+*.dat
+*.pid
+*.sdf
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.orig
+.idea/
+.vs/
+
+# Dart
+.dart_tool/
+.packages
+.pubspec.lock
+.buildlog
+
+# Flutter
+flutter_assets/
+.dart_tool/
+.idea/libraries/
+.idea/runConfigurations/
+.idea/modules.xml
+*.iml
+*.aux
+*.toc
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+Assets/AssetStoreTools*
+
+# Unreal Engine
+[Bb]in/
+[Ii]nt/
+[Index.dat]
+Saved/
+Intermediate/
+*. uproject
+*.uprojectdirs
+*.Config
+*.target
+*.targetsettings
+*.Build.cs
+*.Build.cs.pp
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.......meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta......meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta
+*.Build.cs.meta
+*.Build.cs.pp.meta......
