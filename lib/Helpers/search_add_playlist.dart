@@ -30,7 +30,6 @@ import 'package:universe/Helpers/matcher.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class SearchAddPlaylist {
@@ -139,7 +138,7 @@ class SearchAddPlaylist {
     for (final track in tracks) {
       String? trackName;
       try {
-        trackName = (track as Video).title;
+        trackName = (track as Map)['title'].toString();
         yield {'done': ++done, 'name': trackName};
       } catch (e) {
         yield {'done': ++done, 'name': ''};
@@ -162,7 +161,7 @@ class SearchAddPlaylist {
         } else {
           YouTubeServices.instance
               .formatVideo(
-            video: track as Video,
+            video: track as Map,
             getUrl: false,
             quality: 'low',
           )

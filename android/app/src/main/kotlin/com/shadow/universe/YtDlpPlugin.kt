@@ -67,6 +67,13 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
 
     // Create optimized configuration dictionaries
     private fun createConfigDictionaries() {
+        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        val headers = builtins!!.callAttr("dict")
+        headers!!.callAttr("__setitem__", "User-Agent", userAgent)
+        headers!!.callAttr("__setitem__", "Accept", "*/*")
+        headers!!.callAttr("__setitem__", "Accept-Language", "en-US,en;q=0.9")
+        headers!!.callAttr("__setitem__", "Referer", "https://www.youtube.com/")
+
         // Audio extraction config - optimized for speed
         audioOptions = builtins!!.callAttr("dict")
         audioOptions!!.callAttr("__setitem__", "quiet", true)
@@ -75,8 +82,13 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         audioOptions!!.callAttr("__setitem__", "format", "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio")
         audioOptions!!.callAttr("__setitem__", "extract_flat", false)
         audioOptions!!.callAttr("__setitem__", "noplaylist", true)
-        audioOptions!!.callAttr("__setitem__", "socket_timeout", 10)
-        audioOptions!!.callAttr("__setitem__", "retries", 1)
+        audioOptions!!.callAttr("__setitem__", "socket_timeout", 15)
+        audioOptions!!.callAttr("__setitem__", "retries", 3)
+        audioOptions!!.callAttr("__setitem__", "nocheckcertificate", true)
+        audioOptions!!.callAttr("__setitem__", "user_agent", userAgent)
+        audioOptions!!.callAttr("__setitem__", "http_headers", headers)
+        audioOptions!!.callAttr("__setitem__", "youtube_include_dash_manifest", false)
+        audioOptions!!.callAttr("__setitem__", "youtube_include_hls_manifest", false)
 
         // Info extraction config
         infoOptions = builtins!!.callAttr("dict")
@@ -85,8 +97,11 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         infoOptions!!.callAttr("__setitem__", "skip_download", true)
         infoOptions!!.callAttr("__setitem__", "extract_flat", true)
         infoOptions!!.callAttr("__setitem__", "noplaylist", true)
-        infoOptions!!.callAttr("__setitem__", "socket_timeout", 10)
-        infoOptions!!.callAttr("__setitem__", "retries", 1)
+        infoOptions!!.callAttr("__setitem__", "socket_timeout", 15)
+        infoOptions!!.callAttr("__setitem__", "retries", 3)
+        infoOptions!!.callAttr("__setitem__", "nocheckcertificate", true)
+        infoOptions!!.callAttr("__setitem__", "user_agent", userAgent)
+        infoOptions!!.callAttr("__setitem__", "http_headers", headers)
 
         // Search config
         searchOptions = builtins!!.callAttr("dict")
@@ -95,8 +110,11 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         searchOptions!!.callAttr("__setitem__", "skip_download", true)
         searchOptions!!.callAttr("__setitem__", "extract_flat", true)
         searchOptions!!.callAttr("__setitem__", "noplaylist", true)
-        searchOptions!!.callAttr("__setitem__", "socket_timeout", 10)
-        searchOptions!!.callAttr("__setitem__", "retries", 1)
+        searchOptions!!.callAttr("__setitem__", "socket_timeout", 15)
+        searchOptions!!.callAttr("__setitem__", "retries", 3)
+        searchOptions!!.callAttr("__setitem__", "nocheckcertificate", true)
+        searchOptions!!.callAttr("__setitem__", "user_agent", userAgent)
+        searchOptions!!.callAttr("__setitem__", "http_headers", headers)
     }
 
     // Create pre-configured YoutubeDL instances
@@ -162,6 +180,14 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
                     return
                 }
                 searchVideos(query, maxResults, result)
+            }
+            "getPlaylistInfo" -> {
+                val playlistId = call.argument<String>("playlistId")
+                if (playlistId == null) {
+                    result.error("INVALID_ARGUMENT", "playlistId is required", null)
+                    return
+                }
+                getPlaylistInfo(playlistId, result)
             }
             "getPerformanceStats" -> {
                 result.success(getPerformanceStats())
@@ -234,6 +260,20 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(javaList)
             } catch (e: Exception) {
                 Log.e(TAG, "Error searching videos", e)
+                result.error("PYTHON_ERROR", e.message, null)
+            }
+        }
+    }
+
+    private fun getPlaylistInfo(playlistId: String, result: Result) {
+        scope.launch {
+            try {
+                val info = withContext(Dispatchers.IO) {
+                    executeYtDlpPlaylistInfo(playlistId)
+                }
+                result.success(info)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting playlist info", e)
                 result.error("PYTHON_ERROR", e.message, null)
             }
         }
@@ -348,6 +388,33 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
                 "view_count" to ((e["view_count"] as? Number)?.toInt() ?: (e["view_count"] as? Double)?.toInt() ?: 0)
             )
         }
+    }
+
+    private fun executeYtDlpPlaylistInfo(playlistId: String): Map<String, Any?> {
+        Log.d(TAG, "YTDLP: Getting playlist info for $playlistId")
+
+        // Use infoExtractor which has extract_flat=true by default for fast metadata fetching
+        val result = infoExtractor!!.callAttr("extract_info", "https://www.youtube.com/playlist?list=$playlistId", false)
+            ?: throw Exception("Failed to extract playlist info")
+
+        val resultMap = pyToMap(result)
+        val entries = (resultMap["entries"] as? List<*>)?.mapNotNull { item ->
+            val e = item as? Map<String, Any?> ?: return@mapNotNull null
+            mapOf(
+                "id" to (e["id"]?.toString() ?: ""),
+                "title" to (e["title"]?.toString() ?: ""),
+                "duration" to ((e["duration"] as? Number)?.toInt() ?: (e["duration"] as? Double)?.toInt() ?: 0),
+                "thumbnail" to (e["thumbnail"]?.toString() ?: ""),
+                "uploader" to (e["uploader"]?.toString() ?: ""),
+            )
+        } ?: emptyList<Map<String, Any?>>()
+
+        return mapOf(
+            "id" to (resultMap["id"]?.toString() ?: playlistId),
+            "title" to (resultMap["title"]?.toString() ?: ""),
+            "uploader" to (resultMap["uploader"]?.toString() ?: ""),
+            "entries" to entries
+        )
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

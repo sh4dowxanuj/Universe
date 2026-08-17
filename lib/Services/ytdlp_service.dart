@@ -71,6 +71,24 @@ class YtDlpService {
     }
   }
 
+  /// Get playlist information and its entries
+  Future<Map<String, dynamic>?> getPlaylistInfo(String playlistId) async {
+    try {
+      final result = await _channel.invokeMethod('getPlaylistInfo', {
+        'playlistId': playlistId,
+      });
+
+      if (result is Map) {
+        return Map<String, dynamic>.from(result);
+      }
+      return null;
+    } on PlatformException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Format video data for compatibility with existing YouTube service
   Map<String, dynamic> formatVideoData(
       Map<String, dynamic> ytdlpData, String videoId,) {
