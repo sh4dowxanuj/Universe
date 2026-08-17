@@ -20,7 +20,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:universe/Models/song_item.dart';
 import 'package:universe/Models/url_image_generator.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class MediaItemConverter {
@@ -157,23 +156,23 @@ class MediaItemConverter {
     );
   }
 
-  static Map<String, dynamic> videoToMap(Video video) {
+  static Map<String, dynamic> videoToMap(Map video) {
     return {
-      'id': video.id.value,
-      'album': video.author.replaceAll('- Topic', '').trim(),
-      'duration': video.duration?.inSeconds ?? 180,
-      'title': video.title.trim(),
-      'artist': video.author.replaceAll('- Topic', '').trim(),
-      'image': video.thumbnails.highResUrl,
+      'id': video['id'],
+      'album': video['uploader'].toString().replaceAll('- Topic', '').trim(),
+      'duration': video['duration'] ?? 180,
+      'title': video['title'].toString().trim(),
+      'artist': video['uploader'].toString().replaceAll('- Topic', '').trim(),
+      'image': video['thumbnail'],
       'language': 'YouTube',
       'genre': 'YouTube',
-      'year': video.uploadDate?.year,
+      'year': '',
       '320kbps': false,
       'has_lyrics': false,
-      'release_date': video.publishDate.toString(),
-      'album_id': video.channelId.value,
-      'subtitle': video.author,
-      'perma_url': video.url,
+      'release_date': '',
+      'album_id': '',
+      'subtitle': video['uploader'],
+      'perma_url': 'https://www.youtube.com/watch?v=${video['id']}',
     };
   }
 }
