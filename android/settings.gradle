@@ -17,14 +17,12 @@ pluginManagement {
     }
 
     plugins {
-        id "com.android.application" version "8.1.0"
+        id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+        id "com.android.application" version "8.3.0"
+        id "com.android.library" version "8.3.0"
         id "org.jetbrains.kotlin.android" version "1.9.0"
         id "com.chaquo.python" version "14.0.2"
     }
-}
-
-plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
 }
 
 dependencyResolutionManagement {
@@ -32,6 +30,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://chaquo.com/maven" }
     }
 }
 

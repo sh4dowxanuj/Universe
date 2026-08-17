@@ -1,24 +1,49 @@
 ```
-# Gradle
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
+# Dependencies
+.dart_tool/
+.build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
 
-# Android
+# Generated plugin build files
+android/.gradle/
+android/build/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# Distribution
+*.app.dSYM.zip
+*.ipa
 *.apk
-*.aar
-*.ap_
-proguard/
+*.aab
+*.aab.signed
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Logs
+*.log
+**/logs
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*.coverage
 
 # Temporary files
 *.tmp
 *.temp
-*~
-.DS_Store
-Thumbs.db
-
-# Environment specific
-.env
-.env.local
-*.env.*
 ```

@@ -101,7 +101,11 @@ jobs:
       # Build Signed Release APK
       # ---------------------------------------------------------
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter clean
+          flutter pub get
+          cd android && ./gradlew clean --no-daemon && cd ..
+          flutter build apk --release --verbose
 
       # ---------------------------------------------------------
       # Upload Signed APK
