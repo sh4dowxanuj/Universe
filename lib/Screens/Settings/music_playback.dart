@@ -4,7 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
-import 'package:universe/Screens/Home/saavn.dart' as home_screen;
+
 import 'package:universe/Screens/Top Charts/top.dart' as top_screen;
 import 'package:universe/constants/countrycodes.dart';
 
@@ -191,10 +191,10 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                                             'preferredLanguage',
                                             checked,
                                           );
-                                          home_screen.fetched = false;
-                                          home_screen.preferredLanguage =
-                                              preferredLanguage;
-                                          widget.callback!();
+                                          // Language selection updated
+                                          if (widget.callback != null) {
+                                            widget.callback!();
+                                          }
                                         },
                                       );
                                       if (preferredLanguage.isEmpty) {

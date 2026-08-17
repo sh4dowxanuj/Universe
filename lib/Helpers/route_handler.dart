@@ -20,11 +20,9 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:universe/APIs/api.dart';
 import 'package:universe/APIs/spotify_api.dart';
 import 'package:universe/Helpers/audio_query.dart';
 import 'package:universe/Helpers/spotify_helper.dart';
-import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
 import 'package:universe/Screens/Search/search.dart';
 import 'package:universe/Screens/YouTube/youtube_playlist.dart';
@@ -36,32 +34,7 @@ class HandleRoute {
   static Route? handleRoute(String? url) {
     Logger.root.info('received route url: $url');
     if (url == null) return null;
-    if (url.contains('saavn')) {
-      final RegExpMatch? songResult =
-          RegExp(r'.*saavn.com.*?\/(song)\/.*?\/(.*)').firstMatch('$url?');
-      if (songResult != null) {
-        return PageRouteBuilder(
-          opaque: false,
-          pageBuilder: (_, __, ___) => SaavnUrlHandler(
-            token: songResult[2]!,
-            type: songResult[1]!,
-          ),
-        );
-      } else {
-        final RegExpMatch? playlistResult = RegExp(
-          r'.*saavn.com\/?s?\/(featured|playlist|album)\/.*\/(.*_)?[?/]',
-        ).firstMatch('$url?');
-        if (playlistResult != null) {
-          return PageRouteBuilder(
-            opaque: false,
-            pageBuilder: (_, __, ___) => SaavnUrlHandler(
-              token: playlistResult[2]!,
-              type: playlistResult[1]!,
-            ),
-          );
-        }
-      }
-    } else if (url.contains('spotify')) {
+    if (url.contains('spotify')) {
       // TODO: Add support for spotify links
       Logger.root.info('received spotify link');
       final RegExpMatch? songResult =
@@ -105,43 +78,7 @@ class HandleRoute {
   }
 }
 
-class SaavnUrlHandler extends StatelessWidget {
-  final String token;
-  final String type;
-  const SaavnUrlHandler({super.key, required this.token, required this.type});
 
-  @override
-  Widget build(BuildContext context) {
-    SaavnAPI().getSongFromToken(token, type).then((value) {
-      if (type == 'song') {
-        PlayerInvoke.init(
-          songsList: value['songs'] as List,
-          index: 0,
-          isOffline: false,
-        );
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            opaque: false,
-            pageBuilder: (_, __, ___) => const PlayScreen(),
-          ),
-        );
-      }
-      if (type == 'album' || type == 'playlist' || type == 'featured') {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            opaque: false,
-            pageBuilder: (_, __, ___) => SongsListPage(
-              listItem: value,
-            ),
-          ),
-        );
-      }
-    });
-    return Container();
-  }
-}
 
 class SpotifyUrlHandler extends StatelessWidget {
   final String id;

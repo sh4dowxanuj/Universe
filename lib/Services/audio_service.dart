@@ -30,7 +30,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:universe/APIs/api.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
@@ -216,23 +215,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           if (queueLength - index < 5) {
             Logger.root.info('less than 5 songs remaining, adding more songs');
             Future.delayed(const Duration(seconds: 1), () async {
-              if (item == mediaItem.value) {
-                if (item.genre != 'YouTube') {
-                  final List value = await SaavnAPI().getReco(item.id);
-                  value.shuffle();
-                  // final List value = await SaavnAPI().getRadioSongs(
-                  //     stationId: stationId!, count: queueLength - index - 20);
-
-                  for (int i = 0; i < value.length; i++) {
-                    final element = MediaItemConverter.mapToMediaItem(
-                      value[i] as Map,
-                      addedByAutoplay: true,
-                    );
-                    if (!mediaQueue.contains(element)) {
-                      addQueueItem(element);
-                    }
-                  }
-                } else {
                   final res = await YtMusicService().getWatchPlaylist(
                     videoId: item.id,
                     limit: 15,
@@ -242,8 +224,6 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                   if (!jobRunning) {
                     refreshJob();
                   }
-                }
-              }
             });
           }
         }

@@ -20,7 +20,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/CustomWidgets/artist_like_button.dart';
 import 'package:universe/CustomWidgets/bouncy_sliver_scroll_view.dart';
 import 'package:universe/CustomWidgets/copy_clipboard.dart';
@@ -67,15 +67,19 @@ class _ArtistSearchPageState extends State<ArtistSearchPage> {
   Widget build(BuildContext context) {
     if (!status) {
       status = true;
-      SaavnAPI()
-          .fetchArtistSongs(
-        artistToken: widget.data['artistToken'].toString(),
-        category: category,
-        sortOrder: sortOrder,
-      )
+      YouTubeServices.instance
+          .fetchSearchResults(widget.data['title']?.toString() ?? '')
           .then((value) {
+        final songs = value.firstWhere(
+          (element) => element['title'] == 'Songs',
+          orElse: () => {},
+        )['items'] as List?;
         setState(() {
-          data = value;
+          data = {'Top Songs': songs ?? []};
+          fetched = true;
+        });
+      }).catchError((e) {
+        setState(() {
           fetched = true;
         });
       });
@@ -220,28 +224,22 @@ class _ArtistSearchPageState extends State<ArtistSearchPage> {
                                           seconds: 2,
                                         ),
                                       );
-                                      SaavnAPI().createRadio(
-                                        names: [
-                                          widget.data['title']?.toString() ??
-                                              '',
-                                        ],
-                                        language: widget.data['language']
-                                                ?.toString() ??
-                                            'hindi',
-                                        stationType: 'artist',
-                                      ).then((value) {
-                                        if (value != null) {
-                                          SaavnAPI()
-                                              .getRadioSongs(
-                                            stationId: value,
-                                          )
-                                              .then((value) {
-                                            PlayerInvoke.init(
-                                              songsList: value,
-                                              index: 0,
-                                              isOffline: false,
-                                            );
-                                          });
+                                      YouTubeServices.instance
+                                          .fetchSearchResults(
+                                        widget.data['title']?.toString() ?? '',
+                                      )
+                                          .then((value) {
+                                        final songs = value.firstWhere(
+                                          (element) => element['title'] == 'Songs',
+                                          orElse: () => {},
+                                        )['items'] as List?;
+                                        if (songs != null && songs.isNotEmpty) {
+                                          PlayerInvoke.init(
+                                            songsList: songs,
+                                            index: 0,
+                                            isOffline: false,
+                                            shuffle: true,
+                                          );
                                         }
                                       });
                                     },

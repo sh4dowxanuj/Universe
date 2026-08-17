@@ -19,7 +19,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/yt_music.dart';
 import 'package:universe/CustomWidgets/bouncy_sliver_scroll_view.dart';
 import 'package:universe/CustomWidgets/copy_clipboard.dart';
 import 'package:universe/CustomWidgets/download_button.dart';
@@ -71,55 +71,26 @@ class _AlbumSearchPageState extends State<AlbumSearchPage> {
 
   void _fetchData() {
     loading = true;
-    switch (widget.type) {
-      case 'Playlists':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'playlist',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-      case 'Albums':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'album',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-      case 'Artists':
-        SaavnAPI()
-            .fetchAlbums(
-          searchQuery: widget.query,
-          type: 'artist',
-          page: page,
-        )
-            .then((value) {
-          final temp = _searchedList ?? [];
-          temp.addAll(value);
-          setState(() {
-            _searchedList = temp;
-            loading = false;
-          });
-        });
-      default:
-        break;
-    }
+    YtMusicService().search(widget.query).then((value) {
+      final String filter = widget.type == 'Playlists'
+          ? 'Playlists'
+          : widget.type == 'Albums'
+              ? 'Albums'
+              : 'Artists';
+      final section = value.firstWhere(
+        (element) => element['title'] == filter,
+        orElse: () => {},
+      );
+      final List items = (section['items'] as List?) ?? [];
+      setState(() {
+        _searchedList = items.cast<Map>();
+        loading = false;
+      });
+    }).catchError((e) {
+      setState(() {
+        loading = false;
+      });
+    });
   }
 
   @override

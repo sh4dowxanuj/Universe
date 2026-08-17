@@ -49,37 +49,18 @@ class Lyrics {
     result['source'] = res['source']!;
     if (result['lyrics'] == '') {
       Logger.root.info('Synced Lyrics, not found. Getting text lyrics');
-      if (saavnHas) {
-        Logger.root.info('Getting Lyrics from Saavn');
-        result['lyrics'] = await getSaavnLyrics(id);
-        result['type'] = 'text';
-        result['source'] = 'Jiosaavn';
-        if (result['lyrics'] == '') {
-          final res = await getLyrics(
-            id: id,
-            title: title,
-            artist: artist,
-            saavnHas: false,
-          );
-          result['lyrics'] = res['lyrics']!;
-          result['type'] = res['type']!;
-          result['source'] = res['source']!;
-        }
-      } else {
+      Logger.root.info('Finding lyrics on Musixmatch');
+      result['lyrics'] =
+          await getMusixMatchLyrics(title: title, artist: artist);
+      result['type'] = 'text';
+      result['source'] = 'Musixmatch';
+      if (result['lyrics'] == '') {
         Logger.root
-            .info('Lyrics not available on Saavn, finding on Musixmatch');
+            .info('Lyrics not found on Musixmatch, searching on Google');
         result['lyrics'] =
-            await getMusixMatchLyrics(title: title, artist: artist);
+            await getGoogleLyrics(title: title, artist: artist);
         result['type'] = 'text';
-        result['source'] = 'Musixmatch';
-        if (result['lyrics'] == '') {
-          Logger.root
-              .info('Lyrics not found on Musixmatch, searching on Google');
-          result['lyrics'] =
-              await getGoogleLyrics(title: title, artist: artist);
-          result['type'] = 'text';
-          result['source'] = 'Google';
-        }
+        result['source'] = 'Google';
       }
     }
     return result;

@@ -23,10 +23,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-import 'package:universe/APIs/api.dart';
 import 'package:universe/APIs/spotify_api.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
-import 'package:universe/Helpers/matcher.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
@@ -118,17 +116,16 @@ class SearchAddPlaylist {
     try {
       final String id = inLink.split('/').last;
       if (id != '') {
-        final Map data =
-            await SaavnAPI().getSongFromToken(id, 'playlist', n: -1);
+        final Map data = await YtMusicService().getPlaylistDetails(id);
         return {
           'title': data['title'],
-          'count': data['songs'].length,
-          'tracks': data['songs'],
+          'count': (data['tracks'] as List? ?? []).length,
+          'tracks': data['tracks'] ?? [],
         };
       }
       return {};
     } catch (e) {
-      Logger.root.severe('Error while adding JioSaavn playlist: $e');
+      Logger.root.severe('Error while adding playlist: $e');
       return {};
     }
   }
@@ -144,33 +141,17 @@ class SearchAddPlaylist {
         yield {'done': ++done, 'name': ''};
       }
       try {
-        final Map data = await SaavnAPI().fetchSongSearchResults(
-          searchQuery: trackName!.split('|')[0],
-          count: 3,
-        );
-        final List result = data['songs'] as List;
-        final index = findBestMatch(
-          result,
-          {
-            'title': trackName,
-            'artist': trackName,
-          },
-        );
-        if (index != -1) {
-          addMapToPlaylist(playName, result[index] as Map);
-        } else {
-          YouTubeServices.instance
-              .formatVideo(
-            video: track as Map,
-            getUrl: false,
-            quality: 'low',
-          )
-              .then((songMap) {
-            if (songMap != null) {
-              addMapToPlaylist(playName, songMap);
-            }
-          });
-        }
+        YouTubeServices.instance
+            .formatVideo(
+          video: track as Map,
+          getUrl: false,
+          quality: 'low',
+        )
+            .then((songMap) {
+          if (songMap != null) {
+            addMapToPlaylist(playName, songMap);
+          }
+        });
       } catch (e) {
         Logger.root.severe('Error in $done: $e');
       }
@@ -193,20 +174,14 @@ class SearchAddPlaylist {
         yield {'done': ++done, 'name': ''};
       }
       try {
-        final Map data = await SaavnAPI().fetchSongSearchResults(
-          searchQuery: '$trackName - $artistName',
-          count: 3,
-        );
-        final List result = data['songs'] as List;
-        final index = findBestMatch(
-          result,
-          {
-            'title': trackName,
-            'artist': artistName,
-          },
-        );
-        if (index != -1) {
-          addMapToPlaylist(playName, result[index] as Map);
+        final List searchResults = await YouTubeServices.instance
+            .fetchSearchResults('$trackName $artistName');
+        final songs = searchResults.firstWhere(
+          (element) => element['title'] == 'Songs',
+          orElse: () => {},
+        )['items'] as List?;
+        if (songs != null && songs.isNotEmpty) {
+          addMapToPlaylist(playName, songs[0] as Map);
         }
       } catch (e) {
         Logger.root.severe('Error in $done: $e');
@@ -231,20 +206,14 @@ class SearchAddPlaylist {
         yield {'done': ++done, 'name': ''};
       }
       try {
-        final Map data = await SaavnAPI().fetchSongSearchResults(
-          searchQuery: '$trackName - $artistName',
-          count: 3,
-        );
-        final List result = data['songs'] as List;
-        final index = findBestMatch(
-          result,
-          {
-            'title': trackName,
-            'artist': artistName,
-          },
-        );
-        if (index != -1) {
-          addMapToPlaylist(playName, result[index] as Map);
+        final List searchResults = await YouTubeServices.instance
+            .fetchSearchResults('$trackName $artistName');
+        final songs = searchResults.firstWhere(
+          (element) => element['title'] == 'Songs',
+          orElse: () => {},
+        )['items'] as List?;
+        if (songs != null && songs.isNotEmpty) {
+          addMapToPlaylist(playName, songs[0] as Map);
         }
       } catch (e) {
         Logger.root.severe('Error in $done: $e');

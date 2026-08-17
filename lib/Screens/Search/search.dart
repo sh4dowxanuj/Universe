@@ -23,7 +23,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
-import 'package:universe/APIs/api.dart';
 import 'package:universe/CustomWidgets/download_button.dart';
 import 'package:universe/CustomWidgets/empty_screen.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -72,7 +71,7 @@ class _SearchPageState extends State<SearchPage> {
   bool? fromHome;
   List<Map<dynamic, dynamic>> searchedList = [];
   String searchType =
-      Hive.box('settings').get('searchType', defaultValue: 'saavn').toString();
+      Hive.box('settings').get('searchType', defaultValue: 'ytm').toString();
   List searchHistory =
       Hive.box('settings').get('search', defaultValue: []) as List;
   // bool showHistory =
@@ -142,22 +141,20 @@ class _SearchPageState extends State<SearchPage> {
           });
         });
       default:
-        Logger.root.info('calling saavn search');
-        searchedList = await SaavnAPI()
-            .fetchSearchResults(query == '' ? widget.query : query);
-        for (final element in searchedList) {
-          if (element['title'] != 'Top Result') {
-            element['allowViewAll'] = true;
-          }
-        }
-        setState(() {
-          fetched = true;
+        Logger.root.info('calling youtube search (default)');
+        YouTubeServices.instance
+            .fetchSearchResults(query == '' ? widget.query : query)
+            .then((value) {
+          setState(() {
+            searchedList = value;
+            fetched = true;
+          });
         });
     }
   }
 
   Future<void> getTrendingSearch() async {
-    topSearch.value = await SaavnAPI().getTopSearches();
+    topSearch.value = [];
   }
 
   void addToHistory(String title) {

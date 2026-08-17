@@ -23,7 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/yt_music.dart';
 import 'package:universe/CustomWidgets/bouncy_playlist_header_scroll_view.dart';
 import 'package:universe/CustomWidgets/copy_clipboard.dart';
 import 'package:universe/CustomWidgets/download_button.dart';
@@ -31,7 +31,6 @@ import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/like_button.dart';
 import 'package:universe/CustomWidgets/playlist_popupmenu.dart';
-import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Helpers/extensions.dart';
 import 'package:universe/Models/url_image_generator.dart';
@@ -82,123 +81,54 @@ class _SongsListPageState extends State<SongsListPage> {
   void _fetchSongs() {
     loading = true;
     try {
+      final String id = widget.listItem['id'].toString();
       switch (widget.listItem['type'].toString()) {
-        case 'songs':
-          SaavnAPI()
-              .fetchSongSearchResults(
-            searchQuery: widget.listItem['id'].toString(),
-            page: page,
-          )
-              .then((value) {
+        case 'playlist':
+          YtMusicService().getPlaylistDetails(id).then((value) {
             setState(() {
-              songList.addAll(value['songs'] as List);
+              songList = (value['tracks'] as List? ?? []);
               fetched = true;
               loading = false;
             });
-            if (value['error'].toString() != '') {
-              ShowSnackBar().showSnackBar(
-                context,
-                'Error: ${value["error"]}',
-                duration: const Duration(seconds: 3),
-              );
-            }
+          }).catchError((e) {
+            setState(() {
+              fetched = true;
+              loading = false;
+            });
           });
         case 'album':
-          SaavnAPI()
-              .fetchAlbumSongs(widget.listItem['id'].toString())
-              .then((value) {
+          YtMusicService().getAlbumDetails(id).then((value) {
             setState(() {
-              songList = value['songs'] as List;
+              songList = (value['tracks'] as List? ?? []);
               fetched = true;
               loading = false;
             });
-            if (value['error'].toString() != '') {
-              ShowSnackBar().showSnackBar(
-                context,
-                'Error: ${value["error"]}',
-                duration: const Duration(seconds: 3),
-              );
-            }
-          });
-        case 'playlist':
-          SaavnAPI()
-              .fetchPlaylistSongs(widget.listItem['id'].toString())
-              .then((value) {
+          }).catchError((e) {
             setState(() {
-              songList = value['songs'] as List;
               fetched = true;
               loading = false;
             });
-            if (value['error'] != null && value['error'].toString() != '') {
-              ShowSnackBar().showSnackBar(
-                context,
-                'Error: ${value["error"]}',
-                duration: const Duration(seconds: 3),
-              );
-            }
-          });
-        case 'mix':
-          SaavnAPI()
-              .getSongFromToken(
-            widget.listItem['perma_url'].toString().split('/').last,
-            'mix',
-          )
-              .then((value) {
-            setState(() {
-              songList = value['songs'] as List;
-              fetched = true;
-              loading = false;
-            });
-
-            if (value['error'] != null && value['error'].toString() != '') {
-              ShowSnackBar().showSnackBar(
-                context,
-                'Error: ${value["error"]}',
-                duration: const Duration(seconds: 3),
-              );
-            }
-          });
-        case 'show':
-          SaavnAPI()
-              .getSongFromToken(
-            widget.listItem['perma_url'].toString().split('/').last,
-            'show',
-          )
-              .then((value) {
-            setState(() {
-              songList = value['songs'] as List;
-              fetched = true;
-              loading = false;
-            });
-
-            if (value['error'] != null && value['error'].toString() != '') {
-              ShowSnackBar().showSnackBar(
-                context,
-                'Error: ${value["error"]}',
-                duration: const Duration(seconds: 3),
-              );
-            }
           });
         default:
-          setState(() {
-            fetched = true;
-            loading = false;
+          YtMusicService().getPlaylistDetails(id).then((value) {
+            setState(() {
+              songList = value['tracks'] as List? ?? [];
+              fetched = true;
+              loading = false;
+            });
+          }).catchError((e) {
+            setState(() {
+              fetched = true;
+              loading = false;
+            });
           });
-          ShowSnackBar().showSnackBar(
-            context,
-            'Error: Unsupported Type ${widget.listItem['type']}',
-            duration: const Duration(seconds: 3),
-          );
-          break;
       }
     } catch (e) {
+      Logger.root.severe('Error in _fetchSongs: $e');
       setState(() {
         fetched = true;
         loading = false;
       });
-      Logger.root.severe(
-        'Error in song_list with type ${widget.listItem["type"]}: $e',
-      );
     }
   }
 

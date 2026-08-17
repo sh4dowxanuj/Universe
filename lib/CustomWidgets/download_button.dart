@@ -20,7 +20,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/yt_music.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Services/download.dart';
 
@@ -329,8 +329,8 @@ class _AlbumDownloadButtonState extends State<AlbumDownloadButton> {
                           '${AppLocalizations.of(context)!.downingAlbum} "${widget.albumName}"',
                         );
 
-                        data = (await SaavnAPI()
-                            .fetchAlbumSongs(widget.albumId))['songs'] as List;
+                        final albumRes = await YtMusicService().getAlbumDetails(widget.albumId);
+                        data = (albumRes['tracks'] as List? ?? []);
                         for (final items in data) {
                           down.prepareDownload(
                             context,

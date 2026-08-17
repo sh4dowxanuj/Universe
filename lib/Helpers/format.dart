@@ -23,7 +23,7 @@ import 'dart:typed_data';
 import 'package:dart_des/dart_des.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Helpers/extensions.dart';
 import 'package:universe/Helpers/image_resolution_modifier.dart';
 
@@ -555,10 +555,12 @@ class FormatResponse {
             Map cachedDetails = Hive.box('cache')
                 .get(item['id'].toString(), defaultValue: {}) as Map;
             if (cachedDetails.isEmpty) {
-              cachedDetails =
-                  await SaavnAPI().fetchSongDetails(item['id'].toString());
-              Hive.box('cache')
-                  .put(cachedDetails['id'].toString(), cachedDetails);
+              final ytDetails = await YouTubeServices.instance.formatVideoFromId(id: item['id'].toString());
+              cachedDetails = ytDetails ?? item;
+              if (cachedDetails['id'] != null) {
+                Hive.box('cache')
+                    .put(cachedDetails['id'].toString(), cachedDetails);
+              }
             }
             list[i] = cachedDetails;
             continue;

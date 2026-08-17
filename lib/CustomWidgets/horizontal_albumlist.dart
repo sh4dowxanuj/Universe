@@ -19,7 +19,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:universe/APIs/api.dart';
+import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/like_button.dart';
 import 'package:universe/CustomWidgets/on_hover.dart';
@@ -232,26 +232,26 @@ class HorizontalAlbumsList extends StatelessWidget {
                                             .connectingRadio,
                                         duration: const Duration(seconds: 2),
                                       );
-                                      SaavnAPI().createRadio(
-                                        names: [
-                                          item['title']?.toString() ?? '',
-                                        ],
-                                        language: item['language']?.toString(),
-                                        stationType: 'artist',
-                                      ).then((value) {
-                                        if (value != null) {
-                                          SaavnAPI()
-                                              .getRadioSongs(stationId: value)
-                                              .then((value) {
-                                            PlayerInvoke.init(
-                                              songsList: value,
-                                              index: 0,
-                                              isOffline: false,
-                                              shuffle: true,
-                                            );
-                                          });
-                                        }
-                                      });
+                                       YouTubeServices.instance
+                                           .fetchSearchResults(
+                                         item['title']?.toString() ?? '',
+                                       )
+                                           .then((value) {
+                                         final songs = value
+                                             .firstWhere(
+                                               (element) =>
+                                                   element['title'] == 'Songs',
+                                               orElse: () => {},
+                                             )['items'] as List?;
+                                         if (songs != null && songs.isNotEmpty) {
+                                           PlayerInvoke.init(
+                                             songsList: songs,
+                                             index: 0,
+                                             isOffline: false,
+                                             shuffle: true,
+                                           );
+                                         }
+                                       });
                                     },
                                   ),
                                 ),

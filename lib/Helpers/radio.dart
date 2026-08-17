@@ -18,8 +18,8 @@
  */
 
 import 'package:logging/logging.dart';
-import 'package:universe/APIs/api.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/Services/youtube_services.dart';
 
 Future<void> createRadioItems({
   required List<String> stationNames,
@@ -27,23 +27,18 @@ Future<void> createRadioItems({
   int count = 20,
 }) async {
   Logger.root
-      .info('Creating Radio Station of type $stationType with $stationNames');
-  String stationId = '';
-  final String? value = await SaavnAPI()
-      .createRadio(names: stationNames, stationType: stationType);
+      .info('Creating Radio Station with $stationNames');
+  final query = stationNames.join(' ');
+  final searchResults = await YouTubeServices.instance.fetchSearchResults(query);
+  final songs = searchResults.firstWhere(
+    (element) => element['title'] == 'Songs',
+    orElse: () => {},
+  )['items'] as List?;
 
-  if (value == null) return;
-
-  stationId = value;
-  final List songsList = await SaavnAPI().getRadioSongs(
-    stationId: stationId,
-    count: count,
-  );
-
-  if (songsList.isEmpty) return;
+  if (songs == null || songs.isEmpty) return;
 
   PlayerInvoke.init(
-    songsList: songsList,
+    songsList: songs,
     index: 0,
     isOffline: false,
     shuffle: true,
