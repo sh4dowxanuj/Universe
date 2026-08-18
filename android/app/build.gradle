@@ -62,7 +62,8 @@ android {
                 src false
             }
             pip {
-                install "yt-dlp>=2024.08.06"
+                options "--pre"
+                install "yt-dlp"
             }
         }
     }
