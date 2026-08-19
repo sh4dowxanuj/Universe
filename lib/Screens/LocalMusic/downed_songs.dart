@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -133,7 +134,7 @@ class _DownloadedSongsState extends State<DownloadedSongs>
       Logger.root.info('Requesting permission to access local songs');
       await offlineAudioQuery.requestPermission();
       tempPath ??= (await getTemporaryDirectory()).path;
-      if (Platform.isAndroid) {
+      if (PlatformCheck.isAndroid) {
         Logger.root.info('Getting local playlists');
         playlistDetails = await offlineAudioQuery.getPlaylists();
       }
@@ -249,7 +250,23 @@ class _DownloadedSongsState extends State<DownloadedSongs>
   }
 
   Future<void> deleteSong(SongModel song) async {
-    final audioFile = File(song.data);
+    if (!PlatformCheck.isWeb) {
+      final audioFile = File(song.data);
+      try {
+        await audioFile.delete();
+      } catch (e) {
+        Logger.root.severe('Failed to delete $audioFile.path', e);
+        ShowSnackBar().showSnackBar(
+          context,
+          duration: const Duration(seconds: 5),
+          '${AppLocalizations.of(context)!.failedDelete}: ${audioFile.path}\nError: $e',
+        );
+      }
+      if (_folders[audioFile.parent.path]!.length == 1) {
+        _sortedFolderKeysList.remove(audioFile.parent.path);
+      }
+      _folders[audioFile.parent.path]!.remove(song);
+    }
     if (_albums[song.album]!.length == 1) {
       _sortedAlbumKeysList.remove(song.album);
     }
@@ -265,26 +282,11 @@ class _DownloadedSongsState extends State<DownloadedSongs>
     }
     _genres[song.genre]!.remove(song);
 
-    if (_folders[audioFile.parent.path]!.length == 1) {
-      _sortedFolderKeysList.remove(audioFile.parent.path);
-    }
-    _folders[audioFile.parent.path]!.remove(song);
-
     _songs.remove(song);
-    try {
-      await audioFile.delete();
-      ShowSnackBar().showSnackBar(
-        context,
-        '${AppLocalizations.of(context)!.deleted} ${song.title}',
-      );
-    } catch (e) {
-      Logger.root.severe('Failed to delete $audioFile.path', e);
-      ShowSnackBar().showSnackBar(
-        context,
-        duration: const Duration(seconds: 5),
-        '${AppLocalizations.of(context)!.failedDelete}: ${audioFile.path}\nError: $e',
-      );
-    }
+    ShowSnackBar().showSnackBar(
+      context,
+      '${AppLocalizations.of(context)!.deleted} ${song.title}',
+    );
   }
 
   @override

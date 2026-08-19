@@ -18,9 +18,11 @@
  */
 
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
+
+import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -233,7 +235,8 @@ class _PlayScreenState extends State<PlayScreen> {
           if (mediaItem == null) return const SizedBox();
           final offline = !isOnlineMediaItem(mediaItem);
           if (mediaItem.artUri != null && mediaItem.artUri.toString() != '') {
-            mediaItem.artUri.toString().startsWith('file')
+            (mediaItem.artUri.toString().startsWith('file') &&
+                    !PlatformCheck.isWeb)
                 ? getColors(
                     imageProvider: FileImage(
                       File(
@@ -1116,10 +1119,11 @@ class NowPlayingStream extends StatelessWidget {
                               )
                             : SizedBox.square(
                                 dimension: 50,
-                                child: queue[queueStateIndex + index]
-                                        .artUri
-                                        .toString()
-                                        .startsWith('file:')
+                                child: (queue[queueStateIndex + index]
+                                            .artUri
+                                            .toString()
+                                            .startsWith('file:') &&
+                                        !PlatformCheck.isWeb)
                                     ? Image(
                                         fit: BoxFit.cover,
                                         image: FileImage(
@@ -1627,9 +1631,10 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                             borderRadius: BorderRadius.circular(15.0),
                           ),
                           clipBehavior: Clip.antiAlias,
-                          child: widget.mediaItem.artUri
-                                  .toString()
-                                  .startsWith('file')
+                          child: (widget.mediaItem.artUri
+                                      .toString()
+                                      .startsWith('file') &&
+                                  !PlatformCheck.isWeb)
                               ? Image(
                                   fit: BoxFit.contain,
                                   width: widget.width * 0.85,

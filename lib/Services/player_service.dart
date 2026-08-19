@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -58,14 +59,14 @@ class PlayerInvoke {
     }
 
     if (!fromMiniplayer) {
-      if (Platform.isIOS) {
+      if (PlatformCheck.isIOS) {
         // Don't know why but it fixes the playback issue with iOS Side
         audioHandler.stop();
       }
       if (offline) {
         fromDownloads
             ? setDownValues(finalList, globalIndex)
-            : (Platform.isWindows || Platform.isLinux)
+            : (PlatformCheck.isWindows || PlatformCheck.isLinux)
                 ? setOffDesktopValues(finalList, globalIndex)
                 : setOffValues(finalList, globalIndex);
       } else {

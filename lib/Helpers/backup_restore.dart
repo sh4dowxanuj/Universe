@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_archive/flutter_archive.dart';
@@ -37,7 +38,7 @@ Future<String> createBackup(
   String? fileName,
   bool showDialog = true,
 }) async {
-  if (Platform.isAndroid) {
+  if (PlatformCheck.isAndroid) {
     PermissionStatus status = await Permission.storage.status;
     if (status.isDenied) {
       await [
@@ -56,7 +57,7 @@ Future<String> createBackup(
         context: context,
         message: AppLocalizations.of(context)!.selectBackLocation,
       );
-  if (savePath.trim() != '') {
+  if (savePath.trim() != '' && !PlatformCheck.isWeb) {
     try {
       final saveDir = Directory(savePath);
       final dirExists = await saveDir.exists();
@@ -90,7 +91,8 @@ Future<String> createBackup(
       final zipFile =
           File('$savePath/${fileName ?? "Universe_Backup_$time"}.zip');
 
-      if ((Platform.isIOS || Platform.isMacOS) && await zipFile.exists()) {
+      if ((PlatformCheck.isIOS || PlatformCheck.isMacOS) &&
+          await zipFile.exists()) {
         await zipFile.delete();
       }
 
@@ -136,7 +138,7 @@ Future<void> restore(
     message: AppLocalizations.of(context)!.selectBackFile,
   );
   Logger.root.info('Selected restore file path: $savePath');
-  if (savePath != '') {
+  if (savePath != '' && !PlatformCheck.isWeb) {
     final File zipFile = File(savePath);
     final Directory tempDir = await getTemporaryDirectory();
     final Directory destinationDir = Directory('${tempDir.path}/restore');

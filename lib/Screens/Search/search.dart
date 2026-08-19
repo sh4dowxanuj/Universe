@@ -17,7 +17,7 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -266,9 +266,7 @@ class _SearchPageState extends State<SearchPage> {
                                 return Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 5.0,
-                                    vertical: (Platform.isWindows ||
-                                            Platform.isLinux ||
-                                            Platform.isMacOS)
+                                    vertical: PlatformCheck.isDesktop
                                         ? 5.0
                                         : 0.0,
                                   ),
@@ -362,9 +360,7 @@ class _SearchPageState extends State<SearchPage> {
                                         return Padding(
                                           padding: EdgeInsets.symmetric(
                                             horizontal: 5.0,
-                                            vertical: (Platform.isWindows ||
-                                                    Platform.isLinux ||
-                                                    Platform.isMacOS)
+                                            vertical: PlatformCheck.isDesktop
                                                 ? 5.0
                                                 : 0.0,
                                           ),

@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 // import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +98,7 @@ class _DownloadedSongsDesktopState extends State<DownloadedSongsDesktop>
   }
 
   void getSongs() {
+    if (PlatformCheck.isWeb) return;
     final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
     for (final path in includedExcludedPaths) {
       final dir = Directory(path.toString());

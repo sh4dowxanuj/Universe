@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -62,7 +63,7 @@ class BouncyPlaylistHeaderScrollView extends StatelessWidget {
             fit: BoxFit.cover,
             image: AssetImage(placeholderImage),
           )
-        : localImage
+        : (localImage && !PlatformCheck.isWeb)
             ? Image(
                 image: FileImage(
                   File(

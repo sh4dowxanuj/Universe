@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'dart:isolate';
+
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -38,9 +39,9 @@ Future<void> _backgroundProcess(SendPort sendPort) async {
   await for (final message in isolateReceivePort) {
     if (!hiveInit) {
       String path = message.toString();
-      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      if (PlatformCheck.isWindows || PlatformCheck.isLinux || PlatformCheck.isMacOS) {
         path += '/Universe/Database';
-      } else if (Platform.isIOS) {
+      } else if (PlatformCheck.isIOS) {
         path += '/Database';
       }
       Hive.init(path);

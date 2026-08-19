@@ -18,8 +18,11 @@
  */
 
 import 'dart:async';
-import 'dart:io';
 
+import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -60,7 +63,9 @@ Future<void> initializeServices() async {
   await initializeLogging();
 
   // Initialize metadata handling
-  MetadataGod.initialize();
+  if (!PlatformCheck.isWeb) {
+    MetadataGod.initialize();
+  }
 
   // Register core services
   GetIt.I.registerLazySingleton<ErrorService>(() => ErrorService());
@@ -87,9 +92,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Paint.enableDithering = true; No longer needed
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (PlatformCheck.isDesktop) {
     await Hive.initFlutter('Universe/Database');
-  } else if (Platform.isIOS) {
+  } else if (PlatformCheck.isIOS) {
     await Hive.initFlutter('Database');
   } else {
     await Hive.initFlutter();
@@ -100,7 +105,7 @@ Future<void> main() async {
       limit: box['limit'] as bool? ?? false,
     );
   }
-  if (Platform.isAndroid) {
+  if (PlatformCheck.isAndroid) {
     setOptimalDisplayMode();
   }
   await initializeServices();
@@ -108,7 +113,9 @@ Future<void> main() async {
 }
 
 Future<void> setOptimalDisplayMode() async {
-  await FlutterDisplayMode.setHighRefreshRate();
+  if (PlatformCheck.isAndroid) {
+    await FlutterDisplayMode.setHighRefreshRate();
+  }
   // final List<DisplayMode> supported = await FlutterDisplayMode.supported;
   // final DisplayMode active = await FlutterDisplayMode.active;
 
@@ -130,17 +137,19 @@ Future<void> setOptimalDisplayMode() async {
 Future<void> openHiveBox(String boxName, {bool limit = false}) async {
   final box = await Hive.openBox(boxName).onError((error, stackTrace) async {
     Logger.root.severe('Failed to open $boxName Box', error, stackTrace);
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final String dirPath = dir.path;
-    File dbFile = File('$dirPath/$boxName.hive');
-    File lockFile = File('$dirPath/$boxName.lock');
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      dbFile = File('$dirPath/Universe/$boxName.hive');
-      lockFile = File('$dirPath/Universe/$boxName.lock');
+    if (!PlatformCheck.isWeb) {
+      final Directory dir = await getApplicationDocumentsDirectory();
+      final String dirPath = dir.path;
+      File dbFile = File('$dirPath/$boxName.hive');
+      File lockFile = File('$dirPath/$boxName.lock');
+      if (PlatformCheck.isDesktop) {
+        dbFile = File('$dirPath/Universe/$boxName.hive');
+        lockFile = File('$dirPath/Universe/$boxName.lock');
+      }
+      await dbFile.delete();
+      await lockFile.delete();
+      await Hive.openBox(boxName);
     }
-    await dbFile.delete();
-    await lockFile.delete();
-    await Hive.openBox(boxName);
     throw 'Failed to open $boxName Box\nError: $error';
   });
   // clear box if it grows large
@@ -201,7 +210,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     // HomeWidget.setAppGroupId('com.shadow.universe');
     // HomeWidget.registerBackgroundCallback(backgroundCallback);
-    final String systemLangCode = Platform.localeName.substring(0, 2);
+    final String systemLangCode = PlatformCheck.localeName.substring(0, 2);
     final String? lang = Hive.box('settings').get('lang') as String?;
     if (lang == null &&
         LanguageCodes.languageCodes.values.contains(systemLangCode)) {
@@ -214,7 +223,7 @@ class _MyAppState extends State<MyApp> {
       setState(() {});
     });
 
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (PlatformCheck.isMobile) {
       // For sharing or opening urls/text/files coming from outside the app while the app is in the memory
       _intentDataStreamSubscription =
           ReceiveSharingIntent.instance.getMediaStream().listen(

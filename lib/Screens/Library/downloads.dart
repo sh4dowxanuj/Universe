@@ -18,6 +18,8 @@
  */
 
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:audiotagger/audiotagger.dart';
 import 'package:audiotagger/models/tag.dart';
@@ -278,8 +280,22 @@ class _DownloadsState extends State<Downloads>
 
   Future<void> deleteSong(Map song) async {
     await downloadsBox.delete(song['id']);
-    final audioFile = File(song['path'].toString());
-    final imageFile = File(song['image'].toString());
+    if (!PlatformCheck.isWeb) {
+      final audioFile = File(song['path'].toString());
+      final imageFile = File(song['image'].toString());
+      try {
+        await audioFile.delete();
+        if (await imageFile.exists()) {
+          imageFile.delete();
+        }
+      } catch (e) {
+        Logger.root.severe('Failed to delete $audioFile.path', e);
+        ShowSnackBar().showSnackBar(
+          context,
+          '${AppLocalizations.of(context)!.failedDelete}: ${audioFile.path}\nError: $e',
+        );
+      }
+    }
     if (_albums[song['album']]!.length == 1) {
       _sortedAlbumKeysList.remove(song['album']);
     }
@@ -296,22 +312,10 @@ class _DownloadsState extends State<Downloads>
     _genres[song['genre']]!.remove(song);
 
     _songs.remove(song);
-    try {
-      await audioFile.delete();
-      if (await imageFile.exists()) {
-        imageFile.delete();
-      }
-      ShowSnackBar().showSnackBar(
-        context,
-        '${AppLocalizations.of(context)!.deleted} ${song['title']}',
-      );
-    } catch (e) {
-      Logger.root.severe('Failed to delete $audioFile.path', e);
-      ShowSnackBar().showSnackBar(
-        context,
-        '${AppLocalizations.of(context)!.failedDelete}: ${audioFile.path}\nError: $e',
-      );
-    }
+    ShowSnackBar().showSnackBar(
+      context,
+      '${AppLocalizations.of(context)!.deleted} ${song['title']}',
+    );
   }
 
   @override
@@ -550,6 +554,7 @@ class _DownloadsState extends State<Downloads>
 }
 
 Future<Map> editTags(Map song, BuildContext context) async {
+  if (PlatformCheck.isWeb) return song;
   await showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -862,6 +867,7 @@ class _DownSongsTabState extends State<DownSongsTab>
     String songFilePath,
     String url,
   ) async {
+    if (PlatformCheck.isWeb) return;
     final File file = File(imageFilePath);
 
     try {
@@ -871,11 +877,8 @@ class _DownSongsTabState extends State<DownSongsTab>
         file.writeAsBytesSync(image);
       }
     } catch (e) {
-      final HttpClientRequest request2 =
-          await HttpClient().getUrl(Uri.parse(url));
-      final HttpClientResponse response2 = await request2.close();
-      final bytes2 = await consolidateHttpClientResponseBytes(response2);
-      await file.writeAsBytes(bytes2);
+      final response = await http.get(Uri.parse(url));
+      await file.writeAsBytes(response.bodyBytes);
     }
   }
 

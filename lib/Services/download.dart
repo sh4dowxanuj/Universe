@@ -17,11 +17,6 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'dart:io';
-
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
-// import 'package:ffmpeg_kit_flutter_audio/ffmpeg_kit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
@@ -29,11 +24,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
-import 'package:metadata_god/metadata_god.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/lyrics.dart';
+import 'package:universe/Helpers/platform_check.dart';
+import 'package:universe/Services/download/download_platform_helper.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 import 'package:universe/Services/ytdlp_service.dart';
 
@@ -80,23 +74,7 @@ class Download with ChangeNotifier {
   }) async {
     Logger.root.info('Preparing download for ${data['title']}');
     download = true;
-    if (Platform.isAndroid || Platform.isIOS) {
-      Logger.root.info('Requesting storage permission');
-      PermissionStatus status = await Permission.storage.status;
-      if (status.isDenied) {
-        Logger.root.info('Request denied');
-        await [
-          Permission.storage,
-          Permission.accessMediaLocation,
-          Permission.mediaLibrary,
-        ].request();
-      }
-      status = await Permission.storage.status;
-      if (status.isPermanentlyDenied) {
-        Logger.root.info('Request permanently denied');
-        await openAppSettings();
-      }
-    }
+    await DownloadPlatformHelper.requestStoragePermission();
     final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
     data['title'] = data['title'].toString().split('(From')[0].trim();
 
@@ -134,22 +112,22 @@ class Download with ChangeNotifier {
     if (data['url'].toString().contains('google') && createYoutubeFolder) {
       Logger.root.info('Youtube audio detected, creating Youtube folder');
       dlPath = '$dlPath/YouTube';
-      if (!await Directory(dlPath).exists()) {
+      if (!await DownloadPlatformHelper.directoryExists(dlPath)) {
         Logger.root.info('Creating Youtube folder');
-        await Directory(dlPath).create();
+        await DownloadPlatformHelper.createDirectory(dlPath);
       }
     }
 
     if (createFolder && createDownloadFolder && folderName != null) {
       final String foldername = folderName.replaceAll(avoid, '');
       dlPath = '$dlPath/$foldername';
-      if (!await Directory(dlPath).exists()) {
+      if (!await DownloadPlatformHelper.directoryExists(dlPath)) {
         Logger.root.info('Creating folder $foldername');
-        await Directory(dlPath).create();
+        await DownloadPlatformHelper.createDirectory(dlPath);
       }
     }
 
-    final bool exists = await File('$dlPath/$filename').exists();
+    final bool exists = await DownloadPlatformHelper.fileExists('$dlPath/$filename');
     if (exists) {
       Logger.root.info('File already exists');
       if (remember.value == true && rememberOption != null) {
@@ -159,7 +137,7 @@ class Download with ChangeNotifier {
           case 1:
             downloadSong(context, dlPath, filename, data);
           case 2:
-            while (await File('$dlPath/$filename').exists()) {
+            while (await DownloadPlatformHelper.fileExists('$dlPath/$filename')) {
               filename = filename.replaceAll('.m4a', ' (1).m4a');
             }
           default:
@@ -268,7 +246,7 @@ class Download with ChangeNotifier {
                             ),
                             onPressed: () async {
                               Navigator.pop(context);
-                              while (await File('$dlPath/$filename').exists()) {
+                              while (await DownloadPlatformHelper.fileExists('$dlPath/$filename')) {
                                 filename =
                                     filename.replaceAll('.m4a', ' (1).m4a');
                               }
@@ -317,55 +295,29 @@ class Download with ChangeNotifier {
     final List<int> bytes = [];
     String lyrics = '';
     final artname = fileName.replaceAll('.m4a', '.jpg');
-    if (!Platform.isWindows) {
+    if (!PlatformCheck.isWindows) {
       Logger.root.info('Getting App Path for storing image');
       appPath = Hive.box('settings').get('tempDirPath')?.toString();
-      appPath ??= (await getTemporaryDirectory()).path;
+      appPath ??= await DownloadPlatformHelper.getTempDir();
     } else {
-      final Directory? temp = await getDownloadsDirectory();
-      appPath = temp!.path;
+      appPath = await DownloadPlatformHelper.getDownloadsDir();
     }
 
     try {
       Logger.root.info('Creating audio file $dlPath/$fileName');
-      await File('$dlPath/$fileName')
-          .create(recursive: true)
-          .then((value) => filepath = value.path);
+      filepath = await DownloadPlatformHelper.createFile('$dlPath/$fileName');
       Logger.root.info('Creating image file $appPath/$artname');
-      await File('$appPath/$artname')
-          .create(recursive: true)
-          .then((value) => filepath2 = value.path);
+      filepath2 = await DownloadPlatformHelper.createFile('$appPath/$artname');
     } catch (e) {
       Logger.root
           .info('Error creating files, requesting additional permission');
-      if (Platform.isAndroid) {
-        PermissionStatus status = await Permission.manageExternalStorage.status;
-        if (status.isDenied) {
-          Logger.root.info(
-            'ManageExternalStorage permission is denied, requesting permission',
-          );
-          await [
-            Permission.manageExternalStorage,
-          ].request();
-        }
-        status = await Permission.manageExternalStorage.status;
-        if (status.isPermanentlyDenied) {
-          Logger.root.info(
-            'ManageExternalStorage Request is permanently denied, opening settings',
-          );
-          await openAppSettings();
-        }
-      }
+      await DownloadPlatformHelper.requestManageExternalStoragePermission();
 
       Logger.root.info('Retrying to create audio file');
-      await File('$dlPath/$fileName')
-          .create(recursive: true)
-          .then((value) => filepath = value.path);
+      filepath = await DownloadPlatformHelper.createFile('$dlPath/$fileName');
 
       Logger.root.info('Retrying to create image file');
-      await File('$appPath/$artname')
-          .create(recursive: true)
-          .then((value) => filepath2 = value.path);
+      filepath2 = await DownloadPlatformHelper.createFile('$appPath/$artname');
     }
     String kUrl = data['url'].toString();
 
@@ -456,17 +408,10 @@ class Download with ChangeNotifier {
     }).onDone(() async {
       if (download) {
         Logger.root.info('Download complete, modifying file');
-        final file = File(filepath!);
-        await file.writeAsBytes(bytes);
+        await DownloadPlatformHelper.writeFileBytes(filepath!, bytes);
 
-        final client = HttpClient();
-        final HttpClientRequest request2 =
-            await client.getUrl(Uri.parse(data['image'].toString()));
-        final HttpClientResponse response2 = await request2.close();
-        final bytes2 = await consolidateHttpClientResponseBytes(response2);
-        final File file2 = File(filepath2);
-
-        file2.writeAsBytesSync(bytes2);
+        final bytes2 = await DownloadPlatformHelper.fetchImageBytes(data['image'].toString());
+        await DownloadPlatformHelper.writeFileBytes(filepath2, bytes2);
         try {
           Logger.root.info('Checking if lyrics required');
           if (downloadLyrics) {
@@ -483,109 +428,18 @@ class Download with ChangeNotifier {
           Logger.root.severe('Error fetching lyrics: $e');
           lyrics = '';
         }
-        // commented out not to use FFmpeg as it increases the size of the app
-        // can uncomment this if you want to use FFmpeg to convert the audio format
-        // to any desired codec instead of the default m4a one.
-
-        // final List<String> availableFormats = ['m4a'];
-        // if (downloadFormat != 'm4a' &&
-        //     availableFormats.contains(downloadFormat)) {
-        //   List<String>? argsList;
-        //   if (downloadFormat == 'mp3') {
-        //     argsList = [
-        //       '-y',
-        //       '-i',
-        //       '$filepath',
-        //       '-c:a',
-        //       'libmp3lame',
-        //       '-b:a',
-        //       '320k',
-        //       filepath!.replaceAll('.m4a', '.mp3'),
-        //     ];
-        //   }
-        //   if (downloadFormat == 'm4a') {
-        //     argsList = [
-        //       '-y',
-        //       '-i',
-        //       filepath!,
-        //       '-c:a',
-        //       'aac',
-        //       '-b:a',
-        //       '320k',
-        //       filepath!.replaceAll('.m4a', '.m4a'),
-        //     ];
-        //   }
-        //   if (argsList != null) {
-        //     Logger.root.info('Converting audio to $downloadFormat');
-        //     await FFmpegKit.executeWithArguments(argsList);
-        //     Logger.root.info('Conversion complete, deleting old file');
-        //     await File(filepath!).delete();
-        //     filepath = filepath!.replaceAll('.m4a', '.$downloadFormat');
-        //   }
-        // }
+        
         Logger.root.info('Getting audio tags');
-        if (Platform.isAndroid) {
-          try {
-            final Tag tag = Tag(
-              title: data['title'].toString(),
-              artist: data['artist'].toString(),
-              albumArtist: data['album_artist']?.toString() ??
-                  data['artist']?.toString().split(', ')[0] ??
-                  '',
-              artwork: filepath2,
-              album: data['album'].toString(),
-              genre: data['language'].toString(),
-              year: data['year'].toString(),
-              lyrics: lyrics,
-              comment: 'Universe',
-            );
-            Logger.root.info('Started tag editing');
-            final tagger = Audiotagger();
-            await tagger.writeTags(
-              path: filepath!,
-              tag: tag,
-            );
-            // await Future.delayed(const Duration(seconds: 1), () async {
-            //   if (await file2.exists()) {
-            //     await file2.delete();
-            //   }
-            // });
-          } catch (e) {
-            Logger.root.severe('Error editing tags: $e');
-          }
-        } else {
-          // Set metadata to file
-          if (data['language'].toString() == 'YouTube') {
-            // skipping metadata for saavn for the time being as it corrupts the file
-            await MetadataGod.writeMetadata(
-              file: filepath!,
-              metadata: Metadata(
-                title: data['title'].toString(),
-                artist: data['artist'].toString(),
-                albumArtist: data['album_artist']?.toString() ??
-                    data['artist']?.toString().split(', ')[0] ??
-                    '',
-                album: data['album'].toString(),
-                genre: data['language'].toString(),
-                year: int.parse(data['year'].toString()),
-                // lyrics: lyrics,
-                // comment: 'Universe',
-                // trackNumber: 1,
-                // trackTotal: 12,
-                // discNumber: 1,
-                // discTotal: 5,
-                durationMs: int.parse(data['duration'].toString()) * 1000,
-                fileSize: file.lengthSync(),
-                picture: Picture(
-                  data: bytes2,
-                  mimeType: 'image/jpeg',
-                ),
-              ),
-            );
-          }
-        }
+        await DownloadPlatformHelper.writeTags(
+          filePath: filepath!,
+          data: data,
+          imagePath: filepath2,
+          lyrics: lyrics,
+          imageBytes: bytes2,
+        );
+
         Logger.root.info('Closing connection & notifying listeners');
-        client.close();
+        client?.close();
         lastDownloadId = data['id'].toString();
         progress = 0.0;
         notifyListeners();
@@ -623,8 +477,8 @@ class Download with ChangeNotifier {
       } else {
         download = true;
         progress = 0.0;
-        File(filepath!).delete();
-        File(filepath2).delete();
+        DownloadPlatformHelper.deleteFile(filepath!);
+        DownloadPlatformHelper.deleteFile(filepath2);
       }
     });
   }

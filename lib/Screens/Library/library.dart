@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -92,7 +93,7 @@ class _LibraryPageState extends State<LibraryPage> {
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+                PlatformCheck.isDesktop
                         ? const DownloadedSongsDesktop()
                         : const DownloadedSongs(
                             showPlaylists: true,

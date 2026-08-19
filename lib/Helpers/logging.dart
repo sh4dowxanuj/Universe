@@ -1,39 +1,27 @@
 import 'dart:developer';
-import 'dart:io';
-
 import 'package:logging/logging.dart';
-import 'package:path_provider/path_provider.dart';
+import 'platform_check.dart';
+import 'log_writer_io.dart' if (dart.library.html) 'log_writer_web.dart';
 
 Future<void> initializeLogging() async {
-  final Directory tempDir = await getTemporaryDirectory();
-  final File logFile = File('${tempDir.path}/logs/logs.txt');
-  if (!await logFile.exists()) {
-    await logFile.create(recursive: true);
-  }
-  // clear old session data
-  await logFile.writeAsString('');
+  final writer = LogWriter();
+  await writer.init();
+
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) async {
+    final String message;
     if (record.level.name != 'INFO') {
-      log('${record.level.name}: ${record.time}: record.message: ${record.message}\nrecord.error: ${record.error}\nrecord.stackTrace: ${record.stackTrace}\n\n');
-      try {
-        await logFile.writeAsString(
-          '${record.level.name}: ${record.time}: record.message: ${record.message}\nrecord.error: ${record.error}\nrecord.stackTrace: ${record.stackTrace}\n\n',
-          mode: FileMode.append,
-        );
-      } catch (e) {
-        log('Error writing to log file: $e');
-      }
+      message =
+          '${record.level.name}: ${record.time}: record.message: ${record.message}\nrecord.error: ${record.error}\nrecord.stackTrace: ${record.stackTrace}\n\n';
     } else {
-      log('${record.level.name}: ${record.time}: record.message: ${record.message}\n\n');
-      try {
-        await logFile.writeAsString(
-          '${record.level.name}: ${record.time}: record.message: ${record.message}\n\n',
-          mode: FileMode.append,
-        );
-      } catch (e) {
-        log('Error writing to log file: $e');
-      }
+      message =
+          '${record.level.name}: ${record.time}: record.message: ${record.message}\n\n';
+    }
+
+    log(message);
+
+    if (!PlatformCheck.isWeb) {
+      await writer.write(message);
     }
   });
 }

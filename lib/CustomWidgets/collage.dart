@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class OfflineCollage extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: imageList.length < 4 ? 1 : 2,
                 children: imageList.map((image) {
-                  return image == null
+                  return (image == null || PlatformCheck.isWeb)
                       ? Image(
                           fit: BoxFit.cover,
                           image: AssetImage(placeholderImage),
@@ -147,7 +148,7 @@ class OfflineCollage extends StatelessWidget {
                         );
                 }).toList(),
               )
-            : imageList[0] == null
+            : (imageList[0] == null || PlatformCheck.isWeb)
                 ? Image(
                     fit: BoxFit.cover,
                     image: AssetImage(placeholderImage),

@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +47,9 @@ class Picker {
     );
 
     if (result != null) {
+      if (PlatformCheck.isWeb) {
+        return result.files.first.name;
+      }
       final File file = File(result.files.first.path!);
       return file.path == '/' ? '' : file.path;
     }

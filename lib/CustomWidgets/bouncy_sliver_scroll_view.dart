@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -55,7 +56,7 @@ class BouncyImageSliverScrollView extends StatelessWidget {
             fit: BoxFit.cover,
             image: AssetImage(placeholderImage),
           )
-        : localImage
+        : (localImage && !PlatformCheck.isWeb)
             ? Image(
                 image: FileImage(
                   File(

@@ -17,7 +17,7 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                 label: AppLocalizations.of(context)!.update,
                 onPressed: () async {
                   String arch = '';
-                  if (Platform.isAndroid) {
+                  if (PlatformCheck.isAndroid) {
                     List? abis = await Hive.box('settings').get('supportedAbis')
                         as List?;
 
@@ -146,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(context);
                   launchUrl(
                     Uri.parse(
-                      'https://sangwan5688.github.io/download?platform=${Platform.operatingSystem}&arch=$arch',
+                      'https://sangwan5688.github.io/download?platform=${PlatformCheck.operatingSystem}&arch=$arch',
                     ),
                     mode: LaunchMode.externalApplication,
                   );
@@ -533,9 +533,7 @@ class _HomePageState extends State<HomePage> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        (Platform.isWindows ||
-                                                Platform.isLinux ||
-                                                Platform.isMacOS)
+                                        PlatformCheck.isDesktop
                                             ? const DownloadedSongsDesktop()
                                             : const DownloadedSongs(
                                                 showPlaylists: true,

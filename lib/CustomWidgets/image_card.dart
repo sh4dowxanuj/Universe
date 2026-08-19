@@ -18,6 +18,7 @@
  */
 
 import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +51,7 @@ Widget imageCard({
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (localImage || imageUrl == '')
+          if ((localImage || imageUrl == '') && !PlatformCheck.isWeb)
             Image(
               fit: BoxFit.cover,
               errorBuilder: (context, error, stacktrace) {
@@ -68,7 +69,7 @@ Widget imageCard({
                 ),
               ),
             )
-          else
+          else if (imageUrl != '')
             CachedNetworkImage(
               fit: BoxFit.cover,
               errorWidget: (context, _, __) => Image(

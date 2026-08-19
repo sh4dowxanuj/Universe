@@ -1,0 +1,12 @@
+C:\Users\SH4DOW\Desktop\Universe\sh4dow_ytdlp_bridge>python main.py
+←[32mINFO←[0m:     Started server process [←[36m5956←[0m]
+←[32mINFO←[0m:     Waiting for application startup.
+←[32mINFO←[0m:     Application startup complete.
+←[32mINFO←[0m:     Uvicorn running on ←[1mhttp://0.0.0.0:8000←[0m (Press CTRL+C to quit)
+INFO:     127.0.0.1:51899 - "GET /searchVideos?query=popular%20music&maxResults=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51899 - "GET /searchVideos?query=trending%20songs&maxResults=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51899 - "GET /searchVideos?query=Phonk&maxResults=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51900 - "GET /searchVideos?query=top%20hits&maxResults=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51900 - "GET /getVideoInfo?videoId=CQZ-XIgyEUg HTTP/1.1" 200 OK
+Error: '<' not supported between instances of 'float' and 'NoneType'
+INFO:     127.0.0.1:51900 - "GET /getAudioStream?videoId=CQZ-XIgyEUg&quality=High HTTP/1.1" 500 Internal Server Error

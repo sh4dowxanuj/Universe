@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -115,7 +115,7 @@ class _AboutPageState extends State<AboutPage> {
                                     label: AppLocalizations.of(context)!.update,
                                     onPressed: () async {
                                       String arch = '';
-                                      if (Platform.isAndroid) {
+                                      if (PlatformCheck.isAndroid) {
                                         List? abis = await Hive.box('settings')
                                             .get('supportedAbis') as List?;
 
@@ -139,7 +139,7 @@ class _AboutPageState extends State<AboutPage> {
                                       Navigator.pop(context);
                                       launchUrl(
                                         Uri.parse(
-                                          'https://sangwan5688.github.io/download?platform=${Platform.operatingSystem}&arch=$arch',
+                                          'https://sangwan5688.github.io/download?platform=${PlatformCheck.operatingSystem}&arch=$arch',
                                         ),
                                         mode: LaunchMode.externalApplication,
                                       );

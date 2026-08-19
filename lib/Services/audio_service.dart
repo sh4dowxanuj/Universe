@@ -19,7 +19,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -32,8 +31,10 @@ import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:universe/APIs/api.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
+import 'package:universe/Services/audio_service/audio_platform_helper.dart';
 import 'package:universe/Services/isolate_service.dart';
 import 'package:universe/Services/yt_music.dart';
 import 'package:universe/Services/ytdlp_service.dart';
@@ -46,7 +47,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   bool recommend = true;
   bool loadStart = true;
   bool useDown = true;
-  AndroidEqualizerParameters? _equalizerParams;
+  dynamic _equalizerParams;
 
   late AudioPlayer? _player;
   late String connectionType = 'mobile';
@@ -59,7 +60,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   // late List<String> stationNames = [];
   // late String stationType = 'entity';
   late bool cacheSong;
-  final _equalizer = AndroidEqualizer();
+  final _equalizer = AudioPlatformHelper.createEqualizer();
 
   Box? downloadsBox =
       Hive.isBoxOpen('downloads') ? Hive.box('downloads') : null;
@@ -434,15 +435,13 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     try {
       if (mediaItem.artUri.toString().startsWith('file:')) {
         audioSource =
-            AudioSource.uri(Uri.file(mediaItem.extras!['url'].toString()));
+            AudioPlatformHelper.getFileSource(mediaItem.extras!['url'].toString());
       } else {
         if (downloadsBox != null &&
             downloadsBox!.containsKey(mediaItem.id) &&
             useDown) {
-          audioSource = AudioSource.uri(
-            Uri.file(
-              (downloadsBox!.get(mediaItem.id) as Map)['path'].toString(),
-            ),
+          audioSource = AudioPlatformHelper.getFileSource(
+            (downloadsBox!.get(mediaItem.id) as Map)['path'].toString(),
             tag: mediaItem.id,
           );
         } else {
@@ -642,38 +641,32 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       withPipeline =
           Hive.box('settings').get('supportEq', defaultValue: false) as bool;
     }
-    if (withPipeline && Platform.isAndroid) {
-      Logger.root.info('starting with eq pipeline');
-      final AudioPipeline pipeline = AudioPipeline(
-        androidAudioEffects: [
-          _equalizer,
-        ],
-      );
-      _player = AudioPlayer(audioPipeline: pipeline);
+    _player = AudioPlatformHelper.createPlayer(
+      withPipeline: withPipeline,
+      equalizer: _equalizer,
+    );
 
+    if (withPipeline && PlatformCheck.isAndroid) {
       // Enable equalizer if used earlier
       Logger.root.info('setting eq enabled');
       final eqValue =
           Hive.box('settings').get('setEqualizer', defaultValue: false) as bool;
-      _equalizer.setEnabled(eqValue);
+      AudioPlatformHelper.setEqualizerEnabled(_equalizer, eqValue);
 
       // set equalizer params & bands
-      _equalizer.parameters.then((value) {
-        Logger.root.info('setting eq params');
-        _equalizerParams ??= value;
+      if (_equalizer != null) {
+        final params = await _equalizer.parameters;
+        _equalizerParams ??= params;
 
-        final List<AndroidEqualizerBand> bands = _equalizerParams!.bands;
-        bands.map(
-          (e) {
-            final gain = Hive.box('settings')
-                .get('equalizerBand${e.index}', defaultValue: 0.5) as double;
-            _equalizerParams!.bands[e.index].setGain(gain);
-          },
-        );
-      });
+        final bands = _equalizerParams.bands as List;
+        for (var e in bands) {
+          final gain = Hive.box('settings')
+              .get('equalizerBand${e.index}', defaultValue: 0.5) as double;
+          e.setGain(gain);
+        }
+      }
     } else {
       Logger.root.info('starting without eq pipeline');
-      _player = AudioPlayer();
     }
   }
 
@@ -967,11 +960,11 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     if (name == 'setBandGain') {
       final bandIdx = extras!['band'] as int;
       final gain = extras['gain'] as double;
-      _equalizerParams!.bands[bandIdx].setGain(gain);
+      AudioPlatformHelper.setBandGain(_equalizer, bandIdx, gain);
     }
 
     if (name == 'setEqualizer') {
-      _equalizer.setEnabled(extras!['value'] as bool);
+      AudioPlatformHelper.setEqualizerEnabled(_equalizer, extras!['value'] as bool);
     }
 
     if (name == 'fastForward') {
@@ -999,7 +992,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     }
 
     if (name == 'getEqualizerParams') {
-      return getEqParms();
+      return AudioPlatformHelper.getEqualizerParams(_equalizer);
     }
 
     if (name == 'refreshLink') {
@@ -1015,23 +1008,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   Future<Map> getEqParms() async {
-    _equalizerParams ??= await _equalizer.parameters;
-    final List<AndroidEqualizerBand> bands = _equalizerParams!.bands;
-    final List<Map> bandList = bands
-        .map(
-          (e) => {
-            'centerFrequency': e.centerFrequency,
-            'gain': e.gain,
-            'index': e.index,
-          },
-        )
-        .toList();
-
-    return {
-      'maxDecibels': _equalizerParams!.maxDecibels,
-      'minDecibels': _equalizerParams!.minDecibels,
-      'bands': bandList,
-    };
+    return AudioPlatformHelper.getEqualizerParams(_equalizer);
   }
 
   @override
@@ -1185,12 +1162,12 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
       playbackState.value.copyWith(
         controls: [
           // workaround to add like button
-          if (!Platform.isIOS)
+          if (!PlatformCheck.isIOS)
             if (liked) MediaControl.rewind else MediaControl.fastForward,
           MediaControl.skipToPrevious,
           if (playing) MediaControl.pause else MediaControl.play,
           MediaControl.skipToNext,
-          if (!Platform.isIOS) MediaControl.stop,
+          if (!PlatformCheck.isIOS) MediaControl.stop,
         ],
         systemActions: const {
           MediaAction.seek,
