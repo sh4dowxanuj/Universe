@@ -18,10 +18,10 @@
  */
 
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Models/image_quality.dart';
 import 'package:universe/Models/url_image_generator.dart';
 

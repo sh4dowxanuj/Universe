@@ -659,7 +659,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         _equalizerParams ??= params;
 
         final bands = _equalizerParams.bands as List;
-        for (var e in bands) {
+        for (final e in bands) {
           final gain = Hive.box('settings')
               .get('equalizerBand${e.index}', defaultValue: 0.5) as double;
           e.setGain(gain);

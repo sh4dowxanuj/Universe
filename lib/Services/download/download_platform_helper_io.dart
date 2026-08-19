@@ -11,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 
 class DownloadPlatformHelper {
+  DownloadPlatformHelper._();
+
   static Future<void> requestStoragePermission() async {
     if (Platform.isAndroid || Platform.isIOS) {
       Logger.root.info('Requesting storage permission');

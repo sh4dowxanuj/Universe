@@ -17,8 +17,6 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'package:universe/Helpers/platform_check.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -33,6 +31,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Helpers/extensions.dart';
 import 'package:universe/Helpers/format.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Models/image_quality.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Library/liked.dart';

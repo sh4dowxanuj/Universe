@@ -3,6 +3,8 @@ import 'package:universe/Services/audio_service/audio_platform_helper_io.dart'
     if (dart.library.html) 'package:universe/Services/audio_service/audio_platform_helper_web.dart';
 
 class AudioPlatformHelper {
+  AudioPlatformHelper._();
+
   static AudioPlayer createPlayer({required bool withPipeline, dynamic equalizer}) =>
       AudioPlatformHelperImpl.createPlayer(withPipeline: withPipeline, equalizer: equalizer);
 

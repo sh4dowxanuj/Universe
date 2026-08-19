@@ -1,6 +1,8 @@
 import 'package:logging/logging.dart';
 
 class DownloadPlatformHelper {
+  DownloadPlatformHelper._();
+
   static Future<void> requestStoragePermission() async {
     Logger.root.info('Web: No storage permission needed');
   }

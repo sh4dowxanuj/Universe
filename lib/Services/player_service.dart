@@ -18,7 +18,6 @@
  */
 
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -28,6 +27,7 @@ import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
 import 'package:universe/Services/youtube_services.dart';
 

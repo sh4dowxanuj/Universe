@@ -18,11 +18,9 @@
  */
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
-
-import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -56,6 +54,7 @@ import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/dominant_color.dart';
 import 'package:universe/Helpers/lyrics.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
 import 'package:url_launcher/url_launcher.dart';

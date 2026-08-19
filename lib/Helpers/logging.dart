@@ -1,7 +1,8 @@
 import 'dart:developer';
+
 import 'package:logging/logging.dart';
-import 'platform_check.dart';
-import 'log_writer_io.dart' if (dart.library.html) 'log_writer_web.dart';
+import 'package:universe/Helpers/log_writer_io.dart' if (dart.library.html) 'log_writer_web.dart';
+import 'package:universe/Helpers/platform_check.dart';
 
 Future<void> initializeLogging() async {
   final writer = LogWriter();

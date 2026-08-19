@@ -18,7 +18,6 @@
  */
 
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
 // import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +33,7 @@ import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/playlist_head.dart';
 // import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/audio_query.dart';
+import 'package:universe/Helpers/platform_check.dart';
 // import 'package:universe/Screens/LocalMusic/localplaylists.dart';
 import 'package:universe/Services/player_service.dart';
 

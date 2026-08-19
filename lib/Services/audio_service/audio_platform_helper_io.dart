@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:just_audio/just_audio.dart';
-import 'dart:io';
 import 'package:universe/Helpers/platform_check.dart';
 
 class AudioPlatformHelperImpl {
+  AudioPlatformHelperImpl._();
+
   static dynamic createEqualizer() {
     if (PlatformCheck.isAndroid) {
       return AndroidEqualizer();

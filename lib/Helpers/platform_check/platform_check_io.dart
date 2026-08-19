@@ -1,6 +1,8 @@
 import 'dart:io';
 
 class PlatformCheckImplementation {
+  PlatformCheckImplementation._();
+
   static bool get isAndroid => Platform.isAndroid;
   static bool get isIOS => Platform.isIOS;
   static bool get isMacOS => Platform.isMacOS;

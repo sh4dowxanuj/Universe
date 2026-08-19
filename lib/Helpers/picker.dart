@@ -18,11 +18,11 @@
  */
 
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:universe/Helpers/platform_check.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class Picker {

@@ -1,4 +1,6 @@
 class DownloadPlatformHelper {
+  DownloadPlatformHelper._();
+
   static Future<void> requestStoragePermission() async => throw UnimplementedError();
   static Future<void> requestManageExternalStoragePermission() async => throw UnimplementedError();
   static Future<bool> directoryExists(String path) async => throw UnimplementedError();

@@ -17,7 +17,6 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -431,7 +430,7 @@ class Download with ChangeNotifier {
         
         Logger.root.info('Getting audio tags');
         await DownloadPlatformHelper.writeTags(
-          filePath: filepath!,
+          filePath: filepath,
           data: data,
           imagePath: filepath2,
           lyrics: lyrics,

@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'ext_storage_provider.dart';
+import 'package:universe/Services/ext_storage_provider.dart';
 
 class ExtStorageHelper {
+  ExtStorageHelper._();
+
   static Future<String?> getExtStorage({
     required String dirName,
     required bool writeAccess,
@@ -48,6 +50,6 @@ class ExtStorageHelper {
     } catch (e) {
       rethrow;
     }
-    return directory?.path;
+    return directory.path;
   }
 }

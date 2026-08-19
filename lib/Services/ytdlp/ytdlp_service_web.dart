@@ -39,8 +39,10 @@ class YtDlpService {
       final response = await http.get(Uri.parse('$bridgeUrl/getAudioStream?videoId=$videoId&quality=$quality'));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+      } else {
+        Logger.root.warning('YtDlpService.getAudioStream returned ${response.statusCode}: ${response.body}');
+        return null;
       }
-      return null;
     } catch (e) {
       Logger.root.severe('Error in YtDlpService.getAudioStream (Web): $e');
       return null;
@@ -53,8 +55,10 @@ class YtDlpService {
       final response = await http.get(Uri.parse('$bridgeUrl/getVideoInfo?videoId=$videoId'));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+      } else {
+        Logger.root.warning('YtDlpService.getVideoInfo returned ${response.statusCode}: ${response.body}');
+        return null;
       }
-      return null;
     } catch (e) {
       Logger.root.severe('Error in YtDlpService.getVideoInfo (Web): $e');
       return null;
@@ -73,6 +77,8 @@ class YtDlpService {
         if (result is List) {
           return result.map((item) => Map<String, dynamic>.from(item as Map)).toList();
         }
+      } else {
+        Logger.root.warning('YtDlpService.searchVideos returned ${response.statusCode}: ${response.body}');
       }
       return [];
     } catch (e) {
@@ -87,8 +93,10 @@ class YtDlpService {
       final response = await http.get(Uri.parse('$bridgeUrl/getPlaylistInfo?playlistId=$playlistId'));
       if (response.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+      } else {
+        Logger.root.warning('YtDlpService.getPlaylistInfo returned ${response.statusCode}: ${response.body}');
+        return null;
       }
-      return null;
     } catch (e) {
       Logger.root.severe('Error in YtDlpService.getPlaylistInfo (Web): $e');
       return null;

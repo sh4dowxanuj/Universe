@@ -18,11 +18,11 @@
  */
 
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:universe/Helpers/platform_check.dart';
 
 class BouncyImageSliverScrollView extends StatelessWidget {
   final ScrollController scrollController;

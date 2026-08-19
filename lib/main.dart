@@ -18,11 +18,8 @@
  */
 
 import 'dart:async';
-
 import 'dart:io';
-import 'package:universe/Helpers/platform_check.dart';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -40,6 +37,7 @@ import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/handle_native.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Helpers/logging.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Helpers/route_handler.dart';
 import 'package:universe/Screens/Common/routes.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';

@@ -1,11 +1,10 @@
 import 'dart:isolate';
 
-import 'package:universe/Helpers/platform_check.dart';
-
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
 import 'package:universe/Services/youtube_services.dart';
 

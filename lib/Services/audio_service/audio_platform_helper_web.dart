@@ -1,6 +1,8 @@
 import 'package:just_audio/just_audio.dart';
 
 class AudioPlatformHelperImpl {
+  AudioPlatformHelperImpl._();
+
   static dynamic createEqualizer() {
     return null;
   }

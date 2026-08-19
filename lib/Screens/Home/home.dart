@@ -17,8 +17,6 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
-import 'package:universe/Helpers/platform_check.dart';
-
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -33,6 +31,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/backup_restore.dart';
 import 'package:universe/Helpers/downloads_checker.dart';
 import 'package:universe/Helpers/github.dart';
+import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Helpers/update.dart';
 import 'package:universe/Screens/Home/home_screen.dart';
 import 'package:universe/Screens/Library/library.dart';

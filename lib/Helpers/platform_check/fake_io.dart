@@ -74,5 +74,5 @@ class FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResp
 class FileSystemException implements Exception {
   final String message;
   final String path;
-  FileSystemException([this.message = "", this.path = ""]);
+  FileSystemException([this.message = '', this.path = '']);
 }
