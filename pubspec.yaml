@@ -12,10 +12,9 @@ environment:
 
 dependencies:
   app_links: ^6.3.0
+  audio_metadata_reader: ^1.0.0
   audio_service: ^0.18.12
   audio_session: any
-  audiotagger:
-    2.2.1
   # bitsdojo_window: ^0.1.1+1 #For Desktops
   cached_network_image: ^3.3.0
   carousel_slider: ^4.2.1
@@ -61,6 +60,9 @@ dependencies:
   url_launcher: ^6.1.14
   uuid: ^3.0.7
   workmanager: ^0.5.1
+
+dependency_overrides:
+  mime: ^2.0.0
 
 dev_dependencies:
   flutter_test:

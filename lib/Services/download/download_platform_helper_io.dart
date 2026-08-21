@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart' as amr;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -94,25 +93,32 @@ class DownloadPlatformHelper {
   }) async {
     if (Platform.isAndroid) {
       try {
-        final Tag tag = Tag(
-          title: data['title'].toString(),
-          artist: data['artist'].toString(),
-          albumArtist: data['album_artist']?.toString() ??
-              data['artist']?.toString().split(', ')[0] ??
-              '',
-          artwork: imagePath,
-          album: data['album'].toString(),
-          genre: data['language'].toString(),
-          year: data['year'].toString(),
-          lyrics: lyrics,
-          comment: 'Universe',
-        );
         Logger.root.info('Started tag editing');
-        final tagger = Audiotagger();
-        await tagger.writeTags(
-          path: filePath,
-          tag: tag,
-        );
+        amr.updateMetadata(File(filePath), (metadata) {
+          metadata.setTitle(data['title'].toString());
+          metadata.setArtist(data['artist'].toString());
+          metadata.setAlbum(data['album'].toString());
+          metadata.setGenres([data['language'].toString()]);
+          if (data['year'] != null && data['year'].toString().isNotEmpty) {
+            try {
+              metadata.setYear(
+                DateTime(int.parse(data['year'].toString())),
+              );
+            } catch (e) {
+              Logger.root.severe('Failed to parse year', e);
+            }
+          }
+          metadata.setLyrics(lyrics);
+          if (imageBytes.isNotEmpty) {
+            metadata.setPictures([
+              amr.Picture(
+                Uint8List.fromList(imageBytes),
+                'image/jpeg',
+                amr.PictureType.coverFront,
+              ),
+            ]);
+          }
+        });
       } catch (e) {
         Logger.root.severe('Error editing tags: $e');
       }

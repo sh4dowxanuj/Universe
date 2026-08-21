@@ -19,8 +19,7 @@
 
 import 'dart:io';
 
-import 'package:audiotagger/audiotagger.dart';
-import 'package:audiotagger/models/tag.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -557,8 +556,6 @@ Future<Map> editTags(Map song, BuildContext context) async {
   await showDialog(
     context: context,
     builder: (BuildContext context) {
-      final tagger = Audiotagger();
-
       FileImage songImage = FileImage(File(song['image'].toString()));
 
       final titlecontroller =
@@ -601,22 +598,25 @@ Future<Map> editTags(Map song, BuildContext context) async {
 
                       songImage = FileImage(File(imagePath));
 
-                      final Tag tag = Tag(
-                        artwork: imagePath,
-                      );
                       try {
                         await [
                           Permission.manageExternalStorage,
                         ].request();
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
+                        final bytes = File(imagePath).readAsBytesSync();
+                        updateMetadata(
+                          File(song['path'].toString()),
+                          (metadata) {
+                            metadata.setPictures([
+                              Picture(
+                                bytes,
+                                'image/jpeg',
+                                PictureType.coverFront,
+                              ),
+                            ]);
+                          },
                         );
                       } catch (e) {
-                        await tagger.writeTags(
-                          path: song['path'].toString(),
-                          tag: tag,
-                        );
+                        Logger.root.severe('Failed to update artwork', e);
                       }
                     }
                   },
@@ -790,27 +790,47 @@ Future<Map> editTags(Map song, BuildContext context) async {
               song['genre'] = genrecontroller.text;
               song['year'] = yearcontroller.text;
               song['path'] = pathcontroller.text;
-              final tag = Tag(
-                title: titlecontroller.text,
-                artist: artistcontroller.text,
-                album: albumcontroller.text,
-                genre: genrecontroller.text,
-                year: yearcontroller.text,
-                albumArtist: albumArtistController.text,
-              );
               try {
                 try {
                   await [
                     Permission.manageExternalStorage,
                   ].request();
-                  tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
+                  updateMetadata(
+                    File(song['path'].toString()),
+                    (metadata) {
+                      metadata.setTitle(titlecontroller.text);
+                      metadata.setArtist(artistcontroller.text);
+                      metadata.setAlbum(albumcontroller.text);
+                      metadata.setGenres([genrecontroller.text]);
+                      if (yearcontroller.text.isNotEmpty) {
+                        try {
+                          metadata.setYear(
+                            DateTime(int.parse(yearcontroller.text)),
+                          );
+                        } catch (e) {
+                          Logger.root.severe('Failed to parse year', e);
+                        }
+                      }
+                    },
                   );
                 } catch (e) {
-                  await tagger.writeTags(
-                    path: song['path'].toString(),
-                    tag: tag,
+                  updateMetadata(
+                    File(song['path'].toString()),
+                    (metadata) {
+                      metadata.setTitle(titlecontroller.text);
+                      metadata.setArtist(artistcontroller.text);
+                      metadata.setAlbum(albumcontroller.text);
+                      metadata.setGenres([genrecontroller.text]);
+                      if (yearcontroller.text.isNotEmpty) {
+                        try {
+                          metadata.setYear(
+                            DateTime(int.parse(yearcontroller.text)),
+                          );
+                        } catch (e) {
+                          Logger.root.severe('Failed to parse year', e);
+                        }
+                      }
+                    },
                   );
                   ShowSnackBar().showSnackBar(
                     context,
@@ -871,7 +891,10 @@ class _DownSongsTabState extends State<DownSongsTab>
 
     try {
       await file.create();
-      final image = await Audiotagger().readArtwork(path: songFilePath);
+      final metadata = readMetadata(File(songFilePath), getImage: true);
+      final image = metadata.pictures.isNotEmpty
+          ? metadata.pictures.first.bytes
+          : null;
       if (image != null) {
         file.writeAsBytesSync(image);
       }
