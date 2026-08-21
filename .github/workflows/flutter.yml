@@ -24,6 +24,15 @@ jobs:
         uses: actions/checkout@v5
 
       # ---------------------------------------------------------
+      # Java Setup
+      # ---------------------------------------------------------
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ---------------------------------------------------------
       # Flutter
       # ---------------------------------------------------------
       - name: Setup Flutter
