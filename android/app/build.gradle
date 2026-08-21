@@ -37,6 +37,8 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
+    namespace "com.sh4dow.universe"
+
     compileSdkVersion 34
     ndkVersion "21.4.7075529"
 
@@ -62,7 +64,7 @@ android {
                 src false
             }
             pip {
-                install "yt-dlp>=2024.08.06"
+                install "yt-dlp"
             }
         }
     }
