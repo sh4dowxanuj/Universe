@@ -11,7 +11,7 @@ environment:
   flutter: ">=3.3.0"
 
 dependencies:
-  app_links: ^3.4.5
+  app_links: ^6.3.0
   audio_service: ^0.18.12
   audio_session: any
   audiotagger:
