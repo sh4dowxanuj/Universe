@@ -37,6 +37,8 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
+    namespace "com.shadow.universe"
+
     compileSdkVersion 34
     ndkVersion "21.4.7075529"
 
@@ -62,12 +64,11 @@ android {
                 src false
             }
             pip {
-                install "yt-dlp>=2024.08.06"
+                install "yt-dlp"
             }
         }
     }
 
-    // remove signingConfigs when running debug version
     signingConfigs {
         release {
             if (keystoreProperties['storeFile']) {
@@ -82,40 +83,31 @@ android {
     }
 
     buildTypes {
-        // replace release with "debug" when running on debug version
         release {
-            // TODO: Add your own signing config for the release build.
-            // replace with "debug" when running on debug version
-            // Only assign the release signing config if keystore properties are present
             if (keystoreProperties['storeFile']) {
                 signingConfig signingConfigs.release
             }
 
-            // Enable code shrinking and resource shrinking for smaller APKs
-            // Note: minification may require additional ProGuard rules for some plugins.
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
-            // Strip native debug symbols from release builds to save size
             ndk {
                 debugSymbolLevel 'NONE'
             }
         }
     }
+
     packagingOptions {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/*.kotlin_module']
         }
     }
 
-
-    // Exclude some common metadata files from APK to reduce size
-
     buildFeatures {
         viewBinding true
     }
-    namespace 'com.shadow.universe'
+
     lint {
         abortOnError false
         checkReleaseBuilds false
@@ -130,4 +122,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
+    
+    // Fixes missing R8 references for Play Core & deferred components
+    implementation 'com.google.android.play:feature-delivery:2.1.0'
 }
