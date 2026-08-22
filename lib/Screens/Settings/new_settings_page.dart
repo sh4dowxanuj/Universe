@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/Screens/Settings/about.dart';
 import 'package:universe/Screens/Settings/app_ui.dart';
 import 'package:universe/Screens/Settings/backup_and_restore.dart';
@@ -11,7 +12,6 @@ import 'package:universe/Screens/Settings/music_playback.dart';
 import 'package:universe/Screens/Settings/others.dart';
 import 'package:universe/Screens/Settings/theme.dart';
 import 'package:universe/src/gen_l10n/app_localizations.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
 
 class NewSettingsPage extends StatefulWidget {
   final Function? callback;

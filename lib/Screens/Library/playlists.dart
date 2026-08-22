@@ -25,10 +25,10 @@ import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/Screens/Library/import.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/src/gen_l10n/app_localizations.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
 
 class PlaylistScreen extends StatefulWidget {
   @override
@@ -87,16 +87,18 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                     keyboardType: TextInputType.name,
                     onSubmitted: (String value, BuildContext context) async {
                       final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
-                      value.replaceAll(avoid, '').replaceAll('  ', ' ');
-                      if (value.trim() == '') {
-                        value = 'Playlist ${playlistNames.length}';
+                      String name = value
+                          .replaceAll(avoid, '')
+                          .replaceAll('  ', ' ');
+                      if (name.trim() == '') {
+                        name = 'Playlist ${playlistNames.length}';
                       }
-                      while (playlistNames.contains(value) ||
-                          await Hive.boxExists(value)) {
+                      while (playlistNames.contains(name) ||
+                          await Hive.boxExists(name)) {
                         // ignore: use_string_buffers
-                        value = '$value (1)';
+                        name = '$name (1)';
                       }
-                      playlistNames.add(value);
+                      playlistNames.add(name);
                       settingsBox.put('playlistNames', playlistNames);
                       Navigator.pop(context);
                     },
@@ -598,14 +600,14 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                           },
                           itemBuilder: (context) => [
                             if (name != 'Favorite Songs')
-                              PopupMenuItem(
+                              const PopupMenuItem(
                                 value: 3,
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.edit_rounded),
-                                    const SizedBox(width: 10.0),
+                                    Icon(Icons.edit_rounded),
+                                    SizedBox(width: 10.0),
                                     Text(
-                                      AppLocalizations.of(context)!.rename,
+                                      'Rename',
                                     ),
                                   ],
                                 ),
@@ -627,7 +629,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 1,
                               child: Row(
                                 children: [
-                                  Icon(MdiIcons.export),
+                                  const Icon(MdiIcons.export),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.export,
@@ -639,7 +641,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 2,
                               child: Row(
                                 children: [
-                                  Icon(MdiIcons.share),
+                                  const Icon(MdiIcons.share),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.share,

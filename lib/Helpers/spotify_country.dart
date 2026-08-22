@@ -57,17 +57,24 @@ class SpotifyCountry {
                 child: ListTile(
                   title: Text(
                     countries[idx],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  leading: Radio(
+                  leading: Radio.adaptive(
                     value: countries[idx],
+                    // ignore: deprecated_member_use
                     groupValue: region,
-                    onChanged: (value) {
-                      top_screen.localSongs = [];
-                      region = countries[idx];
-                      top_screen.localFetched = false;
-                      top_screen.localFetchFinished.value = false;
-                      Hive.box('settings').put('region', region);
-                      Navigator.pop(context);
+                    // ignore: deprecated_member_use
+                    onChanged: (String? value) {
+                      if (value != null) {
+                        top_screen.localSongs = [];
+                        region = value;
+                        top_screen.localFetched = false;
+                        top_screen.localFetchFinished.value = false;
+                        Hive.box('settings').put('region', region);
+                        Navigator.pop(context);
+                      }
                     },
                   ),
                   selected: region == countries[idx],

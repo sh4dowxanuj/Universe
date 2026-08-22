@@ -408,6 +408,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     // Logger.root.info('player | inserting refreshed item');
     // late AudioSource audioSource;
     // if (cacheSong) {
+    //   // ignore: experimental_member_use
     //   audioSource = LockCachingAudioSource(
     //     Uri.parse(
     //       newItem.extras!['url'].toString(),
@@ -547,7 +548,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
             return null;
           } else {
             if (cacheSong) {
-              audioSource = LockCachingAudioSource(
+              // ignore: experimental_member_use
+              // ignore: experimental_member_use
+            audioSource = LockCachingAudioSource(
                 Uri.parse(
                   mediaItem.extras!['url'].toString().replaceAll(
                         '_96.',

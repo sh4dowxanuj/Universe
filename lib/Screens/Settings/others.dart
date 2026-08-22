@@ -353,10 +353,11 @@ class _OthersPageState extends State<OthersPage> {
                       .toString(),
                   keyboardType: TextInputType.number,
                   onSubmitted: (String value, BuildContext context) {
-                    if (value.trim() == '') {
-                      value = '0';
+                    String val = value;
+                    if (val.trim() == '') {
+                      val = '0';
                     }
-                    Hive.box('settings').put('minDuration', int.parse(value));
+                    Hive.box('settings').put('minDuration', int.parse(val));
                     Navigator.pop(context);
                   },
                 );

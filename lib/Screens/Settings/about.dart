@@ -1,3 +1,22 @@
+/*
+ *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
+ * 
+ * Universe is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Universe is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Copyright (c) 2021-2023, SH4DOWXANUJ
+ */
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -7,11 +26,11 @@ import 'package:universe/CustomWidgets/copy_clipboard.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/github.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Helpers/update.dart';
 import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -185,6 +204,15 @@ class _AboutPageState extends State<AboutPage> {
                         },
                         dense: true,
                       ),
+                      const ListTile(
+                        title: Text(
+                          'Universe',
+                        ),
+                        subtitle: Text(
+                          'An Open Source Music Player',
+                        ),
+                        dense: true,
+                      ),
                       ListTile(
                         title: Text(
                           AppLocalizations.of(
@@ -298,7 +326,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
+                                            icon: const Icon(
                                               MdiIcons.gmail,
                                             ),
                                             iconSize: 40,
@@ -329,7 +357,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
+                                            icon: const Icon(
                                               MdiIcons.send,
                                             ),
                                             iconSize: 40,
@@ -360,7 +388,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
+                                            icon: const Icon(
                                               MdiIcons.instagram,
                                             ),
                                             iconSize: 40,
@@ -423,7 +451,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
+                                            icon: const Icon(
                                               MdiIcons.send,
                                             ),
                                             iconSize: 40,
@@ -454,7 +482,7 @@ class _AboutPageState extends State<AboutPage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(
+                                            icon: const Icon(
                                               MdiIcons.send,
                                             ),
                                             iconSize: 40,

@@ -15,21 +15,19 @@ dependencies:
   audio_metadata_reader: ^1.0.0
   audio_service: ^0.18.12
   audio_session: any
-  # bitsdojo_window: ^0.1.1+1 #For Desktops
   cached_network_image: ^3.3.0
   carousel_slider: 5.0.0
+  community_material_icon: ^5.9.55
   connectivity_plus: ^5.0.1
   cupertino_icons: ^1.0.6
   dart_des: ^1.0.2
   device_info_plus: ^9.0.2
-  # ffmpeg_kit_flutter_audio: ^6.0.3
   file_picker: ^8.0.7
   flip_card: ^0.7.0
   flutter:
     sdk: flutter
   flutter_archive: ^5.0.0
   flutter_displaymode: ^0.6.0
-  # flutter_downloader: ^1.7.1
   flutter_localizations:
     sdk: flutter
   flutter_lyric: ^2.0.4+6
@@ -39,9 +37,8 @@ dependencies:
   home_widget: ^0.3.0
   html_unescape: ^2.0.0
   http: ^1.2.0
+  intl: any
   just_audio: ^0.9.36
-  # Discontinued, Use just_audio_windows instead.
-  # just_audio_libwinmedia: ^0.0.4 # For windows and linux.
   logging: ^1.2.0
   marquee_plus: 2.2.4
   metadata_god: ^0.5.2+1
@@ -59,8 +56,6 @@ dependencies:
   url_launcher: ^6.1.14
   uuid: ^3.0.7
 
-  intl: any
-  community_material_icon: ^5.9.55
 dependency_overrides:
   mime: ^2.0.0
 

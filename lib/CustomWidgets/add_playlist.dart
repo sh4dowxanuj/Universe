@@ -177,15 +177,17 @@ class AddToPlaylist {
                       title: AppLocalizations.of(context)!.createNewPlaylist,
                       onSubmitted: (String value, BuildContext context) async {
                         final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
-                        value.replaceAll(avoid, '').replaceAll('  ', ' ');
-                        if (value.trim() == '') {
-                          value = 'Playlist ${playlistNames.length}';
+                        String name = value
+                            .replaceAll(avoid, '')
+                            .replaceAll('  ', ' ');
+                        if (name.trim() == '') {
+                          name = 'Playlist ${playlistNames.length}';
                         }
-                        if (playlistNames.contains(value) ||
-                            await Hive.boxExists(value)) {
-                          value = '$value (1)';
+                        if (playlistNames.contains(name) ||
+                            await Hive.boxExists(name)) {
+                          name = '$name (1)';
                         }
-                        playlistNames.add(value);
+                        playlistNames.add(name);
                         settingsBox.put('playlistNames', playlistNames);
                         Navigator.pop(context);
                       },

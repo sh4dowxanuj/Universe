@@ -29,6 +29,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/backup_restore.dart';
 import 'package:universe/Helpers/downloads_checker.dart';
 import 'package:universe/Helpers/github.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Helpers/update.dart';
 import 'package:universe/Screens/Home/home_screen.dart';
@@ -40,9 +41,7 @@ import 'package:universe/Screens/Top Charts/top.dart';
 import 'package:universe/Screens/YouTube/youtube_home.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 import 'package:universe/src/gen_l10n/app_localizations.dart';
-// Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -330,7 +329,7 @@ class _HomePageState extends State<HomePage> {
                                   );
                                 case 'YouTube':
                                   return NavigationRailDestination(
-                                    icon: Icon(MdiIcons.youtube),
+                                    icon: const Icon(MdiIcons.youtube),
                                     label: Text(AppLocalizations.of(context)!.youTube),
                                   );
                                 case 'Library':
@@ -671,7 +670,7 @@ class _HomePageState extends State<HomePage> {
           );
         case 'YouTube':
           return BottomNavigationBarItem(
-            icon: Padding(
+            icon: const Padding(
               padding: EdgeInsets.symmetric(vertical: 4),
               child: Icon(MdiIcons.youtube),
             ),

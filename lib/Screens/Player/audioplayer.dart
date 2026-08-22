@@ -27,7 +27,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
 import 'package:flutter_lyric/lyrics_model_builder.dart';
 import 'package:flutter_lyric/lyrics_reader_model.dart';
@@ -52,12 +51,13 @@ import 'package:universe/Helpers/audio_service_helper.dart';
 import 'package:universe/Helpers/config.dart';
 import 'package:universe/Helpers/dominant_color.dart';
 import 'package:universe/Helpers/lyrics.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 import 'package:universe/Helpers/mediaitem_converter.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:universe/Helpers/mdi_icons.dart';
 
 /// Returns true when the item should be treated as an online stream.
 /// Some autoplay/up-next items start playback before a final stream URL is
@@ -943,18 +943,14 @@ class NowPlayingStream extends StatelessWidget {
     return StreamBuilder<QueueState>(
       stream: audioHandler.queueState,
       builder: (context, snapshot) {
-        final queueState = snapshot.data ?? QueueState.empty;
-        final queue = queueState.queue;
+        final queueState = snapshot.data ?? QueueState.empty;        final queue = queueState.queue;
         final int queueStateIndex = queueState.queueIndex ?? 0;
 
         return ReorderableListView.builder(
           header: SizedBox(
             height: head ? headHeight : 0,
           ),
-          onReorder: (int oldIndex, int newIndex) {
-            if (oldIndex < newIndex) {
-              newIndex--;
-            }
+          onReorderItem: (int oldIndex, int newIndex) {
             audioHandler.moveQueueItem(
               queueStateIndex + oldIndex,
               queueStateIndex + newIndex,

@@ -3,14 +3,13 @@ import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/Helpers/spotify_country.dart';
 import 'package:universe/Screens/Home/saavn.dart' as home_screen;
-import 'package:universe/Screens/Top Charts/top.dart' as top_screen;
-import 'package:universe/constants/countrycodes.dart';
 import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class MusicPlaybackPage extends StatefulWidget {
   final Function? callback;
-  const MusicPlaybackPage({this.callback});
+  const MusicPlaybackPage({super.key, this.callback});
 
   @override
   State<MusicPlaybackPage> createState() => _MusicPlaybackPageState();
@@ -92,6 +91,10 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                   preferredLanguage.isEmpty
                       ? 'None'
                       : preferredLanguage.join(', '),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.end,
@@ -144,14 +147,18 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                                         languages[idx],
                                       ),
                                       onChanged: (bool? value) {
-                                        value!
-                                            ? checked.add(languages[idx])
-                                            : checked.remove(
-                                                languages[idx],
-                                              );
-                                        setStt(
-                                          () {},
-                                        );
+                                        if (value != null) {
+                                          if (value) {
+                                            checked.add(languages[idx]);
+                                          } else {
+                                            checked.remove(
+                                              languages[idx],
+                                            );
+                                          }
+                                          setStt(
+                                            () {},
+                                          );
+                                        }
                                       },
                                     );
                                   },
@@ -174,6 +181,9 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                                         context,
                                       )!
                                           .cancel,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                   TextButton(
@@ -245,6 +255,10 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
                 width: 150,
                 child: Text(
                   region,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
                   textAlign: TextAlign.end,
                 ),
               ),
@@ -470,71 +484,5 @@ class _MusicPlaybackPageState extends State<MusicPlaybackPage> {
         ),
       ),
     );
-  }
-}
-
-class SpotifyCountry {
-  Future<String> changeCountry({required BuildContext context}) async {
-    String region =
-        Hive.box('settings').get('region', defaultValue: 'India') as String;
-    if (!CountryCodes.localChartCodes.containsKey(region)) {
-      region = 'India';
-    }
-
-    await showModalBottomSheet(
-      backgroundColor: Colors.transparent,
-      context: context,
-      builder: (BuildContext context) {
-        const Map<String, String> codes = CountryCodes.localChartCodes;
-        final List<String> countries = codes.keys.toList();
-        return BottomGradientContainer(
-          borderRadius: BorderRadius.circular(
-            20.0,
-          ),
-          child: ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(
-              0,
-              10,
-              0,
-              10,
-            ),
-            itemCount: countries.length,
-            itemBuilder: (context, idx) {
-              return ListTileTheme(
-                selectedColor: Theme.of(context).colorScheme.secondary,
-                child: ListTile(
-                  title: Text(
-                    countries[idx],
-                  ),
-                  leading: Radio(
-                    value: countries[idx],
-                    groupValue: region,
-                    onChanged: (value) {
-                      top_screen.localSongs = [];
-                      region = countries[idx];
-                      top_screen.localFetched = false;
-                      top_screen.localFetchFinished.value = false;
-                      Hive.box('settings').put('region', region);
-                      Navigator.pop(context);
-                    },
-                  ),
-                  selected: region == countries[idx],
-                  onTap: () {
-                    top_screen.localSongs = [];
-                    region = countries[idx];
-                    top_screen.localFetchFinished.value = false;
-                    Hive.box('settings').put('region', region);
-                    Navigator.pop(context);
-                  },
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-    return region;
   }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Screens/Settings/player_gradient.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class AppUIPage extends StatefulWidget {
   final Function? callback;
@@ -171,14 +171,14 @@ class _AppUIPageState extends State<AppUIPage> {
                                 0,
                                 10,
                               ),
-                              onReorder: (int oldIndex, int newIndex) {
-                                if (oldIndex < newIndex) {
-                                  newIndex--;
-                                }
+                              onReorderItem: (int oldIndex, int newIndex) {
                                 final temp = order.removeAt(
                                   oldIndex,
                                 );
-                                order.insert(newIndex, temp);
+                                order.insert(
+                                  newIndex,
+                                  temp,
+                                );
                                 setStt(
                                   () {},
                                 );
@@ -693,14 +693,14 @@ class _AppUIPageState extends State<AppUIPage> {
                                 0,
                                 10,
                               ),
-                              onReorder: (int oldIndex, int newIndex) {
-                                if (oldIndex < newIndex) {
-                                  newIndex--;
-                                }
+                              onReorderItem: (int oldIndex, int newIndex) {
                                 final temp = sectionsAvailableToShow.removeAt(
                                   oldIndex,
                                 );
-                                sectionsAvailableToShow.insert(newIndex, temp);
+                                sectionsAvailableToShow.insert(
+                                  newIndex,
+                                  temp,
+                                );
                                 setStt(
                                   () {},
                                 );
