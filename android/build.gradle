@@ -28,6 +28,12 @@ subprojects {
             project.android {
                 compileSdkVersion 36
 
+                ndkVersion "28.2.13676358"
+
+                defaultConfig {
+                    minSdkVersion 24
+                }
+
                 if (namespace == null) {
                     namespace project.group ?: "com.example.${project.name.replace('-', '_')}"
                 }
