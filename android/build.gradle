@@ -1,15 +1,13 @@
 buildscript {
-    ext.kotlin_version = '1.9.10'
+    ext.kotlin_version = '2.1.0'
     repositories {
         google()
         mavenCentral()
         maven { url "https://chaquo.com/maven" }
     }
-
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.11.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.chaquo.python:gradle:14.0.2"
+        // Expose AGP to buildscript plugins like Chaquopy
+        classpath "com.android.tools.build:gradle:8.7.3"
     }
 }
 
@@ -28,15 +26,12 @@ subprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
             project.android {
-                // Enforce SDK 34 for all plugins
-                compileSdkVersion 35
+                compileSdkVersion 36
 
-                // Fallback namespace injection for legacy packages
                 if (namespace == null) {
                     namespace project.group ?: "com.example.${project.name.replace('-', '_')}"
                 }
                 
-                // Enforce Java 17 compiler targets
                 compileOptions {
                     sourceCompatibility JavaVersion.VERSION_17
                     targetCompatibility JavaVersion.VERSION_17
@@ -44,17 +39,15 @@ subprojects {
             }
         }
         
-        // Enforce JVM 17 target across all Kotlin tasks
         tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
             kotlinOptions {
                 jvmTarget = '17'
             }
         }
     }
-
-    project.evaluationDependsOn(':app')
 }
 
+// Fixed task registration for modern Gradle
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

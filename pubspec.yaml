@@ -58,7 +58,6 @@ dependencies:
   sliding_up_panel: ^2.0.0+1
   url_launcher: ^6.1.14
   uuid: ^3.0.7
-  workmanager: 0.9.0
 
   intl: any
   community_material_icon: ^5.9.55

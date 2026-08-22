@@ -39,8 +39,17 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.shadow.universe"
 
-    compileSdkVersion 35
-    ndkVersion "27.0.12077973"
+    compileSdkVersion 36
+    ndkVersion "28.2.13676358"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -48,8 +57,9 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
+        
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 34
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         
@@ -106,6 +116,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
     lint {
@@ -122,7 +133,5 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
-    
-    // Fixes missing R8 references for Play Core & deferred components
     implementation 'com.google.android.play:feature-delivery:2.1.0'
 }
