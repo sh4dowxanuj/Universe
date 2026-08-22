@@ -23,7 +23,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -49,6 +48,7 @@ import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/constants/constants.dart';
 import 'package:universe/constants/languagecodes.dart';
 import 'package:universe/providers/audio_service_provider.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:universe/theme/app_theme.dart';
 
 /// Service Locator for dependency injection

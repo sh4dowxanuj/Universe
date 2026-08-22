@@ -21,7 +21,6 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -37,6 +36,7 @@ import 'package:universe/Helpers/audio_query.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/LocalMusic/localplaylists.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class DownloadedSongs extends StatefulWidget {
   final List<SongModel>? cachedSongs;
@@ -240,7 +240,6 @@ class _DownloadedSongsState extends State<DownloadedSongs>
         _songs.sort(
           (a, b) => a.dateAdded.toString().compareTo(b.dateAdded.toString()),
         );
-        break;
     }
 
     if (order == 1) {

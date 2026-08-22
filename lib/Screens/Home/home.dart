@@ -19,10 +19,8 @@
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -41,8 +39,10 @@ import 'package:universe/Screens/Settings/new_settings_page.dart';
 import 'package:universe/Screens/Top Charts/top.dart';
 import 'package:universe/Screens/YouTube/youtube_home.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 // Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -309,7 +309,7 @@ class _HomePageState extends State<HomePage> {
                             indicatorColor: Theme.of(context)
                                 .colorScheme
                                 .secondary
-                                .withOpacity(0.2),
+                                .withValues(alpha: 0.2),
                             leading: homeDrawer(
                               context: context,
                               padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -330,7 +330,7 @@ class _HomePageState extends State<HomePage> {
                                   );
                                 case 'YouTube':
                                   return NavigationRailDestination(
-                                    icon: const Icon(MdiIcons.youtube),
+                                    icon: Icon(MdiIcons.youtube),
                                     label: Text(AppLocalizations.of(context)!.youTube),
                                   );
                                 case 'Library':
@@ -387,11 +387,11 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black.withOpacity(0.9)
-                        : Colors.white.withOpacity(0.9),
+                        ? Colors.black.withValues(alpha: 0.9)
+                        : Colors.white.withValues(alpha: 0.9),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, -2),
                       ),
@@ -463,8 +463,8 @@ class _HomePageState extends State<HomePage> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.black.withOpacity(0.1),
+                          Colors.black.withValues(alpha: 0.8),
+                          Colors.black.withValues(alpha: 0.1),
                         ],
                       ).createShader(
                         Rect.fromLTRB(0, 0, rect.width, rect.height),
@@ -523,7 +523,7 @@ class _HomePageState extends State<HomePage> {
                                 horizontal: 20.0,
                               ),
                               leading: Icon(
-                                MdiIcons.folderMusic,
+                                MdiIcons.folder_music,
                                 color: Theme.of(context).iconTheme.color,
                               ),
                               onTap: () {
@@ -671,7 +671,7 @@ class _HomePageState extends State<HomePage> {
           );
         case 'YouTube':
           return BottomNavigationBarItem(
-            icon: const Padding(
+            icon: Padding(
               padding: EdgeInsets.symmetric(vertical: 4),
               child: Icon(MdiIcons.youtube),
             ),

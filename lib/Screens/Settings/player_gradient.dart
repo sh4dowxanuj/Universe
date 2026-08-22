@@ -18,10 +18,10 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:universe/Helpers/config.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class PlayerGradientSelection extends StatefulWidget {
   const PlayerGradientSelection({super.key});

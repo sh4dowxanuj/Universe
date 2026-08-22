@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/box_switch_tile.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
@@ -7,6 +6,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Screens/Home/saavn.dart' as home_screen;
 import 'package:universe/Screens/Top Charts/top.dart' as top_screen;
 import 'package:universe/constants/countrycodes.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class MusicPlaybackPage extends StatefulWidget {
   final Function? callback;

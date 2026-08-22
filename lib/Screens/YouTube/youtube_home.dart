@@ -22,7 +22,6 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
@@ -35,6 +34,7 @@ import 'package:universe/Services/player_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
 import 'package:universe/main.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 // Refactor: local per-section state replaces globals and app-wide flags.
 class HomeSection {
@@ -678,7 +678,7 @@ class _YouTubeState extends State<YouTube>
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10.0),
-                          color: Theme.of(context).cardColor.withOpacity(0.15),
+                          color: Theme.of(context).cardColor.withValues(alpha: 0.15),
                         ),
                       ),
 
@@ -976,7 +976,7 @@ class _ShelfCard extends StatelessWidget {
                     Align(
                       alignment: Alignment.centerRight,
                       child: Container(
-                        color: Colors.black.withOpacity(0.75),
+                        color: Colors.black.withValues(alpha: 0.75),
                         width: tileWidth / 2.5,
                         margin: const EdgeInsets.all(4.0),
                         child: Column(
@@ -1083,8 +1083,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).cardColor.withOpacity(0.10);
-    final highlightColor = Theme.of(context).cardColor.withOpacity(0.20);
+    final baseColor = Theme.of(context).cardColor.withValues(alpha: 0.10);
+    final highlightColor = Theme.of(context).cardColor.withValues(alpha: 0.20);
     return SizedBox(
       width: widget.width,
       height: widget.height,

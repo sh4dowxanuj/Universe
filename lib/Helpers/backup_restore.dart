@@ -21,7 +21,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_archive/flutter_archive.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,6 +28,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Helpers/picker.dart';
 import 'package:universe/Helpers/platform_check.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 Future<String> createBackup(
   BuildContext context,

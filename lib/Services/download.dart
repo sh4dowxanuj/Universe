@@ -18,8 +18,6 @@
  */
 
 import 'package:flutter/material.dart';
-// import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
@@ -29,6 +27,8 @@ import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Services/download/download_platform_helper.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
 import 'package:universe/Services/ytdlp_service.dart';
+// import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class Download with ChangeNotifier {
   static final Map<String, Download> _instances = {};
@@ -141,7 +141,6 @@ class Download with ChangeNotifier {
             }
           default:
             lastDownloadId = data['id'].toString();
-            break;
         }
       } else {
         showDialog(
@@ -430,7 +429,7 @@ class Download with ChangeNotifier {
         
         Logger.root.info('Getting audio tags');
         await DownloadPlatformHelper.writeTags(
-          filePath: filepath,
+          filePath: filepath ?? '',
           data: data,
           imagePath: filepath2,
           lyrics: lyrics,

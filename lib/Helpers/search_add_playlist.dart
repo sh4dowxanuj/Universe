@@ -20,7 +20,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/APIs/api.dart';
@@ -30,6 +29,7 @@ import 'package:universe/Helpers/matcher.dart';
 import 'package:universe/Helpers/playlist.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class SearchAddPlaylist {

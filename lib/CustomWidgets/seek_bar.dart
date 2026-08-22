@@ -21,8 +21,8 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:universe/Screens/Player/audioplayer.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class SeekBar extends StatefulWidget {
   final AudioPlayerHandler audioHandler;
@@ -142,9 +142,9 @@ class _SeekBarState extends State<SeekBar> {
                       thumbShape: HiddenThumbComponentShape(),
                       overlayShape: SliderComponentShape.noThumb,
                       activeTrackColor:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.5),
+                          Theme.of(context).iconTheme.color!.withValues(alpha: 0.5),
                       inactiveTrackColor:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.3),
+                          Theme.of(context).iconTheme.color!.withValues(alpha: 0.3),
                       // trackShape: RoundedRectSliderTrackShape(),
                       trackShape: const RectangularSliderTrackShape(),
                     ),
@@ -309,7 +309,7 @@ void showSliderDialog({
                 ),
                 Slider(
                   inactiveColor:
-                      Theme.of(context).iconTheme.color!.withOpacity(0.4),
+                      Theme.of(context).iconTheme.color!.withValues(alpha: 0.4),
                   activeColor: Theme.of(context).iconTheme.color,
                   divisions: divisions,
                   min: min,

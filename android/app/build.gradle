@@ -39,8 +39,8 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.shadow.universe"
 
-    compileSdkVersion 34
-    ndkVersion "21.4.7075529"
+    compileSdkVersion 35
+    ndkVersion "27.0.12077973"
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -48,7 +48,7 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
-        minSdkVersion 21
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

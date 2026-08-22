@@ -58,3 +58,8 @@ build/
 /android/app/*.pfx
 # Python requirements for embedded Chaquopy
 android/app/src/main/python/requirements.txt
+lib/src/gen_l10n/
+# Flutter build & ephemeral artifacts
+ios/Flutter/ephemeral/
+android/.gradle/
+macos/Flutter/GeneratedPluginRegistrant.swift

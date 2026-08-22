@@ -27,7 +27,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:flutter_lyric/lyric_ui/ui_netease.dart';
 import 'package:flutter_lyric/lyrics_model_builder.dart';
 import 'package:flutter_lyric/lyrics_reader_model.dart';
@@ -35,7 +35,6 @@ import 'package:flutter_lyric/lyrics_reader_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -58,6 +57,7 @@ import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Common/song_list.dart';
 import 'package:universe/Screens/Search/albums.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 
 /// Returns true when the item should be treated as an online stream.
 /// Some autoplay/up-next items start playback before a final stream URL is
@@ -1425,7 +1425,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
                     ),
-                    color: Theme.of(context).cardColor.withOpacity(0.6),
+                    color: Theme.of(context).cardColor.withValues(alpha: 0.6),
                     clipBehavior: Clip.antiAlias,
                     child: IconButton(
                       tooltip: AppLocalizations.of(context)!.copy,
@@ -1438,7 +1438,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                       },
                       icon: const Icon(Icons.copy_rounded),
                       color:
-                          Theme.of(context).iconTheme.color!.withOpacity(0.6),
+                          Theme.of(context).iconTheme.color!.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -1489,7 +1489,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                         inactiveTrackColor: Theme.of(context)
                                             .colorScheme
                                             .secondary
-                                            .withOpacity(0.4),
+                                            .withValues(alpha: 0.4),
                                         trackShape:
                                             const RoundedRectSliderTrackShape(),
                                         disabledActiveTrackColor:
@@ -1500,7 +1500,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                             Theme.of(context)
                                                 .colorScheme
                                                 .secondary
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                       ),
                                       child: ExcludeSemantics(
                                         child: Slider(
@@ -1691,8 +1691,8 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                 decoration: BoxDecoration(
                                   gradient: RadialGradient(
                                     colors: [
-                                      Colors.black.withOpacity(0.4),
-                                      Colors.black.withOpacity(0.7),
+                                      Colors.black.withValues(alpha: 0.4),
+                                      Colors.black.withValues(alpha: 0.7),
                                     ],
                                   ),
                                 ),
@@ -1809,12 +1809,12 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                         colors: value == 1
                                             ? [
                                                 Colors.transparent,
-                                                Colors.black.withOpacity(0.4),
-                                                Colors.black.withOpacity(0.7),
+                                                Colors.black.withValues(alpha: 0.4),
+                                                Colors.black.withValues(alpha: 0.7),
                                               ]
                                             : [
-                                                Colors.black.withOpacity(0.7),
-                                                Colors.black.withOpacity(0.4),
+                                                Colors.black.withValues(alpha: 0.7),
+                                                Colors.black.withValues(alpha: 0.4),
                                                 Colors.transparent,
                                               ],
                                       ),

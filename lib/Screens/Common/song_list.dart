@@ -20,7 +20,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:universe/APIs/api.dart';
@@ -36,6 +35,7 @@ import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Helpers/extensions.dart';
 import 'package:universe/Models/url_image_generator.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class SongsListPage extends StatefulWidget {
   final Map listItem;
@@ -189,7 +189,6 @@ class _SongsListPageState extends State<SongsListPage> {
             'Error: Unsupported Type ${widget.listItem['type']}',
             duration: const Duration(seconds: 3),
           );
-          break;
       }
     } catch (e) {
       setState(() {

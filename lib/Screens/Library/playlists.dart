@@ -18,10 +18,8 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:universe/CustomWidgets/collage.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
@@ -29,6 +27,8 @@ import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/import_export_playlist.dart';
 import 'package:universe/Screens/Library/import.dart';
 import 'package:universe/Screens/Library/liked.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 
 class PlaylistScreen extends StatefulWidget {
   @override
@@ -627,7 +627,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 1,
                               child: Row(
                                 children: [
-                                  const Icon(MdiIcons.export),
+                                  Icon(MdiIcons.export),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.export,
@@ -639,7 +639,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                               value: 2,
                               child: Row(
                                 children: [
-                                  const Icon(MdiIcons.share),
+                                  Icon(MdiIcons.share),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     AppLocalizations.of(context)!.share,

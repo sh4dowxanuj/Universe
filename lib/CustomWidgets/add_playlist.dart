@@ -19,7 +19,6 @@
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:universe/CustomWidgets/collage.dart';
@@ -28,6 +27,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/textinput_dialog.dart';
 import 'package:universe/Helpers/audio_query.dart';
 import 'package:universe/Helpers/playlist.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class AddToOffPlaylist {
   OfflineAudioQuery offlineAudioQuery = OfflineAudioQuery();

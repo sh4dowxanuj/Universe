@@ -23,7 +23,6 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -40,6 +39,7 @@ import 'package:universe/Helpers/picker.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 class Downloads extends StatefulWidget {
   const Downloads({super.key});
@@ -215,7 +215,6 @@ class _DownloadsState extends State<Downloads>
               .toUpperCase()
               .compareTo(b['dateAdded'].toString().toUpperCase()),
         );
-        break;
     }
 
     if (order == 1) {
@@ -272,7 +271,6 @@ class _DownloadsState extends State<Downloads>
             .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
         _sortedGenreKeysList
             .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
-        break;
     }
   }
 

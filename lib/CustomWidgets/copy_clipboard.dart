@@ -19,8 +19,8 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 
 void copyToClipboard({
   required BuildContext context,

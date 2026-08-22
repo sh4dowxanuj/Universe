@@ -20,7 +20,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:universe/CustomWidgets/collage.dart';
 import 'package:universe/CustomWidgets/custom_physics.dart';
@@ -253,7 +253,6 @@ class _LikedSongsState extends State<LikedSongs>
               .toUpperCase()
               .compareTo(b['dateAdded'].toString().toUpperCase()),
         );
-        break;
     }
 
     if (order == 1) {

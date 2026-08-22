@@ -18,13 +18,13 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/Helpers/platform_check.dart';
 import 'package:universe/Screens/Library/liked.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs_desktop.dart';
+import 'package:universe/src/gen_l10n/app_localizations.dart';
+import 'package:universe/Helpers/mdi_icons.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -85,7 +85,7 @@ class _LibraryPageState extends State<LibraryPage> {
         ),
         LibraryTile(
           title: AppLocalizations.of(context)!.myMusic,
-          icon: MdiIcons.folderMusic,
+          icon: MdiIcons.folder_music,
           onTap: () {
             Navigator.push(
               context,

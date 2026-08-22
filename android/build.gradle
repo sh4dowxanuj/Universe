@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.8.22'
+    ext.kotlin_version = '1.9.10'
     repositories {
         google()
         mavenCentral()
@@ -7,7 +7,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.0.0'
+        classpath 'com.android.tools.build:gradle:8.11.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.chaquo.python:gradle:14.0.2"
     }
@@ -29,7 +29,7 @@ subprojects {
         if (project.hasProperty('android')) {
             project.android {
                 // Enforce SDK 34 for all plugins
-                compileSdkVersion 34
+                compileSdkVersion 35
 
                 // Fallback namespace injection for legacy packages
                 if (namespace == null) {
@@ -44,6 +44,7 @@ subprojects {
             }
         }
         
+        // Enforce JVM 17 target across all Kotlin tasks
         tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
             kotlinOptions {
                 jvmTarget = '17'
