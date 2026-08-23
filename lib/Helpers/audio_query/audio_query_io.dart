@@ -22,7 +22,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class OfflineAudioQuery {
   static OnAudioQuery audioQuery = OnAudioQuery();

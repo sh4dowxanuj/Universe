@@ -19,7 +19,7 @@
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:universe/CustomWidgets/download_button.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';

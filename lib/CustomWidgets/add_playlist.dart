@@ -20,7 +20,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 import 'package:universe/CustomWidgets/collage.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/snackbar.dart';

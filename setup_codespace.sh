@@ -1,185 +1,657 @@
-#!/bin/bash
-# Universe Development Environment Setup Script
-# This script sets up a fresh Codespace for building the Android APK
-
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 TARGET_BASHRC="$TARGET_HOME/.bashrc"
 
+# ==================================================
+# Versions / paths
+# ==================================================
+
+FLUTTER_VERSION="3.47.1"
+FLUTTER_DIR="/opt/flutter"
+
+ANDROID_HOME="/opt/android-sdk"
+ANDROID_CMDLINE_TOOLS="$ANDROID_HOME/cmdline-tools/latest"
+
+SDKMAN_DIR="/usr/local/sdkman"
+JAVA_VERSION="17.0.20-ms"
+JAVA_INSTALL_DIR="$SDKMAN_DIR/candidates/java/$JAVA_VERSION"
+
+CHAQUOPY_DIR="/opt/chaquopy-python"
+CHAQUOPY_PIP_VERSION="23.2.1"
+
+NDK_VERSION="28.2.13676358"
+
+SDKMANAGER="$ANDROID_CMDLINE_TOOLS/bin/sdkmanager"
+
+export DEBIAN_FRONTEND=noninteractive
+
+# ==================================================
+# Output
+# ==================================================
+
 echo "=========================================="
 echo "Universe Codespace Setup"
 echo "=========================================="
+echo "User:        $TARGET_USER"
+echo "Home:        $TARGET_HOME"
+echo "Flutter:     $FLUTTER_VERSION"
+echo "Java:        $JAVA_VERSION"
+echo "Python:      3.11"
+echo "Android SDK: $ANDROID_HOME"
+echo "NDK:         $NDK_VERSION"
+echo "=========================================="
 
-# Update system packages
-echo "Updating system packages..."
-sudo apt-get update
-sudo apt-get install -y git wget unzip zip curl software-properties-common
+# ==================================================
+# Helpers
+# ==================================================
 
-# Install Python 3.11 (Chaquopy build host requirement)
-echo "Installing Python 3.11 for Chaquopy..."
-if ! command -v python3.11 >/dev/null 2>&1; then
-    sudo add-apt-repository -y ppa:deadsnakes/ppa
-    sudo apt-get update
-fi
-sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-# # Install Python 3.11 (compatible with Chaquopy)
-# echo "Installing Python 3.11 (3.11.14)..."
-# # Python 3.11 is available from ppa.launchpadcontent.net (already configured in this environment)
-# sudo apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+package_installed() {
+    dpkg-query -W -f='${Status}' "$1" 2>/dev/null |
+        grep -q "install ok installed"
+}
 
-# # Install pip for Python 3.11 (without changing default python)
-# echo "Installing pip for Python 3.11..."
-# sudo python3.11 -m ensurepip --upgrade 2>/dev/null || true
+add_to_bashrc() {
+    local line="$1"
 
-# # Verify Python 3.11 is available
-# echo "Python 3.11 version:"
-# python3.11 --version
-# python3.11 -m pip --version 2>/dev/null || echo "pip installation via ensurepip may have been skipped"
+    touch "$TARGET_BASHRC"
 
-# Prepare a dedicated build Python for Chaquopy.
-echo "Preparing Chaquopy build Python environment..."
-CHAQUOPY_HOST_PYTHON="$(command -v python3.11)"
-sudo rm -rf /opt/chaquopy-python
-sudo "$CHAQUOPY_HOST_PYTHON" -m venv /opt/chaquopy-python
-sudo /opt/chaquopy-python/bin/python3 -m pip install --upgrade "pip==23.2.1" setuptools wheel
-sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/chaquopy-python
+    if ! grep -qxF "$line" "$TARGET_BASHRC" 2>/dev/null; then
+        echo "$line" >> "$TARGET_BASHRC"
+    fi
+}
 
-# Install Java 17.0.17 (Microsoft build via SDKMAN)
-echo "Installing Java 17.0.17 (Microsoft build)..."
-if ! command -v java >/dev/null 2>&1; then
-    sudo apt-get install -y zip unzip curl
-fi
+# ==================================================
+# Basic packages
+# ==================================================
 
-SDKMAN_DIR="${SDKMAN_DIR:-}"
-if [ -z "$SDKMAN_DIR" ]; then
-    if [ -d "/usr/local/sdkman" ]; then
-        SDKMAN_DIR="/usr/local/sdkman"
+echo ""
+echo "==> Checking basic packages..."
+
+BASIC_PACKAGES=(
+    git
+    wget
+    unzip
+    zip
+    curl
+    software-properties-common
+)
+
+MISSING_PACKAGES=()
+
+for package in "${BASIC_PACKAGES[@]}"; do
+    if package_installed "$package"; then
+        echo "  [✓] $package"
     else
-        SDKMAN_DIR="$HOME/.sdkman"
+        echo "  [ ] $package"
+        MISSING_PACKAGES+=("$package")
+    fi
+done
+
+if [ "${#MISSING_PACKAGES[@]}" -gt 0 ]; then
+    echo ""
+    echo "Installing missing packages..."
+
+    sudo apt-get update
+    sudo apt-get install -y "${MISSING_PACKAGES[@]}"
+else
+    echo "Basic packages already installed."
+fi
+
+# ==================================================
+# Python 3.11
+# ==================================================
+
+echo ""
+echo "==> Checking Python 3.11..."
+
+if command_exists python3.11; then
+    echo "Python 3.11 already installed:"
+else
+    echo "Python 3.11 not found."
+
+    if ! grep -Rqs \
+        "ppa.launchpadcontent.net/deadsnakes/ppa" \
+        /etc/apt/sources.list \
+        /etc/apt/sources.list.d 2>/dev/null; then
+
+        echo "Adding deadsnakes PPA..."
+
+        sudo add-apt-repository -y ppa:deadsnakes/ppa
+        sudo apt-get update
+    fi
+
+    sudo apt-get install -y \
+        python3.11 \
+        python3.11-venv \
+        python3.11-dev
+fi
+
+python3.11 --version
+
+# ==================================================
+# Chaquopy Python
+# ==================================================
+
+echo ""
+echo "==> Checking Chaquopy Python environment..."
+
+CHAQUOPY_VALID=false
+
+if [ -x "$CHAQUOPY_DIR/bin/python" ]; then
+    if "$CHAQUOPY_DIR/bin/python" -c \
+        'import sys; raise SystemExit(0 if sys.version_info[:2] == (3,11) else 1)' \
+        >/dev/null 2>&1; then
+
+        CHAQUOPY_VALID=true
+
+        echo "Chaquopy Python already configured:"
+        "$CHAQUOPY_DIR/bin/python" --version
     fi
 fi
 
-if [ ! -d "$SDKMAN_DIR" ]; then
-    curl -s "https://get.sdkman.io" | bash
+if [ "$CHAQUOPY_VALID" = false ]; then
+
+    echo "Chaquopy Python environment is missing or invalid."
+
+    if [ -d "$CHAQUOPY_DIR" ]; then
+        echo "Removing invalid environment..."
+        sudo rm -rf "$CHAQUOPY_DIR"
+    fi
+
+    echo "Creating Chaquopy Python environment..."
+
+    sudo python3.11 -m venv "$CHAQUOPY_DIR"
+
+    sudo "$CHAQUOPY_DIR/bin/python" \
+        -m pip install \
+        --upgrade \
+        "pip==$CHAQUOPY_PIP_VERSION" \
+        setuptools \
+        wheel
+
+    sudo chown -R \
+        "$TARGET_USER:$TARGET_USER" \
+        "$CHAQUOPY_DIR"
 fi
 
-source "$SDKMAN_DIR/bin/sdkman-init.sh"
-if ! sdk list java | grep -q "17.0.17-ms"; then
-    yes | sdk install java 17.0.17-ms
+echo "Chaquopy Python:"
+"$CHAQUOPY_DIR/bin/python" --version
+
+# ==================================================
+# Python resolution
+# ==================================================
+
+echo ""
+echo "Python resolution:"
+echo "  Chaquopy -> $CHAQUOPY_DIR/bin/python"
+
+if "$CHAQUOPY_DIR/bin/python" -c \
+    'import sys; raise SystemExit(0 if sys.version_info[:2] == (3,11) else 1)' \
+    >/dev/null 2>&1; then
+
+    echo "[✓] Chaquopy uses Python 3.11."
+
 else
-    sdk install java 17.0.17-ms >/dev/null 2>&1 || true
+
+    echo "[!] Chaquopy Python version is incorrect."
+    exit 1
+
 fi
-sdk default java 17.0.17-ms
 
-# Set JAVA_HOME from the installed java binary
-JAVA_BIN=$(readlink -f "$(which java)")
-export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
-echo "export JAVA_HOME=$JAVA_HOME" >> "$TARGET_BASHRC"
-echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> "$TARGET_BASHRC"
+# ==================================================
+# Java 17
+# ==================================================
 
-# Verify Java version
-echo "Java version:"
+echo ""
+echo "==> Checking Java 17..."
+
+JAVA_READY=false
+
+if [ -x "$JAVA_INSTALL_DIR/bin/java" ]; then
+
+    INSTALLED_JAVA_VERSION="$(
+        "$JAVA_INSTALL_DIR/bin/java" -version 2>&1 |
+        sed -n 's/.*version "\([0-9][0-9.]*\).*/\1/p' |
+        head -1
+    )"
+
+    if [ "$INSTALLED_JAVA_VERSION" = "17.0.20" ]; then
+        JAVA_READY=true
+        echo "Java $JAVA_VERSION already installed."
+    else
+        echo "Java installation exists but version is:"
+        echo "  ${INSTALLED_JAVA_VERSION:-unknown}"
+    fi
+fi
+
+if [ "$JAVA_READY" = false ]; then
+
+    echo "Required Java $JAVA_VERSION was not found."
+
+    if [ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]; then
+
+        echo "SDKMAN not found."
+        echo "Installing SDKMAN..."
+
+        set +u
+        curl -s "https://get.sdkman.io" | bash
+        set -u
+    fi
+
+    if [ ! -f "$SDKMAN_DIR/bin/sdkman-init.sh" ]; then
+        echo ""
+        echo "ERROR: SDKMAN installation was not found:"
+        echo "  $SDKMAN_DIR"
+        exit 1
+    fi
+
+    echo ""
+    echo "Installing Java through SDKMAN..."
+
+    # Use a separate shell so SDKMAN never affects this
+    # script's set -u environment.
+    bash -c '
+        set +u
+
+        SDKMAN_DIR="$1"
+        JAVA_VERSION="$2"
+        JAVA_INSTALL_DIR="$3"
+
+        export SDKMAN_DIR
+
+        source "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+        if ! sdk list java | grep -q "$JAVA_VERSION"; then
+            echo "ERROR: Java $JAVA_VERSION is unavailable through SDKMAN."
+            exit 1
+        fi
+
+        if [ ! -x "$JAVA_INSTALL_DIR/bin/java" ]; then
+            yes | sdk install java "$JAVA_VERSION"
+        fi
+
+        sdk default java "$JAVA_VERSION"
+    ' bash "$SDKMAN_DIR" "$JAVA_VERSION" "$JAVA_INSTALL_DIR"
+
+    if [ ! -x "$JAVA_INSTALL_DIR/bin/java" ]; then
+        echo ""
+        echo "ERROR: Java installation failed."
+        exit 1
+    fi
+
+    echo "Java $JAVA_VERSION installed."
+fi
+
+# ==================================================
+# Java environment
+# ==================================================
+
+export JAVA_HOME="$JAVA_INSTALL_DIR"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+add_to_bashrc \
+    'export JAVA_HOME="/usr/local/sdkman/candidates/java/17.0.20-ms"'
+
+add_to_bashrc \
+    'export PATH="$JAVA_HOME/bin:$PATH"'
+
+echo ""
+echo "Java:"
 java -version
 
-# Install Android SDK command line tools (cmdline-tools 20.0)
-echo "Installing Android SDK..."
-ANDROID_HOME=/opt/android-sdk
-sudo mkdir -p $ANDROID_HOME/cmdline-tools
-cd /tmp
-wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O commandlinetools-linux-latest.zip
-sudo unzip -oq commandlinetools-linux-latest.zip -d $ANDROID_HOME/cmdline-tools
-sudo mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest 2>/dev/null || true
-sudo chown -R "$TARGET_USER":"$TARGET_USER" $ANDROID_HOME
+# ==================================================
+# Android SDK command-line tools
+# ==================================================
 
-# Set Android environment variables
-export ANDROID_HOME=$ANDROID_HOME
-export ANDROID_SDK_ROOT=$ANDROID_HOME
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-echo "export ANDROID_HOME=$ANDROID_HOME" >> "$TARGET_BASHRC"
-echo "export ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$TARGET_BASHRC"
-echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools" >> "$TARGET_BASHRC"
+echo ""
+echo "==> Checking Android SDK command-line tools..."
 
-# Accept Android SDK licenses
-echo "Accepting Android SDK licenses..."
-yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+if [ -x "$SDKMANAGER" ]; then
 
-# Install required Android SDK components (match current codespace)
-echo "Installing Android SDK components..."
-$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-    "platform-tools" \
-    "platforms;android-28" \
-    "platforms;android-30" \
-    "platforms;android-31" \
-    "platforms;android-33" \
-    "platforms;android-34" \
-    "platforms;android-35" \
-    "platforms;android-36" \
-    "build-tools;30.0.3" \
-    "build-tools;35.0.0" \
-    "cmake;3.18.1" \
-    "ndk;21.4.7075529"
+    echo "Android command-line tools already installed."
 
-# Install Flutter 3.16.9 (stable)
-if [ ! -d "/opt/flutter" ] || [ ! -d "/opt/flutter/.git" ]; then
-    echo "Installing Flutter 3.16.9..."
-    sudo rm -rf /opt/flutter
-    cd /opt
-    sudo git clone https://github.com/flutter/flutter.git -b 3.16.9 --depth 1
-    sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/flutter
 else
-    echo "Ensuring Flutter is on 3.16.9..."
-    cd /opt/flutter
-    git fetch --tags
-    git checkout 3.16.9
-    git reset --hard
+
+    echo "Android command-line tools not found."
+
+    sudo mkdir -p "$ANDROID_HOME/cmdline-tools"
+
+    TMP_DIR="$(mktemp -d)"
+    SDK_ZIP="$TMP_DIR/android-cmdline-tools.zip"
+
+    echo "Downloading Android command-line tools..."
+
+    wget -q \
+        "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+        -O "$SDK_ZIP"
+
+    echo "Extracting Android command-line tools..."
+
+    unzip -q "$SDK_ZIP" -d "$TMP_DIR"
+
+    sudo rm -rf "$ANDROID_CMDLINE_TOOLS"
+
+    sudo mkdir -p "$ANDROID_CMDLINE_TOOLS"
+
+    sudo cp -a \
+        "$TMP_DIR/cmdline-tools/." \
+        "$ANDROID_CMDLINE_TOOLS/"
+
+    sudo chown -R \
+        "$TARGET_USER:$TARGET_USER" \
+        "$ANDROID_HOME"
+
+    rm -rf "$TMP_DIR"
+
+    echo "Android command-line tools installed."
 fi
 
-sudo git config --system --add safe.directory /opt/flutter 2>/dev/null || true
-sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/flutter
+export ANDROID_HOME="$ANDROID_HOME"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
-# Set Flutter environment variables
-export PATH=$PATH:/opt/flutter/bin
-sudo ln -sf /opt/flutter/bin/flutter /usr/local/bin/flutter
-echo "export PATH=\$PATH:/opt/flutter/bin" >> "$TARGET_BASHRC"
+export PATH="$ANDROID_CMDLINE_TOOLS/bin:$ANDROID_HOME/platform-tools:$PATH"
 
-# Verify Flutter version
-echo "Flutter version:"
+add_to_bashrc \
+    'export ANDROID_HOME="/opt/android-sdk"'
+
+add_to_bashrc \
+    'export ANDROID_SDK_ROOT="/opt/android-sdk"'
+
+add_to_bashrc \
+    'export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"'
+
+if [ ! -x "$SDKMANAGER" ]; then
+    echo ""
+    echo "ERROR: sdkmanager was not installed correctly."
+    exit 1
+fi
+
+echo ""
+echo "sdkmanager:"
+"$SDKMANAGER" --version
+
+# ==================================================
+# Android licenses
+# ==================================================
+
+echo ""
+echo "==> Checking Android licenses..."
+
+if yes | "$SDKMANAGER" --licenses >/dev/null 2>&1; then
+    echo "Android licenses accepted."
+else
+    echo "Android licenses already present or no new licenses required."
+fi
+
+# ==================================================
+# Android SDK components
+# ==================================================
+
+echo ""
+echo "==> Checking Android SDK components..."
+
+ANDROID_COMPONENTS=(
+    "platform-tools"
+    "platforms;android-35"
+    "platforms;android-36"
+    "build-tools;35.0.0"
+    "build-tools;36.0.0"
+    "ndk;$NDK_VERSION"
+)
+
+MISSING_COMPONENTS=()
+
+for component in "${ANDROID_COMPONENTS[@]}"; do
+
+    case "$component" in
+        platform-tools)
+            CHECK_PATH="$ANDROID_HOME/platform-tools"
+            ;;
+
+        platforms\;*)
+            VERSION="${component#platforms;}"
+            CHECK_PATH="$ANDROID_HOME/platforms/$VERSION"
+            ;;
+
+        build-tools\;*)
+            VERSION="${component#build-tools;}"
+            CHECK_PATH="$ANDROID_HOME/build-tools/$VERSION"
+            ;;
+
+        ndk\;*)
+            VERSION="${component#ndk;}"
+            CHECK_PATH="$ANDROID_HOME/ndk/$VERSION"
+            ;;
+
+        *)
+            CHECK_PATH=""
+            ;;
+    esac
+
+    if [ -n "$CHECK_PATH" ] && [ -d "$CHECK_PATH" ]; then
+        echo "  [✓] $component"
+    else
+        echo "  [ ] $component"
+        MISSING_COMPONENTS+=("$component")
+    fi
+done
+
+if [ "${#MISSING_COMPONENTS[@]}" -gt 0 ]; then
+
+    echo ""
+    echo "Installing missing Android components..."
+
+    printf '  %s\n' "${MISSING_COMPONENTS[@]}"
+
+    "$SDKMANAGER" "${MISSING_COMPONENTS[@]}"
+
+else
+
+    echo ""
+    echo "All required Android components are already installed."
+
+fi
+
+# ==================================================
+# Flutter
+# ==================================================
+
+echo ""
+echo "==> Checking Flutter $FLUTTER_VERSION..."
+
+FLUTTER_VERSION_OK=false
+
+if [ -x "$FLUTTER_DIR/bin/flutter" ]; then
+
+    INSTALLED_FLUTTER_VERSION="$(
+        "$FLUTTER_DIR/bin/flutter" --version 2>/dev/null |
+        sed -n 's/^Flutter \([0-9][0-9.]*\).*/\1/p' |
+        head -1
+    )"
+
+    if [ "$INSTALLED_FLUTTER_VERSION" = "$FLUTTER_VERSION" ]; then
+
+        FLUTTER_VERSION_OK=true
+
+        echo "Flutter $FLUTTER_VERSION already installed."
+
+    else
+
+        echo "Flutter version mismatch."
+        echo "Installed: ${INSTALLED_FLUTTER_VERSION:-unknown}"
+        echo "Required:  $FLUTTER_VERSION"
+
+    fi
+fi
+
+if [ "$FLUTTER_VERSION_OK" = false ]; then
+
+    if [ -d "$FLUTTER_DIR" ]; then
+        echo "Removing incorrect Flutter installation..."
+        sudo rm -rf "$FLUTTER_DIR"
+    fi
+
+    echo "Installing Flutter $FLUTTER_VERSION..."
+
+    sudo git clone \
+        https://github.com/flutter/flutter.git \
+        -b "$FLUTTER_VERSION" \
+        --depth 1 \
+        "$FLUTTER_DIR"
+
+    sudo chown -R \
+        "$TARGET_USER:$TARGET_USER" \
+        "$FLUTTER_DIR"
+
+    sudo git config --system \
+        --add safe.directory "$FLUTTER_DIR" \
+        2>/dev/null || true
+
+else
+
+    CURRENT_OWNER="$(
+        stat -c '%U:%G' "$FLUTTER_DIR" 2>/dev/null || true
+    )"
+
+    EXPECTED_OWNER="$TARGET_USER:$TARGET_USER"
+
+    if [ "$CURRENT_OWNER" != "$EXPECTED_OWNER" ]; then
+
+        echo "Fixing Flutter ownership..."
+
+        sudo chown -R \
+            "$TARGET_USER:$TARGET_USER" \
+            "$FLUTTER_DIR"
+    fi
+fi
+
+export PATH="$FLUTTER_DIR/bin:$PATH"
+
+sudo ln -sf \
+    "$FLUTTER_DIR/bin/flutter" \
+    /usr/local/bin/flutter
+
+add_to_bashrc \
+    'export PATH="/opt/flutter/bin:$PATH"'
+
+# ==================================================
+# Flutter configuration
+# ==================================================
+
+echo ""
+echo "==> Configuring Flutter..."
+
+flutter config \
+    --android-sdk "$ANDROID_HOME"
+
+flutter config \
+    --jdk-dir "$JAVA_HOME"
+
+flutter config \
+    --no-analytics
+
+# ==================================================
+# Flutter verification
+# ==================================================
+
+echo ""
+echo "==> Flutter version..."
+
 flutter --version
 
-# Run Flutter doctor
-echo "Running Flutter doctor..."
-flutter doctor -v
+echo ""
+echo "==> Flutter doctor..."
 
-# Configure Flutter for Android
-sudo -u "$TARGET_USER" HOME="$TARGET_HOME" /usr/local/bin/flutter config --android-sdk "$ANDROID_HOME"
+flutter doctor -v || true
 
-# Install Flutter dependencies for the project
-echo "Installing Flutter dependencies..."
+# ==================================================
+# Project dependencies
+# ==================================================
+
 cd "$SCRIPT_DIR"
-flutter pub get
 
-# Clean any previous builds
-echo "Cleaning previous builds..."
-flutter clean
+echo ""
+echo "==> Checking project dependencies..."
+
+if [ -f "pubspec.yaml" ]; then
+    flutter pub get
+else
+    echo "No pubspec.yaml found; skipping flutter pub get."
+fi
+
+# ==================================================
+# Final verification
+# ==================================================
 
 echo ""
 echo "=========================================="
-echo "Setup Complete!"
+echo "Universe Codespace Setup Complete"
 echo "=========================================="
+
 echo ""
-echo "Important: Reload your shell to apply environment variables:"
-echo "  source ~/.bashrc"
+echo "Versions:"
+echo "------------------------------------------"
+
+python3.11 --version
+
 echo ""
-echo "Then you can build the APK with:"
-echo "  cd /workspaces/Universe"
+java -version
+
+echo ""
+flutter --version
+
+echo "------------------------------------------"
+
+echo ""
+echo "Configuration:"
+echo "  JAVA_HOME:       $JAVA_HOME"
+echo "  ANDROID_HOME:    $ANDROID_HOME"
+echo "  Flutter:         $FLUTTER_DIR"
+echo "  Chaquopy:        $CHAQUOPY_DIR"
+echo "  Chaquopy Python: $CHAQUOPY_DIR/bin/python"
+echo "  NDK:             $NDK_VERSION"
+
+# ==================================================
+# Android-only verification
+# ==================================================
+
+echo ""
+echo "Android toolchain:"
+echo "------------------------------------------"
+
+DOCTOR_OUTPUT="$(flutter doctor -v 2>&1 || true)"
+
+if printf '%s\n' "$DOCTOR_OUTPUT" |
+    grep -qE '^\[✓\] Android toolchain'; then
+
+    echo "[✓] Android toolchain ready"
+
+else
+
+    echo "[!] Android toolchain needs attention"
+    echo ""
+    echo "Run:"
+    echo "  flutter doctor -v"
+
+fi
+
+echo ""
+echo "=========================================="
+echo "Setup finished."
+echo "=========================================="
+
+echo ""
+echo "You can now run:"
+echo "  flutter analyze"
 echo "  flutter build apk --debug"
-echo ""
-echo "Verify setup with:"
-echo "  flutter doctor -v"
-echo "  python3 --version  # Should show 3.11.x"
-echo "  java -version      # Should show OpenJDK 17"
+echo "  flutter build apk --release"
 echo ""

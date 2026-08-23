@@ -18,7 +18,7 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:on_audio_query_pluse/on_audio_query.dart';
 
 class OfflineAudioQuery {
   static final RegExp avoid = RegExp(r'[\.\\\*\:\"\?#/;\|]');
