@@ -1,10 +1,10 @@
 /*
  *  This file is part of Universe (https://github.com/SH4DOWXANUJ/Universe).
- * 
+ *
  * Universe is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * Universe is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,14 +12,14 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Universe.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ * along with Universe. If not, see <http://www.gnu.org/licenses/>.
+ *
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/Helpers/platform_check.dart';
@@ -30,29 +30,41 @@ class Picker {
     required BuildContext context,
     String? message,
   }) async {
-    final String? temp =
-        await FilePicker.platform.getDirectoryPath(dialogTitle: message);
-    Logger.root.info('Selected folder: $temp');
-    return (temp == '/' || temp == null) ? '' : temp;
+    final String? path = await getDirectoryPath();
+
+    Logger.root.info('Selected folder: $path');
+
+    return (path == '/' || path == null) ? '' : path;
   }
 
   static Future<String> selectFile({
     required BuildContext context,
-    // List<String>? ext,
     String? message,
   }) async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      // allowedExtensions: ext,
-      dialogTitle: message,
+    const XTypeGroup typeGroup = XTypeGroup(
+      label: 'Files',
     );
 
-    if (result != null) {
-      if (PlatformCheck.isWeb) {
-        return result.files.first.name;
-      }
-      final File file = File(result.files.first.path!);
-      return file.path == '/' ? '' : file.path;
+    final XFile? file = await openFile(
+      acceptedTypeGroups: <XTypeGroup>[typeGroup],
+    );
+
+    if (file == null) {
+      return '';
     }
-    return '';
+
+    if (PlatformCheck.isWeb) {
+      return file.name;
+    }
+
+    final String path = file.path;
+
+    if (path.isEmpty) {
+      return '';
+    }
+
+    final File localFile = File(path);
+
+    return localFile.path == '/' ? '' : localFile.path;
   }
 }

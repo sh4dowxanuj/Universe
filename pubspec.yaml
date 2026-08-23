@@ -21,12 +21,12 @@ dependencies:
   connectivity_plus: ^5.0.1
   cupertino_icons: ^1.0.6
   dart_des: ^1.0.2
-  device_info_plus: ^9.0.2
-  file_picker: ^8.0.7
+  device_info_plus: 13.2.0
+  file_selector: ^1.1.0
   flip_card: ^0.7.0
   flutter:
     sdk: flutter
-  flutter_archive: ^5.0.0
+  flutter_archive: ^6.3.1
   flutter_displaymode: ^0.6.0
   flutter_localizations:
     sdk: flutter
@@ -34,7 +34,7 @@ dependencies:
   get_it: ^7.6.4
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  home_widget: ^0.3.0
+  home_widget: ^0.9.3
   html_unescape: ^2.0.0
   http: ^1.2.0
   intl: any
@@ -43,14 +43,14 @@ dependencies:
   marquee_plus: 2.2.4
   metadata_god: ^0.5.2+1
   on_audio_query: ^2.9.0
-  package_info_plus: ^9.0.1
+  package_info_plus: 10.2.1
   palette_generator: ^0.3.3+3
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
   persistent_bottom_nav_bar: ^5.0.2
-  receive_sharing_intent: ^1.8.1
+  receive_sharing_intent: ^1.9.0
   rxdart: any
-  share_plus: ^7.0.2
+  share_plus: 13.3.0
   sizer: ^2.0.15
   sliding_up_panel: ^2.0.0+1
   url_launcher: ^6.1.14

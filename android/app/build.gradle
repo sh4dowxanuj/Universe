@@ -1,12 +1,13 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    id "org.jetbrains.kotlin.android"
     id "com.chaquo.python"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
+
 if (localPropertiesFile.exists()) {
     localPropertiesFile.withReader('UTF-8') { reader ->
         localProperties.load(reader)
@@ -14,24 +15,21 @@ if (localPropertiesFile.exists()) {
 }
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
+
 if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+    throw new GradleException(
+        "Flutter SDK not found. Define location with flutter.sdk in the local.properties file."
+    )
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0'
 
 def chaquopyBuildPython = "python"
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
@@ -57,22 +55,25 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
-        
+
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
+
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        
+
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
-        
+
         python {
             version "3.11"
             buildPython chaquopyBuildPython
+
             pyc {
                 src false
             }
+
             pip {
                 install "yt-dlp"
             }
@@ -86,6 +87,7 @@ android {
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
+
                 v1SigningEnabled true
                 v2SigningEnabled true
             }
@@ -100,7 +102,11 @@ android {
 
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            proguardFiles(
+                getDefaultProguardFile('proguard-android-optimize.txt'),
+                'proguard-rules.pro'
+            )
 
             ndk {
                 debugSymbolLevel 'NONE'
@@ -110,7 +116,13 @@ android {
 
     packagingOptions {
         resources {
-            excludes += ['META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/*.kotlin_module']
+            excludes += [
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/*.kotlin_module'
+            ]
         }
     }
 
@@ -130,8 +142,7 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.code.gson:gson:2.10.1'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
     implementation 'com.google.android.play:feature-delivery:2.1.0'
 }
