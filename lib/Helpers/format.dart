@@ -143,7 +143,9 @@ class FormatResponse {
             : response['more_info']['music'],
         'image': getImageUrl(response['image'].toString()),
         'perma_url': response['perma_url'],
-        'url': decode(response['more_info']['encrypted_media_url'].toString()),
+        'url': response['more_info']['encrypted_media_url'] == null
+            ? ''
+            : decode(response['more_info']['encrypted_media_url'].toString()),
       };
       // Hive.box('cache').put(response['id'].toString(), info);
     } catch (e) {
@@ -209,7 +211,9 @@ class FormatResponse {
             : response['more_info']['music'],
         'image': getImageUrl(response['image'].toString()),
         'perma_url': response['perma_url'],
-        'url': decode(response['encrypted_media_url'].toString()),
+        'url': response['encrypted_media_url'] == null
+            ? ''
+            : decode(response['encrypted_media_url'].toString()),
       };
     } catch (e) {
       Logger.root.severe('Error inside FormatSingleAlbumSongResponse: $e');
@@ -486,17 +490,22 @@ class FormatResponse {
 
   static Future<Map> formatHomePageData(Map data) async {
     try {
-      if (data['new_trending'] is List) {
-        data['new_trending'] =
-            await formatSongsInList(data['new_trending'] as List);
+      final List<String> mainCollections = [
+        'new_trending',
+        'charts',
+        'new_albums',
+        'tag_mixes',
+        'top_playlists',
+        'radio',
+        'city_mod',
+        'artist_recos',
+      ];
+      for (final String key in mainCollections) {
+        if (data[key] is List) {
+          data[key] = await formatSongsInList(data[key] as List);
+        }
       }
-      if (data['new_albums'] is List) {
-        data['new_albums'] =
-            await formatSongsInList(data['new_albums'] as List);
-      }
-      if (data['city_mod'] is List) {
-        data['city_mod'] = await formatSongsInList(data['city_mod'] as List);
-      }
+
       final List promoList = [];
       final List promoListTemp = [];
       if (data['modules'] is Map) {
@@ -522,14 +531,7 @@ class FormatResponse {
         }
       }
       data['collections'] = [
-        'new_trending',
-        'charts',
-        'new_albums',
-        'tag_mixes',
-        'top_playlists',
-        'radio',
-        'city_mod',
-        'artist_recos',
+        ...mainCollections,
         ...promoList,
       ];
       data['collections_temp'] = promoListTemp;
@@ -560,26 +562,39 @@ class FormatResponse {
 
   static Future<List> formatSongsInList(List list) async {
     if (list.isNotEmpty) {
+      final List<Future> tasks = [];
       for (int i = 0; i < list.length; i++) {
         final Map item = list[i] as Map;
         if (item['type'] == 'song') {
           if (item['mini_obj'] as bool? ?? false) {
-            Map cachedDetails = Hive.box('cache')
+            final Map cachedDetails = Hive.box('cache')
                 .get(item['id'].toString(), defaultValue: {}) as Map;
-            if (cachedDetails.isEmpty) {
-              cachedDetails =
-                  await SaavnAPI().fetchSongDetails(item['id'].toString());
-              Hive.box('cache')
-                  .put(cachedDetails['id'].toString(), cachedDetails);
+            if (cachedDetails.isNotEmpty) {
+              list[i] = cachedDetails;
+            } else {
+              tasks.add(
+                SaavnAPI().fetchSongDetails(item['id'].toString()).then((value) {
+                  if (value.isNotEmpty) {
+                    Hive.box('cache').put(value['id'].toString(), value);
+                    list[i] = value;
+                  }
+                }),
+              );
             }
-            list[i] = cachedDetails;
-            continue;
+          } else {
+            tasks.add(
+              formatSingleSongResponse(item).then((value) {
+                list[i] = value;
+              }),
+            );
           }
-          list[i] = await formatSingleSongResponse(item);
         }
       }
+      if (tasks.isNotEmpty) {
+        await Future.wait(tasks);
+      }
     }
-    list.removeWhere((value) => value == null);
+    list.removeWhere((value) => value == null || value is Map && value.containsKey('Error'));
     return list;
   }
 }

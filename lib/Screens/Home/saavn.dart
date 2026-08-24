@@ -43,8 +43,6 @@ List preferredLanguage = Hive.box('settings')
     .get('preferredLanguage', defaultValue: ['Hindi']) as List;
 List likedRadio =
     Hive.box('settings').get('likedRadio', defaultValue: []) as List;
-Map data = Hive.box('cache').get('homepage', defaultValue: {}) as Map;
-List lists = ['recent', 'playlist', ...?data['collections'] as List?];
 
 class SaavnHomePage extends StatefulWidget {
   @override
@@ -53,6 +51,8 @@ class SaavnHomePage extends StatefulWidget {
 
 class _SaavnHomePageState extends State<SaavnHomePage>
     with AutomaticKeepAliveClientMixin<SaavnHomePage> {
+  Map data = Hive.box('cache').get('homepage', defaultValue: {}) as Map;
+  List lists = [];
   List recentList =
       Hive.box('cache').get('recentSongs', defaultValue: []) as List;
   Map likedArtists =
@@ -68,22 +68,28 @@ class _SaavnHomePageState extends State<SaavnHomePage>
   int playlistIndex = 1;
 
   Future<void> getHomePageData() async {
-    Map recievedData = await SaavnAPI().fetchHomePageData();
+    final Map recievedData = await SaavnAPI().fetchHomePageData();
     if (recievedData.isNotEmpty) {
-      Hive.box('cache').put('homepage', recievedData);
-      data = recievedData;
-      lists = ['recent', 'playlist', ...?data['collections'] as List?];
-      lists.insert((lists.length / 2).round(), 'likedArtists');
+      try {
+        await Hive.box('cache').put('homepage', recievedData);
+        setState(() {
+          data = recievedData;
+          lists = ['recent', 'playlist', ...?data['collections'] as List?];
+          lists.insert((lists.length / 2).round(), 'likedArtists');
+        });
+      } catch (e) {
+        // Error updating Hive
+      }
     }
-    setState(() {});
-    recievedData = await FormatResponse.formatPromoLists(data);
-    if (recievedData.isNotEmpty) {
-      Hive.box('cache').put('homepage', recievedData);
-      data = recievedData;
-      lists = ['recent', 'playlist', ...?data['collections'] as List?];
-      lists.insert((lists.length / 2).round(), 'likedArtists');
+    final Map promoData = await FormatResponse.formatPromoLists(data);
+    if (promoData.isNotEmpty) {
+      Hive.box('cache').put('homepage', promoData);
+      setState(() {
+        data = promoData;
+        lists = ['recent', 'playlist', ...?data['collections'] as List?];
+        lists.insert((lists.length / 2).round(), 'likedArtists');
+      });
     }
-    setState(() {});
   }
 
   String getSubTitle(Map item) {
@@ -102,25 +108,36 @@ class _SaavnHomePageState extends State<SaavnHomePage>
       case 'show':
         return 'Podcast • ${(item['subtitle']?.toString() ?? '').isEmpty ? 'JioSaavn' : item['subtitle'].toString().unescape()}';
       case 'album':
-        final artists = item['more_info']?['artistMap']?['artists']
-            .map((artist) => artist['name'])
-            .toList();
-        if (artists != null) {
-          return 'Album • ${artists?.join(', ')?.toString().unescape()}';
+        final List? artists =
+            (item['more_info']?['artistMap']?['artists'] as List?)
+                ?.map((artist) => artist['name'])
+                .toList();
+        if (artists != null && artists.isNotEmpty) {
+          return 'Album • ${artists.join(', ').unescape()}';
         } else if (item['subtitle'] != null && item['subtitle'] != '') {
-          return 'Album • ${item['subtitle']?.toString().unescape()}';
+          return 'Album • ${item['subtitle'].toString().unescape()}';
         }
         return 'Album';
       default:
-        final artists = item['more_info']?['artistMap']?['artists']
-            .map((artist) => artist['name'])
-            .toList();
-        return artists?.join(', ')?.toString().unescape() ?? '';
+        final List? artists =
+            (item['more_info']?['artistMap']?['artists'] as List?)
+                ?.map((artist) => artist['name'])
+                .toList();
+        return artists?.join(', ').unescape() ?? '';
     }
   }
 
   int likedCount() {
     return Hive.box('Favorite Songs').length;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    lists = ['recent', 'playlist', ...?data['collections'] as List?];
+    if (lists.length > 2) {
+      lists.insert((lists.length / 2).round(), 'likedArtists');
+    }
   }
 
   @override

@@ -25,8 +25,6 @@ import 'package:logging/logging.dart';
 import 'package:universe/Helpers/format.dart';
 
 class SaavnAPI {
-  List preferredLanguages = Hive.box('settings')
-      .get('preferredLanguage', defaultValue: ['Hindi']) as List;
   Map<String, String> headers = {};
   String baseUrl = 'www.jiosaavn.com';
   String apiStr = '/api.php?_format=json&_marker=0&api_version=4&ctx=web6dot0';
@@ -57,45 +55,47 @@ class SaavnAPI {
     bool usev4 = true,
     bool useProxy = true,
   }) async {
-    Uri url;
-    if (!usev4) {
-      url = Uri.https(
-        baseUrl,
-        '$apiStr&$params'.replaceAll('&api_version=4', ''),
-      );
-    } else {
-      url = Uri.https(baseUrl, '$apiStr&$params');
+    final Map<String, String> queryParams = Uri.splitQueryString(params);
+    
+    final Uri url = Uri.https(
+      baseUrl,
+      '/api.php',
+      {
+        '_format': 'json',
+        '_marker': '0',
+        if (usev4) 'api_version': '4',
+        'ctx': 'web6dot0',
+        ...queryParams,
+      },
+    );
+
+    List preferredLanguages = settingsBox.get('preferredLanguage', defaultValue: ['Hindi']) as List? ?? ['Hindi'];
+
+    try {
+      preferredLanguages = preferredLanguages
+          .map((lang) => lang?.toString().toLowerCase() ?? 'hindi')
+          .toList();
+    } catch (e) {
+      preferredLanguages = ['hindi'];
     }
-    preferredLanguages =
-        preferredLanguages.map((lang) => lang.toLowerCase()).toList();
     final String languageHeader = 'L=${preferredLanguages.join('%2C')}';
-    headers = {'cookie': languageHeader, 'Accept': '*/*'};
+    final Map<String, String> requestHeaders = {
+      'cookie': languageHeader,
+      'Accept': '*/*',
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Referer': 'https://www.jiosaavn.com/',
+    };
 
     if (useProxy && settingsBox.get('useProxy', defaultValue: false) as bool) {
       final String proxyIP =
           settingsBox.get('proxyIp', defaultValue: '103.47.67.134').toString();
-      // final proxyPort = settingsBox.get('proxyPort');
-      // final HttpClient httpClient = HttpClient();
-      // httpClient.findProxy = (uri) {
-      //   return 'PROXY $proxyIP:$proxyPort;';
-      // };
-      // httpClient.badCertificateCallback =
-      //     (X509Certificate cert, String host, int port) => Platform.isAndroid;
-      // final IOClient myClient = IOClient(httpClient);
-      // return myClient.get(url, headers: headers);
-      final proxyHeaders = headers;
-      proxyHeaders['X-FORWARDED-FOR'] = proxyIP;
-      return get(url, headers: proxyHeaders).onError((error, stackTrace) {
-        return Response(
-          {
-            'status': 'failure',
-            'error': error.toString(),
-          }.toString(),
-          404,
-        );
-      });
+      requestHeaders['X-FORWARDED-FOR'] = proxyIP;
     }
-    return get(url, headers: headers).onError((error, stackTrace) {
+
+    return get(url, headers: requestHeaders).then((res) {
+      return res;
+    }).onError((error, stackTrace) {
       return Response(
         {
           'status': 'failure',
@@ -633,9 +633,11 @@ class SaavnAPI {
       final res = await getResponse(params);
       if (res.statusCode == 200) {
         final Map data = json.decode(res.body) as Map;
-        return await FormatResponse.formatSingleSongResponse(
-          data['songs'][0] as Map,
-        );
+        if (data['songs'] is List && (data['songs'] as List).isNotEmpty) {
+          return await FormatResponse.formatSingleSongResponse(
+            data['songs'][0] as Map,
+          );
+        }
       }
     } catch (e) {
       Logger.root.severe('Error in fetchSongDetails: $e');

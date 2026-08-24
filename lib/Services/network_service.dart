@@ -129,7 +129,11 @@ class NetworkService {
         await Future.delayed(_retryDelay * attempt);
       } catch (e) {
         _logger.severe('Request failed: $url', e);
-        rethrow;
+        attempt++;
+        if (attempt >= _maxRetries) {
+          rethrow;
+        }
+        await Future.delayed(_retryDelay * attempt);
       }
     }
 
