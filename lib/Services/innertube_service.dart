@@ -18,10 +18,12 @@
  */
 
 import 'dart:convert';
+
 import 'package:logging/logging.dart';
 import 'package:universe/Services/cache_service.dart';
 import 'package:universe/Services/error_service.dart';
 import 'package:universe/Services/network_service.dart';
+import 'package:universe/Services/ytmusic/nav.dart';
 import 'package:universe/main.dart';
 
 class InnerTubeService {
@@ -54,15 +56,42 @@ class InnerTubeService {
 
   static InnerTubeService get instance => _instance;
 
-  Future<Map<String, List>?> getMusicHome() async {
-    const String cacheKey = 'innertube_home';
-    const Duration cacheTTL = Duration(minutes: 15);
+  static const String cacheKey = 'ytHomeInnerTubeV2';
+  static const Duration cacheTTL = Duration(hours: 1);
 
+  Future<Map<String, dynamic>?> getMusicHome() async {
     // Check cache first
-    final cached = locator<CacheService>().get<Map<String, List>>(cacheKey);
-    if (cached != null) {
-      Logger.root.info('Returning cached InnerTube home data');
-      return cached;
+    final cachedData = locator<CacheService>().get<dynamic>(cacheKey);
+    if (cachedData is Map) {
+      try {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(cachedData);
+        bool hasValidData = false;
+        final body = result['body'];
+        if (body is List) {
+          for (final section in body) {
+            if (section is Map && section['playlists'] is List) {
+              final items = section['playlists'] as List;
+              // Validate that at least one item has an 'id' and 'artist'
+              if (!hasValidData && items.isNotEmpty && items.first is Map) {
+                final first = items.first as Map;
+                if (first.containsKey('id') && first.containsKey('artist')) {
+                  hasValidData = true;
+                }
+              }
+            }
+          }
+        }
+        
+        if (hasValidData) {
+          Logger.root.info('Returning cached InnerTube home data');
+          return result;
+        } else {
+          Logger.root.info('Cached InnerTube data is invalid/legacy, forcing refresh');
+          await locator<CacheService>().remove(cacheKey);
+        }
+      } catch (e) {
+        Logger.root.warning('Failed to parse cached InnerTube home data: $e');
+      }
     }
 
     try {
@@ -87,50 +116,90 @@ class InnerTubeService {
 
         final List<Map> sections = [];
 
-        final contents = data['contents']?['singleColumnBrowseResultsRenderer']?['tabs']?[0]?['tabRenderer']?['content']?['sectionListRenderer']?['contents'];
+        final sectionList = NavClass.nav(data, ['contents', 'singleColumnBrowseResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer']) ??
+                          NavClass.nav(data, ['continuationContents', 'sectionListContinuation']) ??
+                          NavClass.nav(data, ['contents', 'twoColumnBrowseResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer']);
+
+        final contents = sectionList?['contents'];
 
         if (contents != null && contents is List) {
           for (final section in contents) {
-            final sectionRenderer = section['musicCarouselShelfRenderer'] ?? section['musicShelfRenderer'];
+            final sectionRenderer = section['musicCarouselShelfRenderer'] ?? 
+                                   section['musicShelfRenderer'] ?? 
+                                   section['musicGridRenderer'] ??
+                                   section['musicImmersiveCarouselShelfRenderer'];
+            
             if (sectionRenderer != null) {
               final title = sectionRenderer['header']?['musicCarouselShelfBasicHeaderRenderer']?['title']?['runs']?[0]?['text'] ??
-                          sectionRenderer['title']?['runs']?[0]?['text'] ?? 'Unknown';
+                          sectionRenderer['header']?['musicGridHeaderRenderer']?['title']?['runs']?[0]?['text'] ??
+                          sectionRenderer['title']?['runs']?[0]?['text'] ?? 
+                          sectionRenderer['header']?['musicImmersiveHeaderRenderer']?['title']?['runs']?[0]?['text'] ??
+                          'Discover';
 
               final List<Map> items = [];
 
-              final dynamic sectionContents = sectionRenderer['contents'] ?? [];
+              final dynamic sectionContents = sectionRenderer['contents'] ?? sectionRenderer['items'] ?? [];
               if (sectionContents is List) {
                 for (final item in sectionContents) {
                   final renderer = item['musicTwoRowItemRenderer'] ??
                                  item['musicResponsiveListItemRenderer'];
 
                   if (renderer != null) {
-                    final String title = renderer['title']?['runs']?[0]?['text']?.toString() ?? '';
-                    final String subtitle = renderer['subtitle']?['runs']?[0]?['text']?.toString() ?? '';
-                    final String thumbnail = renderer['thumbnail']?['musicThumbnailRenderer']?['thumbnail']?['thumbnails']?[0]?['url']?.toString() ?? '';
-
+                    final String title = renderer['title']?['runs']?[0]?['text']?.toString() ?? 
+                                         renderer['flexColumns']?[0]?['musicResponsiveListItemFlexColumnRenderer']?['text']?['runs']?[0]?['text']?.toString() ?? '';
+                    final String subtitle = renderer['subtitle']?['runs']?[0]?['text']?.toString() ?? 
+                                            renderer['flexColumns']?[1]?['musicResponsiveListItemFlexColumnRenderer']?['text']?['runs']?[0]?['text']?.toString() ?? '';
+                    
                     String? videoId;
-                    final navigationEndpoint = renderer['title']?['runs']?[0]?['navigationEndpoint'] ??
-                                             renderer['navigationEndpoint'];
+                    String? browseId;
+                    
+                    // Try to find videoId or browseId in various renderer spots
+                    final navigationEndpoint = renderer['navigationEndpoint'] ?? 
+                                             renderer['title']?['runs']?[0]?['navigationEndpoint'] ??
+                                             renderer['flexColumns']?[0]?['musicResponsiveListItemFlexColumnRenderer']?['text']?['runs']?[0]?['navigationEndpoint'];
 
                     if (navigationEndpoint != null) {
-                      videoId = navigationEndpoint['watchEndpoint']?['videoId']?.toString() ??
-                               navigationEndpoint['browseEndpoint']?['browseId']?.toString();
+                      videoId = navigationEndpoint['watchEndpoint']?['videoId']?.toString();
+                      browseId = navigationEndpoint['browseEndpoint']?['browseId']?.toString();
                     }
 
-                    if ((videoId?.isNotEmpty ?? false) && title.isNotEmpty) {
+                    final List? thumbnails = NavClass.nav(renderer, NavClass.thumbnails) as List? ??
+                                           NavClass.nav(renderer, NavClass.thumbnailRenderer) as List? ??
+                                           (renderer['thumbnail']?['thumbnails'] as List?);
+                    
+                    String thumbnail = thumbnails != null && thumbnails.isNotEmpty 
+                        ? thumbnails.last['url']?.toString() ?? '' 
+                        : '';
+                    
+                    // Fallback to official YouTube i.ytimg.com URL if thumbnail is missing or looks like a song
+                    if (thumbnail.isEmpty && videoId != null) {
+                      thumbnail = 'https://i.ytimg.com/vi/$videoId/maxresdefault.jpg';
+                    }
+
+                    if (title.isNotEmpty && (videoId != null || browseId != null)) {
+                      // If it has a videoId, we treat it as a video/song.
+                      // browseId is only used as the primary ID if videoId is missing.
+                      final bool isVideo = videoId != null;
+                      final id = videoId ?? browseId!;
+                      
                       items.add({
+                        'id': id,
                         'title': title,
-                        'type': 'video',
+                        'type': isVideo ? 'video' : 'playlist',
+                        'artist': subtitle,
+                        'album': subtitle,
                         'description': subtitle,
+                        'duration': isVideo ? '3:00' : '',
                         'count': '',
                         'videoId': videoId,
+                        'playlistId': isVideo ? null : browseId,
                         'firstItemId': videoId,
                         'image': thumbnail,
                         'imageMin': thumbnail,
                         'imageMedium': thumbnail,
                         'imageStandard': thumbnail,
                         'imageMax': thumbnail,
+                        'perma_url': isVideo ? 'https://youtube.com/watch?v=$videoId' : 'https://music.youtube.com/browse/$browseId',
                       });
                     }
                   }
@@ -148,13 +217,16 @@ class InnerTubeService {
         }
 
         if (sections.isNotEmpty) {
-          final result = {'body': sections, 'head': []};
+          final result = {
+            'body': sections, 
+            'head': [],
+          };
           // Cache the result
           await locator<CacheService>().set(cacheKey, result, ttl: cacheTTL);
           Logger.root.info('Successfully fetched ${sections.length} sections from InnerTube API');
           return result;
         } else {
-          Logger.root.warning('No sections found in InnerTube response, falling back to search-based approach');
+          Logger.root.warning('No sections found in InnerTube response');
           return null;
         }
       } else {

@@ -69,19 +69,34 @@ Widget imageCard({
                 ),
               ),
             )
-          else if (imageUrl != '')
-            CachedNetworkImage(
+          else if (imageUrl.trim().isNotEmpty)
+            Builder(
+              builder: (context) {
+                final url = UrlImageGetter([imageUrl])
+                    .getImageUrl(quality: imageQuality);
+                return url.trim().isNotEmpty
+                    ? CachedNetworkImage(
+                        fit: BoxFit.cover,
+                        errorWidget: (context, _, __) => Image(
+                          fit: BoxFit.cover,
+                          image: placeholderImage,
+                        ),
+                        imageUrl: url,
+                        placeholder: (context, url) => Image(
+                          fit: BoxFit.cover,
+                          image: placeholderImage,
+                        ),
+                      )
+                    : Image(
+                        fit: BoxFit.cover,
+                        image: placeholderImage,
+                      );
+              },
+            )
+          else
+            Image(
               fit: BoxFit.cover,
-              errorWidget: (context, _, __) => Image(
-                fit: BoxFit.cover,
-                image: placeholderImage,
-              ),
-              imageUrl:
-                  UrlImageGetter([imageUrl]).getImageUrl(quality: imageQuality),
-              placeholder: (context, url) => Image(
-                fit: BoxFit.cover,
-                image: placeholderImage,
-              ),
+              image: placeholderImage,
             ),
           if (selected)
             Container(

@@ -72,18 +72,23 @@ class BouncyPlaylistHeaderScrollView extends StatelessWidget {
                 ),
                 fit: BoxFit.cover,
               )
-            : CachedNetworkImage(
-                fit: BoxFit.cover,
-                errorWidget: (context, _, __) => Image(
-                  fit: BoxFit.cover,
-                  image: AssetImage(placeholderImage),
-                ),
-                imageUrl: imageUrl!,
-                placeholder: (context, url) => Image(
-                  fit: BoxFit.cover,
-                  image: AssetImage(placeholderImage),
-                ),
-              );
+            : (imageUrl?.trim().isNotEmpty ?? false)
+                ? CachedNetworkImage(
+                    fit: BoxFit.cover,
+                    errorWidget: (context, _, __) => Image(
+                      fit: BoxFit.cover,
+                      image: AssetImage(placeholderImage),
+                    ),
+                    imageUrl: imageUrl!,
+                    placeholder: (context, url) => Image(
+                      fit: BoxFit.cover,
+                      image: AssetImage(placeholderImage),
+                    ),
+                  )
+                : Image(
+                    fit: BoxFit.cover,
+                    image: AssetImage(placeholderImage),
+                  );
     final bool rotated =
         MediaQuery.sizeOf(context).height < MediaQuery.sizeOf(context).width;
     final double expandedHeight = rotated

@@ -22,6 +22,9 @@ class UrlImageGetter {
     ImageQuality? quality = ImageQuality.high,
   }) {
     if (_imageUrls.isEmpty) return '';
+    final String? first = _imageUrls.first?.trim();
+    if (first == null || first.isEmpty) return '';
+
     final length = _imageUrls.length;
 
     ImageQuality? imageQuality = quality;

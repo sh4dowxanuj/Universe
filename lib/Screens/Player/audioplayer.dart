@@ -246,14 +246,16 @@ class _PlayScreenState extends State<PlayScreen> {
                     //     gradientType == 'fullLight' ||
                     //     gradientType == 'fullMix',
                   ).then((value) => updateBackgroundColors(value))
-                : getColors(
-                    imageProvider: CachedNetworkImageProvider(
-                      mediaItem.artUri.toString(),
-                    ),
-                    // useDominantAndDarkerColors: gradientType == 'halfLight' ||
-                    //     gradientType == 'fullLight' ||
-                    //     gradientType == 'fullMix',
-                  ).then((value) => updateBackgroundColors(value));
+                : mediaItem.artUri != null && mediaItem.artUri.toString().isNotEmpty
+                    ? getColors(
+                        imageProvider: CachedNetworkImageProvider(
+                          mediaItem.artUri.toString(),
+                        ),
+                      ).then((value) => updateBackgroundColors(value))
+                    : updateBackgroundColors([
+                        Theme.of(context).cardColor,
+                        Theme.of(context).scaffoldBackgroundColor,
+                      ]);
           }
           return ValueListenableBuilder(
             valueListenable: gradientColor,
@@ -1133,28 +1135,36 @@ class NowPlayingStream extends StatelessWidget {
                                           ),
                                         ),
                                       )
-                                    : CachedNetworkImage(
-                                        fit: BoxFit.cover,
-                                        errorWidget:
-                                            (BuildContext context, _, __) =>
-                                                const Image(
-                                          fit: BoxFit.cover,
-                                          image: AssetImage(
-                                            'assets/cover.jpg',
+                                    : (queue[queueStateIndex + index].artUri?.toString().trim().isNotEmpty ?? false)
+                                        ? CachedNetworkImage(
+                                            fit: BoxFit.cover,
+                                            errorWidget:
+                                                (BuildContext context, _, __) =>
+                                                    const Image(
+                                              fit: BoxFit.cover,
+                                              image: AssetImage(
+                                                'assets/cover.jpg',
+                                              ),
+                                            ),
+                                            placeholder:
+                                                (BuildContext context, _) =>
+                                                    const Image(
+                                              fit: BoxFit.cover,
+                                              image: AssetImage(
+                                                'assets/cover.jpg',
+                                              ),
+                                            ),
+                                            imageUrl: queue[queueStateIndex +
+                                                    index]
+                                                .artUri
+                                                .toString(),
+                                          )
+                                        : const Image(
+                                            fit: BoxFit.cover,
+                                            image: AssetImage(
+                                              'assets/cover.jpg',
+                                            ),
                                           ),
-                                        ),
-                                        placeholder:
-                                            (BuildContext context, _) =>
-                                                const Image(
-                                          fit: BoxFit.cover,
-                                          image: AssetImage(
-                                            'assets/cover.jpg',
-                                          ),
-                                        ),
-                                        imageUrl: queue[queueStateIndex + index]
-                                            .artUri
-                                            .toString(),
-                                      ),
                               ),
                       ),
                     ],
@@ -1654,21 +1664,29 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                     ),
                                   ),
                                 )
-                              : CachedNetworkImage(
-                                  fit: BoxFit.contain,
-                                  errorWidget: (BuildContext context, _, __) =>
-                                      const Image(
-                                    fit: BoxFit.cover,
-                                    image: AssetImage('assets/cover.jpg'),
-                                  ),
-                                  placeholder: (BuildContext context, _) =>
-                                      const Image(
-                                    fit: BoxFit.cover,
-                                    image: AssetImage('assets/cover.jpg'),
-                                  ),
-                                  imageUrl: widget.mediaItem.artUri.toString(),
-                                  width: widget.width * 0.85,
-                                ),
+                              : (widget.mediaItem.artUri?.toString().trim().isNotEmpty ?? false)
+                                  ? CachedNetworkImage(
+                                      fit: BoxFit.contain,
+                                      errorWidget:
+                                          (BuildContext context, _, __) =>
+                                              const Image(
+                                        fit: BoxFit.cover,
+                                        image: AssetImage('assets/cover.jpg'),
+                                      ),
+                                      placeholder: (BuildContext context, _) =>
+                                          const Image(
+                                        fit: BoxFit.cover,
+                                        image: AssetImage('assets/cover.jpg'),
+                                      ),
+                                      imageUrl:
+                                          widget.mediaItem.artUri.toString(),
+                                      width: widget.width * 0.85,
+                                    )
+                                  : Image(
+                                      fit: BoxFit.cover,
+                                      image: const AssetImage('assets/cover.jpg'),
+                                      width: widget.width * 0.85,
+                                    ),
                         ),
                         Visibility(
                           visible: value,

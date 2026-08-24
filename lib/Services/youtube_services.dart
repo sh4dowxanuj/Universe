@@ -60,7 +60,7 @@ class YouTubeServices {
 
   Future<List<Map>> getPlaylistSongs(String id) async {
     final Map<String, dynamic>? results = await YtDlpService.instance.getPlaylistInfo(id);
-    return (results?['entries'] as List?)?.cast<Map>() ?? [];
+    return (results?['entries'] as List?)?.whereType<Map>().toList() ?? [];
   }
 
   Future<Map?> getVideoFromId(String id) async {
@@ -132,13 +132,17 @@ class YouTubeServices {
         
         // Add metadata if available
         if (videoInfo != null) {
+          final String thumbnailUrl = videoInfo['thumbnail']?.toString() ?? 
+                                     (videoInfo['thumbnails'] is List && (videoInfo['thumbnails'] as List).isNotEmpty 
+                                        ? (videoInfo['thumbnails'] as List).last['url'].toString() 
+                                        : 'https://i.ytimg.com/vi/$id/maxresdefault.jpg');
           result.addAll({
             'title': videoInfo['title'],
             'artist': videoInfo['uploader'].toString().replaceAll('- Topic', '').trim(),
             'album': videoInfo['uploader'].toString().replaceAll('- Topic', '').trim(),
             'duration': videoInfo['duration'].toString(),
-            'image': videoInfo['thumbnail'],
-            'secondImage': videoInfo['thumbnail'],
+            'image': thumbnailUrl,
+            'secondImage': thumbnailUrl,
           });
         }
         
@@ -173,55 +177,29 @@ class YouTubeServices {
     return metadata;
   }
 
-  Future<Map<String, List>> getMusicHome() async {
+  Future<Map<String, dynamic>> getMusicHome() async {
     final appState = locator<AppStateService>();
 
     try {
       Logger.root.info('Fetching YouTube Music home using InnerTube API');
-
-      // Update loading state
       appState.updateHomeData([], isLoading: true);
 
       // Try InnerTube API first
       final innerTubeResult = await InnerTubeService.instance.getMusicHome();
-      if (innerTubeResult != null && innerTubeResult.isNotEmpty) {
-        Logger.root.info('Successfully loaded YouTube Music home from InnerTube API');
-        appState.updateHomeData((innerTubeResult['body'] as List<Map<dynamic, dynamic>>?) ?? []);
-        return innerTubeResult;
-      }
-
-      Logger.root.info('InnerTube API failed, falling back to search-based approach');
-
-      // Fallback to search-based approach
       final List<Map> sections = [];
-
-      // Define popular music queries for fallback
-      final queries = [
-        'popular music',
-        'trending songs',
-        'top hits',
-        'new releases',
-      ];
-
-      for (final query in queries.take(3)) {  // Limit to 3 sections for performance
-        try {
-          final searchResults = await fetchSearchResults(query);
-          if (searchResults.isNotEmpty && searchResults[0]['items'] != null) {
-            final items = searchResults[0]['items'] as List;
-            if (items.isNotEmpty) {
-              sections.add({
-                'title': query,
-                'playlists': items.take(10).toList(),
-              });
-            }
-          }
-        } catch (e) {
-          Logger.root.warning('Failed to fetch section for query: $query', e);
-        }
+      
+      if (innerTubeResult != null && innerTubeResult['body'] is List) {
+        sections.addAll((innerTubeResult['body'] as List).whereType<Map>());
+        Logger.root.info('Loaded ${sections.length} sections from InnerTube API');
       }
 
-      final result = {'body': sections, 'head': []};
+      final result = {
+        'body': sections, 
+        'head': innerTubeResult?['head'] ?? [],
+      };
+      
       appState.updateHomeData(sections);
+      
       return result;
 
     } catch (e, stackTrace) {
@@ -231,7 +209,6 @@ class YouTubeServices {
       appState.updateHomeData([], error: errorMessage);
       locator<ErrorService>().reportError('YouTubeServices.getMusicHome', e, stackTrace);
 
-      // Return empty result to prevent crashes
       return {'body': [], 'head': []};
     }
   }
@@ -446,6 +423,23 @@ class YouTubeServices {
         }
       }
       
+      // Helper to extract high quality thumbnail
+      String extractThumbnail(Map video) {
+        if (video['thumbnail'] != null && video['thumbnail'].toString().isNotEmpty) {
+          return video['thumbnail'].toString();
+        }
+        if (video['thumbnails'] is List && (video['thumbnails'] as List).isNotEmpty) {
+          return (video['thumbnails'] as List).last['url'].toString();
+        }
+        final id = video['id']?.toString() ?? video['videoId']?.toString();
+        if (id != null && id.isNotEmpty) {
+          return 'https://i.ytimg.com/vi/$id/maxresdefault.jpg';
+        }
+        return '';
+      }
+
+      final String thumbnailUrl = extractThumbnail(video);
+
       return {
         'id': video['id'],
         'album': (data?['album'] ?? '') != ''
@@ -457,8 +451,8 @@ class YouTubeServices {
         'artist': (data?['artist'] ?? '') != ''
             ? data!['artist']
             : video['uploader'].toString().replaceAll('- Topic', '').trim(),
-        'image': video['thumbnail'],
-        'secondImage': video['thumbnail'],
+        'image': thumbnailUrl,
+        'secondImage': thumbnailUrl,
         'language': 'YouTube',
         'genre': 'YouTube',
         'expire_at': expireAt,

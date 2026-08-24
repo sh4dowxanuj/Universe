@@ -79,7 +79,8 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
               playlistName = value['name'] as String? ?? '';
               playlistSubtitle = value['subtitle'] as String? ?? '';
               playlistSecondarySubtitle = value['description'] as String?;
-              playlistImage = (value['images'] as List?)?.last as String? ?? '';
+              final List? images = value['images'] as List?;
+              playlistImage = (images != null && images.isNotEmpty) ? images.last.toString() : '';
               fetched = true;
             } catch (e) {
               Logger.root.severe('Error in fetching playlist details', e);
@@ -95,7 +96,8 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
               playlistName = value['name'] as String? ?? '';
               playlistSubtitle = value['subtitle'] as String? ?? '';
               playlistSecondarySubtitle = value['description'] as String?;
-              playlistImage = (value['images'] as List?)?.last as String? ?? '';
+              final List? images = value['images'] as List?;
+              playlistImage = (images != null && images.isNotEmpty) ? images.last.toString() : '';
               fetched = true;
             } catch (e) {
               Logger.root.severe('Error in fetching playlist details', e);
@@ -111,7 +113,8 @@ class _YouTubePlaylistState extends State<YouTubePlaylist> {
               playlistName = value['name'] as String? ?? '';
               playlistSubtitle = value['subtitle'] as String? ?? '';
               playlistSecondarySubtitle = value['description'] as String?;
-              playlistImage = (value['images'] as List?)?.last as String? ?? '';
+              final List? images = value['images'] as List?;
+              playlistImage = (images != null && images.isNotEmpty) ? images.last.toString() : '';
               fetched = true;
             } catch (e) {
               Logger.root.severe('Error in fetching playlist details', e);

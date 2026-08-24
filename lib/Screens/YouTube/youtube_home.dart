@@ -27,7 +27,6 @@ import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/on_hover.dart';
-import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/Screens/Search/search.dart';
 import 'package:universe/Screens/YouTube/youtube_playlist.dart';
 import 'package:universe/Services/error_service.dart';
@@ -59,6 +58,45 @@ class HomeSection {
 class YouTube extends StatefulWidget {
   const YouTube({super.key});
 
+  // UI-only normalized shelf titles for a premium feel.
+  static String normalizedUiTitle(String title) {
+    final t = title.trim().toLowerCase();
+    String key = '';
+    
+    if (t.contains('popular')) {
+      key = 'popular';
+    } else if (t.contains('trending')) {
+      key = 'trending';
+    } else if (t.contains('top')) {
+      key = 'top_hits';
+    } else if (t.contains('new release') || t.contains('new')) {
+      key = 'new_releases';
+    } else if (t.contains('discover')) {
+      key = 'discover';
+    } else if (t.contains('recommended') || t.contains('for you')) {
+      key = 'recommended';
+    } else if (t.contains('mix')) {
+      key = 'mixes';
+    } else if (t.contains('chart')) {
+      key = 'charts';
+    } else if (t.contains('editor')) {
+      key = 'editors_picks';
+    }
+    
+    switch (key) {
+      case 'popular': return 'Popular Picks';
+      case 'trending': return 'Trending Now';
+      case 'top_hits': return 'Top Hits';
+      case 'new_releases': return 'New Releases';
+      case 'discover': return 'Discover';
+      case 'recommended': return 'Recommended For You';
+      case 'mixes': return 'Your Mixes';
+      case 'charts': return 'Top Charts';
+      case 'editors_picks': return 'Editor’s Picks';
+      default: return title;
+    }
+  }
+
   @override
   _YouTubeState createState() => _YouTubeState();
 }
@@ -67,6 +105,7 @@ class _YouTubeState extends State<YouTube>
     with AutomaticKeepAliveClientMixin<YouTube>, TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
   final List<HomeSection> _sections = [];
   List<Map<String, dynamic>> _headItems = [];
 
@@ -85,9 +124,10 @@ class _YouTubeState extends State<YouTube>
   void dispose() {
     _tabController.dispose();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
-  
+
   /// Seed UI from cache and create default sections.
   void _bootstrapFromCache() {
     try {
@@ -109,7 +149,7 @@ class _YouTubeState extends State<YouTube>
           if (sec['playlists'] is List) {
             items = (sec['playlists'] as List)
                 .whereType<Map>()
-                .map((m) => m.cast<String, dynamic>())
+                .map((m) => Map<String, dynamic>.from(m))
                 .toList();
           }
           if (items.isEmpty) {
@@ -129,7 +169,16 @@ class _YouTubeState extends State<YouTube>
           }
         }
       } else {
-        const defaults = ['Popular Music', 'Trending Songs', 'Top Hits', 'New Releases'];
+        const defaults = [
+          'Popular Music', 
+          'Trending Songs', 
+          'Top Hits', 
+          'New Releases',
+          'Mood Mixes',
+          'Top Charts',
+          'Workout Music',
+          'Chill Hits',
+        ];
         for (int i = 0; i < defaults.length; i++) {
           final title = defaults[i];
           final stableKey = _sectionKeyForTitle(title);
@@ -150,8 +199,7 @@ class _YouTubeState extends State<YouTube>
       // Personalization: Continue Listening from local recent history
       final continueItems = _getContinueListeningItems();
       if (continueItems.isNotEmpty) {
-        _sections.insert(
-          0,
+        _sections.add(
           HomeSection(
             id: 'continue',
             title: 'Continue Listening',
@@ -177,78 +225,112 @@ class _YouTubeState extends State<YouTube>
       s.error = null;
     }
 
-    Map<String, List> homeResult = {'body': [], 'head': []};
     try {
-      homeResult = await YouTubeServices.instance.getMusicHome();
-    } catch (e, st) {
-      Logger.root.warning('Home fetch failed; using fallbacks: $e');
-      locator<ErrorService>().reportError('YouTubeHome._refreshAllSections', e, st);
-    }
-
-    final newHead = homeResult['head']?.cast<Map<String, dynamic>>() ?? [];
-    if (newHead.isNotEmpty) {
-      _headItems = newHead;
-      // Cache head items defensively.
+      Map<String, dynamic> homeResult = {'body': [], 'head': []};
       try {
-        Hive.box('cache').put('ytHomeHead', _headItems);
+        homeResult = await YouTubeServices.instance.getMusicHome();
       } catch (e, st) {
-        Logger.root.warning('Failed to cache ytHomeHead: $e');
-        locator<ErrorService>().reportError('YouTubeHome._refreshAllSections.head', e, st);
+        Logger.root.warning('Home fetch failed; using fallbacks: $e');
+        locator<ErrorService>().reportError('YouTubeHome._refreshAllSections.fetch', e, st);
       }
-    }
 
-    final bodySections = homeResult['body']?.cast<Map<String, dynamic>>() ?? [];
-    if (bodySections.isNotEmpty) {
-      final List<HomeSection> next = [];
-      final List<Future<void>> fallbacks = [];
-      for (int i = 0; i < bodySections.length; i++) {
-        final sec = bodySections[i];
-        final title = (sec['title'] ?? 'Discover').toString();
-        final stableKey = _sectionKeyForTitle(title);
-        final newCacheKey = 'ytHome.section.$stableKey';
-        List<Map<String, dynamic>> items = [];
-        if (sec['playlists'] is List) {
-          items = (sec['playlists'] as List)
-              .whereType<Map>()
-              .map((m) => m.cast<String, dynamic>())
-              .toList();
-        }
-        final existing = _sections.where((s) => s.cacheKey == newCacheKey).toList();
-        final section = existing.isNotEmpty
-            ? existing.first
-            : HomeSection(id: 'server-$i', title: title, cacheKey: newCacheKey);
-        section.items = items;
-        section.isLoading = false;
-        section.error = null;
-        next.add(section);
-        if (items.isEmpty) {
-          fallbacks.add(_fillSectionFromFallback(section));
-        } else {
-          section.items = _filterAndLimitItems(section.items);
-          _writeSectionCache(title, section.items);
+      final bodySections = (homeResult['body'] as List?)
+              ?.whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList() ??
+          [];
+
+      final newHead = (homeResult['head'] as List?)
+              ?.whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList() ??
+          [];
+      if (newHead.isNotEmpty) {
+        _headItems = newHead;
+        try {
+          Hive.box('cache').put('ytHomeHead', _headItems);
+        } catch (e) {
+          Logger.root.warning('Failed to cache ytHomeHead: $e');
         }
       }
-      if (fallbacks.isNotEmpty) {
-        await Future.wait(fallbacks);
-      }
-      _dedupeAndLimitSections(next);
-      final continueSection = _sections.where((s) => s.id == 'continue').toList();
-      _sections
-        ..clear()
-        ..addAll(continueSection)
-        ..addAll(_applyDailyOrderVariation(next));
-    } else {
-      await Future.wait(_sections.where((s) => s.id != 'continue').map(_loadSectionIndependently));
-      final continueSection = _sections.where((s) => s.id == 'continue').toList();
-      final others = _sections.where((s) => s.id != 'continue').toList();
-      _sections
-        ..clear()
-        ..addAll(continueSection)
-        ..addAll(_applyDailyOrderVariation(others));
-    }
 
-    if (!mounted) return;
-    setState(() {});
+      if (bodySections.isNotEmpty) {
+        final List<HomeSection> next = [];
+        final List<Future<void>> fallbacks = [];
+        
+        for (int i = 0; i < bodySections.length; i++) {
+          try {
+            final sec = bodySections[i];
+            final title = (sec['title'] ?? 'Discover').toString();
+            final stableKey = _sectionKeyForTitle(title);
+            final newCacheKey = 'ytHome.section.$stableKey';
+            
+            List<Map<String, dynamic>> items = [];
+            if (sec['playlists'] is List) {
+              items = (sec['playlists'] as List)
+                  .whereType<Map>()
+                  .map((m) => Map<String, dynamic>.from(m))
+                  .toList();
+            }
+            
+            final existing = _sections.where((s) => s.cacheKey == newCacheKey).toList();
+            final section = existing.isNotEmpty
+                ? existing.first
+                : HomeSection(id: 'server-$i', title: title, cacheKey: newCacheKey);
+            
+            section.items = _filterAndLimitItems(items);
+            section.isLoading = false;
+            section.error = null;
+            next.add(section);
+            
+            if (section.items.isEmpty) {
+              fallbacks.add(_fillSectionFromFallback(section));
+            } else {
+              _writeSectionCache(title, section.items);
+            }
+          } catch (e) {
+            Logger.root.warning('Error processing section $i: $e');
+          }
+        }
+        
+        _dedupeAndLimitSections(next);
+        final continueSection = _sections.where((s) => s.id == 'continue').toList();
+        
+        if (mounted) {
+          setState(() {
+            _sections
+              ..clear()
+              ..addAll(_applyDailyOrderVariation(next))
+              ..addAll(continueSection);
+          });
+        }
+        
+        if (fallbacks.isNotEmpty) {
+          await Future.wait(fallbacks);
+        }
+      } else {
+        await Future.wait(_sections.where((s) => s.id != 'continue').map(_loadSectionIndependently));
+        final continueSection = _sections.where((s) => s.id == 'continue').toList();
+        final others = _sections.where((s) => s.id != 'continue').toList();
+        
+        if (mounted) {
+          setState(() {
+            _sections
+              ..clear()
+              ..addAll(_applyDailyOrderVariation(others))
+              ..addAll(continueSection);
+          });
+        }
+      }
+    } catch (e, st) {
+      Logger.root.severe('Fatal error in _refreshAllSections: $e');
+      locator<ErrorService>().reportError('YouTubeHome._refreshAllSections.fatal', e, st);
+    } finally {
+      for (final s in _sections) {
+        s.isLoading = false;
+      }
+      if (mounted) setState(() {});
+    }
   }
 
   /// Load a section independently using search-based fallback, and cache it.
@@ -258,7 +340,10 @@ class _YouTubeState extends State<YouTube>
       final results = await YouTubeServices.instance.fetchSearchResults(section.title);
       List<Map<String, dynamic>> items = [];
       if (results.isNotEmpty && results.first['items'] is List) {
-        items = (results.first['items'] as List).cast<Map<String, dynamic>>();
+        items = (results.first['items'] as List)
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m))
+            .toList();
       }
       section.items = items;
       section.error = null;
@@ -297,7 +382,7 @@ class _YouTubeState extends State<YouTube>
       if (results.isNotEmpty && results.first['items'] is List) {
         final fresh = (results.first['items'] as List)
             .whereType<Map>()
-            .map((m) => m.cast<String, dynamic>())
+            .map((m) => Map<String, dynamic>.from(m))
             .toList();
         final filtered = _filterAndLimitItems(fresh);
         if (filtered.isNotEmpty) {
@@ -329,7 +414,7 @@ class _YouTubeState extends State<YouTube>
         if (section['items'] is List) {
           final items = (section['items'] as List)
               .whereType<Map>()
-              .map((m) => m.cast<String, dynamic>())
+              .map((m) => Map<String, dynamic>.from(m))
               .map((m) {
                 final id = (m['id'] ?? '').toString();
                 final imageList = (m['images'] as List?) ?? [];
@@ -414,7 +499,7 @@ class _YouTubeState extends State<YouTube>
         if (now - ts < const Duration(minutes: 15).inMilliseconds) {
           return (raw['items'] as List)
               .whereType<Map>()
-              .map((m) => m.cast<String, dynamic>())
+              .map((m) => Map<String, dynamic>.from(m))
               .toList();
         }
       }
@@ -447,7 +532,7 @@ class _YouTubeState extends State<YouTube>
       if (raw is List) {
         return raw
             .whereType<Map>()
-            .map((e) => e.cast<String, dynamic>())
+            .map((e) => Map<String, dynamic>.from(e))
             .toList();
       }
     } catch (e, st) {
@@ -526,33 +611,6 @@ class _YouTubeState extends State<YouTube>
   // Legacy key used previously derived from raw titles.
   String _legacyKeyForTitle(String title) => 'ytHome.section.${title.toLowerCase()}';
 
-  // UI-only normalized shelf titles for a premium feel.
-  String _normalizedUiTitle(String title) {
-    final key = _sectionKeyForTitle(title);
-    switch (key) {
-      case 'popular':
-        return 'Popular Picks';
-      case 'trending':
-        return 'Trending Now';
-      case 'top_hits':
-        return 'Top Hits';
-      case 'new_releases':
-        return 'New Releases';
-      case 'discover':
-        return 'Discover';
-      case 'recommended':
-        return 'Recommended For You';
-      case 'mixes':
-        return 'Your Mixes';
-      case 'charts':
-        return 'Top Charts';
-      case 'editors_picks':
-        return 'Editor’s Picks';
-      default:
-        return title; // Preserve original for unknown sections
-    }
-  }
-
   // Slightly vary shelf order per day (stable within the same day).
   List<HomeSection> _applyDailyOrderVariation(List<HomeSection> sections) {
     if (sections.isEmpty) return sections;
@@ -572,19 +630,20 @@ class _YouTubeState extends State<YouTube>
       if (recentListRaw is! List) return [];
       final recent = recentListRaw
           .whereType<Map>()
-          .map((e) => e.cast<String, dynamic>())
+          .map((e) => Map<String, dynamic>.from(e))
           .toList();
       if (recent.isEmpty) return [];
       final items = recent.take(maxCount).map((m) {
+        final String artist = (m['artist'] ?? m['album'] ?? '').toString();
         return {
           'id': m['id']?.toString() ?? '',
           'title': (m['title'] ?? '').toString(),
-          'artist': (m['artist'] ?? '').toString(),
+          'artist': artist,
           'album': (m['album'] ?? '').toString(),
           'image': (m['image'] ?? m['secondImage'] ?? '').toString(),
           'secondImage': (m['secondImage'] ?? m['image'] ?? '').toString(),
           'type': 'video',
-          'subtitle': (m['artist'] ?? m['album'] ?? '').toString(),
+          'subtitle': artist,
           'genre': (m['genre'] ?? '').toString(),
           'language': (m['language'] ?? '').toString(),
         };
@@ -595,320 +654,415 @@ class _YouTubeState extends State<YouTube>
     }
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
   @override
-  Widget build(BuildContext cntxt) {
+  Widget build(BuildContext context) {
     super.build(context);
-    // Cache MediaQuery size locally to avoid repeated work.
     final Size screenSize = MediaQuery.sizeOf(context);
     final double screenWidth = screenSize.width;
     final bool rotated = screenSize.height < screenWidth;
-    double boxSize = !rotated ? screenSize.width / 2 : screenSize.height / 2.5;
-    if (boxSize > 250) boxSize = 250;
+    
+    // Spotify style sizing
+    double boxSize = !rotated ? screenWidth / 2.2 : screenWidth / 4.5;
+    if (boxSize > 200) boxSize = 200;
+
+    final continueItems = _getContinueListeningItems(maxCount: 6);
+    final otherSections = _sections.where((s) => s.id != 'continue').toList();
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(
           children: [
-            // Discover Home shelves (non-blocking loaders)
             RefreshIndicator(
               onRefresh: _refreshAllSections,
-              child: SingleChildScrollView(
+              displacement: 80,
+              child: CustomScrollView(
+                controller: _scrollController,
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(10, 70, 10, 0),
-                child: Column(
-                  children: [
-                    // Head carousel or lightweight placeholder
-                    if (_headItems.isNotEmpty)
-                      CarouselSlider.builder(
-                        itemCount: _headItems.length,
-                        options: CarouselOptions(
-                          height: boxSize + 20,
-                          viewportFraction: rotated ? 0.36 : 1.0,
-                          autoPlay: true,
-                          enlargeCenterPage: true,
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 75, 16, 20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // Greeting
+                        Text(
+                          _getGreeting(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                        itemBuilder: (
-                          BuildContext context,
-                          int index,
-                          int pageViewIndex,
-                        ) => GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              PageRouteBuilder(
-                                opaque: false,
-                                pageBuilder: (_, __, ___) => SearchPage(
-                                  query: _headItems[index]['title'].toString(),
-                                  searchType: Hive.box('settings').get(
-                                    'searchYtMusic',
-                                    defaultValue: true,
-                                  ) as bool
-                                      ? 'ytm'
-                                      : 'yt',
-                                  fromDirectSearch: true,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            elevation: 5,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
+                        const SizedBox(height: 16),
+                        
+                        // Personalization Grid
+                        if (continueItems.isNotEmpty)
+                          GridView.builder(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: continueItems.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: rotated ? 3 : 2,
+                              childAspectRatio: 3.2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
                             ),
-                            clipBehavior: Clip.antiAlias,
-                            child: CachedNetworkImage(
-                              fit: BoxFit.cover,
-                              errorWidget: (context, _, __) => const Image(
-                                fit: BoxFit.cover,
-                                image: AssetImage('assets/ytCover.png'),
+                            itemBuilder: (context, index) {
+                              final item = continueItems[index];
+                              return _QuickAccessCard(item: item);
+                            },
+                          ),
+                        const SizedBox(height: 24),
+
+                        // Head carousel
+                        if (_headItems.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: CarouselSlider.builder(
+                              itemCount: _headItems.length,
+                              options: CarouselOptions(
+                                height: boxSize * 1.1,
+                                viewportFraction: rotated ? 0.4 : 0.92,
+                                autoPlay: true,
+                                enlargeCenterPage: true,
+                                enlargeStrategy: CenterPageEnlargeStrategy.zoom,
                               ),
-                              imageUrl: _headItems[index]['image']?.toString() ?? '',
-                              placeholder: (context, url) => const Image(
-                                fit: BoxFit.cover,
-                                image: AssetImage('assets/ytCover.png'),
+                              itemBuilder: (context, index, _) => _CarouselCard(
+                                item: _headItems[index],
+                                searchType: _getYoutubeSearchType(),
                               ),
                             ),
                           ),
-                        ),
-                      )
-                    else
-                      Container(
-                        height: boxSize + 20,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10.0),
-                          color: Theme.of(context).cardColor.withOpacity(0.15),
-                        ),
-                      ),
-
-                    // Shelves
-                    ListView.builder(
-                      key: const PageStorageKey<String>('yt_home_sections'),
-                      itemCount: _sections.length,
-                      physics: const BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.only(bottom: 10),
-                      itemBuilder: (context, index) {
-                        final section = _sections[index];
-                        return Column(
-                          // Preserve per-section state & scroll position.
-                          key: PageStorageKey<String>('yt_section_${section.cacheKey}_${section.id}'),
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(10, 10, 0, 5),
-                                    child: Text(
-                                      _normalizedUiTitle(section.title),
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                  if (section.isLoading)
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8.0),
-                                      child: SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            Theme.of(context).colorScheme.secondary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Builder(
-                              builder: (context) {
-                                final int itemCount = section.items.isNotEmpty
-                                    ? section.items.length
-                                    : (section.isLoading ? 6 : 0);
-                                if (itemCount == 0) {
-                                  // Gracefully collapse empty shelves when not loading
-                                  return const SizedBox.shrink();
-                                }
-                                return SizedBox(
-                                  height: boxSize + 10,
-                                  width: double.infinity,
-                                  child: ListView.builder(
-                                    key: PageStorageKey<String>('yt_section_list_${section.cacheKey}'),
-                                    physics: const BouncingScrollPhysics(),
-                                    scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                                    itemCount: itemCount,
-                                    itemBuilder: (context, idx) {
-                                      if (section.items.isEmpty) {
-                                        final double tileWidth = (boxSize - 30) * (16 / 9);
-                                        return _SkeletonCard(
-                                          key: ValueKey<String>('skeleton_${section.cacheKey}_$idx'),
-                                          width: tileWidth,
-                                          height: boxSize - 10,
-                                        );
-                                      }
-                                  final item = section.items[idx];
-                                  final String type = (item['type'] ?? 'video').toString();
-                                  final String title = (item['title'] ?? '').toString();
-                                  final String image = (item['image'] ?? item['secondImage'] ?? '').toString();
-                                  final String subtitle = (
-                                    item['subtitle'] ?? (item['artist'] ?? item['album'] ?? '')
-                                  ).toString();
-                                  final String? playlistId = item['playlistId']?.toString();
-                                  return GestureDetector(
-                                    key: ValueKey<String>('item_${section.cacheKey}_${item['id'] ?? idx}'),
-                                    onTap: () async {
-                                      if (type == 'playlist' && playlistId != null && playlistId.isNotEmpty) {
-                                        Navigator.push(
-                                          context,
-                                          PageRouteBuilder(
-                                            opaque: false,
-                                            pageBuilder: (_, __, ___) => YouTubePlaylist(
-                                              playlistId: playlistId,
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      final String itemType = type.toLowerCase();
-                                      if (itemType == 'song' || itemType == 'video') {
-                                        final String id = (item['id'] ?? '').toString();
-                                        if (id.isEmpty) {
-                                          ShowSnackBar().showSnackBar(
-                                            context,
-                                            AppLocalizations.of(context)!.ytLiveAlert,
-                                          );
-                                          return;
-                                        }
-
-                                        final Map? response = (itemType == 'video')
-                                            ? await YouTubeServices.instance.formatVideoFromId(
-                                                id: id,
-                                                data: item,
-                                              )
-                                            : await YtMusicService().getSongData(
-                                                videoId: id,
-                                                data: item,
-                                                quality: Hive.box('settings')
-                                                    .get('ytQuality', defaultValue: 'Low')
-                                                    .toString(),
-                                              );
-
-                                        if (response != null) {
-                                          PlayerInvoke.init(
-                                            songsList: [response],
-                                            index: 0,
-                                            isOffline: false,
-                                          );
-                                        } else {
-                                          ShowSnackBar().showSnackBar(
-                                            context,
-                                            AppLocalizations.of(context)!.ytLiveAlert,
-                                          );
-                                        }
-                                      } else {
-                                        // Fallback for non-playlist, non-song/video types: keep current search behavior.
-                                        Navigator.push(
-                                          context,
-                                          PageRouteBuilder(
-                                            opaque: false,
-                                            pageBuilder: (_, __, ___) => SearchPage(
-                                              query: title,
-                                              searchType: _getYoutubeSearchType(),
-                                              fromDirectSearch: true,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: _ShelfCard(
-                                      boxSize: boxSize,
-                                      type: type,
-                                      title: title,
-                                      subtitle: subtitle,
-                                      image: image,
-                                      extra: item,
-                                    ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
+                      ]),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Content Shelves
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final section = otherSections[index];
+                          if (section.items.isEmpty && !section.isLoading) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          final isArtistSection = section.title.toLowerCase().contains('artist') || 
+                                                 section.title.toLowerCase().contains('for you');
+
+                          return _HomeShelf(
+                            section: section,
+                            boxSize: boxSize,
+                            isArtistSection: isArtistSection,
+                            normalizedTitle: YouTube.normalizedUiTitle(section.title),
+                          );
+                        },
+                        childCount: otherSections.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
               ),
             ),
-            // Search bar overlay
-            GestureDetector(
-              child: Container(
-                width: screenSize.width,
-                height: 55.0,
-                padding: const EdgeInsets.all(5.0),
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0),
-                // margin: EdgeInsets.zero,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    10.0,
-                  ),
-                  color: Theme.of(context).cardColor,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5.0,
-                      offset: Offset(1.5, 1.5),
-                      // shadow direction: bottom right
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    homeDrawer(context: context),
-                    const SizedBox(
-                      width: 5.0,
-                    ),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!
-                          .searchYt,
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Theme.of(context).textTheme.bodySmall!.color,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SearchPage(
-                    query: '',
-                    fromHome: true,
-                    searchType: _getYoutubeSearchType(),
-                    autofocus: true,
-                  ),
-                ),
-              ),
+            
+            // Fixed Search Bar
+            _TopSearchBar(
+              searchType: _getYoutubeSearchType(),
+              screenSize: screenSize,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAccessCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+  const _QuickAccessCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final Map? response = await YouTubeServices.instance.formatVideoFromId(
+          id: item['id'].toString(),
+          data: item,
+        );
+        if (response != null) {
+          PlayerInvoke.init(songsList: [response], index: 0, isOffline: false);
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+  children: [
+    AspectRatio(
+      aspectRatio: 1,
+      child: item['image'].toString().isNotEmpty
+          ? CachedNetworkImage(
+              imageUrl: item['image'].toString(),
+              fit: BoxFit.cover,
+              memCacheHeight: 200, // Optimization: constrain memory usage
+              errorWidget: (context, _, __) => const ColoredBox( // <-- Added const
+                color: Colors.black12,
+                child: Icon(Icons.music_note, size: 20),
+              ),
+            )
+          : const ColoredBox( // <-- Added const
+              color: Colors.black12,
+              child: Icon(Icons.music_note, size: 20),
+            ),
+    ),
+    Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Text(
+          item['title'].toString(),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+  ],
+),
+      ),
+    );
+  }
+}
+
+class _CarouselCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final String searchType;
+  const _CarouselCard({required this.item, required this.searchType});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            opaque: false,
+            pageBuilder: (_, __, ___) => SearchPage(
+              query: item['title'].toString(),
+              searchType: searchType,
+              fromDirectSearch: true,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: item['image']?.toString().isNotEmpty ?? false
+            ? CachedNetworkImage(
+                fit: BoxFit.cover,
+                imageUrl: item['image']!.toString(),
+                placeholder: (context, url) => Container(color: Colors.black12),
+                errorWidget: (context, _, __) => Container(color: Colors.black12),
+                memCacheWidth: 800, // Optimization
+              )
+            : Container(color: Colors.black12),
+      ),
+    );
+  }
+}
+
+class _HomeShelf extends StatelessWidget {
+  final HomeSection section;
+  final double boxSize;
+  final bool isArtistSection;
+  final String normalizedTitle;
+
+  const _HomeShelf({
+    required this.section,
+    required this.boxSize,
+    required this.isArtistSection,
+    required this.normalizedTitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  normalizedTitle,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                if (section.isLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: isArtistSection ? boxSize * 1.3 : boxSize * 1.4,
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              scrollDirection: Axis.horizontal,
+              itemCount: section.isLoading ? 6 : section.items.length,
+              itemBuilder: (context, idx) {
+                if (section.isLoading) {
+                  return _SkeletonCard(width: boxSize, height: boxSize);
+                }
+                final item = section.items[idx];
+                return _ShelfCard(
+                  boxSize: boxSize,
+                  type: isArtistSection ? 'artist' : (item['type'] ?? 'playlist').toString(),
+                  title: item['title'].toString(),
+                  subtitle: item['subtitle']?.toString() ?? (item['artist'] ?? '').toString(),
+                  image: (item['image'] ?? item['secondImage'] ?? '').toString(),
+                  extra: item,
+                  onTap: () async {
+                    final type = (item['type'] ?? 'video').toString().toLowerCase();
+                    final id = (item['id'] ?? '').toString();
+                    
+                    if (type == 'playlist' || (item['playlistId']?.toString().isNotEmpty ?? false)) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => YouTubePlaylist(
+                            playlistId: item['playlistId']?.toString() ?? id,
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (id.isNotEmpty) {
+                      final Map? response = await YouTubeServices.instance.formatVideoFromId(
+                        id: id,
+                        data: item,
+                      );
+                      if (response != null) {
+                        PlayerInvoke.init(songsList: [response], index: 0, isOffline: false);
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopSearchBar extends StatelessWidget {
+  final String searchType;
+  final Size screenSize;
+  const _TopSearchBar({required this.searchType, required this.screenSize});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(context).scaffoldBackgroundColor,
+              Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
+              Theme.of(context).scaffoldBackgroundColor.withOpacity(0),
+            ],
+          ),
+        ),
+        child: GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SearchPage(
+                query: '',
+                fromHome: true,
+                searchType: searchType,
+                autofocus: true,
+              ),
+            ),
+          ),
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                homeDrawer(context: context),
+                const SizedBox(width: 12),
+                Text(
+                  AppLocalizations.of(context)!.searchYt,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).textTheme.bodySmall!.color!.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -918,11 +1072,12 @@ class _YouTubeState extends State<YouTube>
 /// Reusable shelf card widget for item tiles.
 class _ShelfCard extends StatelessWidget {
   final double boxSize;
-  final String type; // 'playlist', 'video', 'chart', etc.
+  final String type;
   final String title;
   final String subtitle;
   final String image;
   final Map<String, dynamic> extra;
+  final VoidCallback onTap;
 
   const _ShelfCard({
     required this.boxSize,
@@ -931,120 +1086,94 @@ class _ShelfCard extends StatelessWidget {
     required this.subtitle,
     required this.image,
     required this.extra,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isPlaylist = type == 'playlist';
-    final isChart = type == 'chart';
-    final tileWidth = isPlaylist ? boxSize - 30 : (boxSize - 30) * (16 / 9);
+    final isArtist = type == 'artist';
 
-    return SizedBox(
-      width: tileWidth,
+    return Container(
+      width: boxSize,
+      margin: const EdgeInsets.only(right: 16),
       child: HoverBox(
-        child: Column(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Card(
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: CachedNetworkImage(
-                        fit: BoxFit.cover,
-                        errorWidget: (context, _, __) => Image(
-                          fit: BoxFit.cover,
-                          image: isPlaylist
-                              ? const AssetImage('assets/cover.jpg')
-                              : const AssetImage('assets/ytCover.png'),
+        child: const SizedBox.shrink(),
+        builder: ({required context, required isHover, child}) {
+          return GestureDetector(
+            onTap: onTap,
+            child: Column(
+              crossAxisAlignment:
+                  isArtist ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: isArtist ? BoxShape.circle : BoxShape.rectangle,
+                      borderRadius: isArtist ? null : BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isHover
+                              ? Colors.black.withOpacity(0.4)
+                              : Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-                        imageUrl: image,
-                        placeholder: (context, url) => Image(
-                          fit: BoxFit.cover,
-                          image: isPlaylist
-                              ? const AssetImage('assets/cover.jpg')
-                              : const AssetImage('assets/ytCover.png'),
-                        ),
-                      ),
+                      ],
                     ),
-                  ),
-                  if (isChart)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        color: Colors.black.withOpacity(0.75),
-                        width: tileWidth / 2.5,
-                        margin: const EdgeInsets.all(4.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              (extra['count'] ?? '').toString(),
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    clipBehavior: Clip.antiAlias,
+                    child: image.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: image,
+                            fit: BoxFit.cover,
+                            memCacheWidth:
+                                (boxSize * MediaQuery.of(context).devicePixelRatio)
+                                    .round(),
+                            memCacheHeight:
+                                (boxSize * MediaQuery.of(context).devicePixelRatio)
+                                    .round(),
+                            errorWidget: (context, _, __) => const ColoredBox(
+                              color: Colors.black12,
+                              child: Icon(Icons.music_note, size: 40),
                             ),
-                            const IconButton(
-                              onPressed: null,
-                              color: Colors.white,
-                              disabledColor: Colors.white,
-                              icon: Icon(
-                                Icons.playlist_play_rounded,
-                                size: 40,
-                              ),
-                            ),
-                          ],
-                        ),
+                          )
+                        : const ColoredBox(
+                            color: Colors.black12,
+                            child: Icon(Icons.music_note, size: 40),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: isArtist ? TextAlign.center : TextAlign.start,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (subtitle.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: isArtist ? TextAlign.center : TextAlign.start,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall!
+                            .color!
+                            .withOpacity(0.7),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Column(
-                children: [
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(context).textTheme.bodySmall!.color,
-                    ),
-                  ),
-                  const SizedBox(height: 5.0),
-                ],
-              ),
+              ],
             ),
-          ],
-        ),
-        builder: ({
-          required BuildContext context,
-          required bool isHover,
-          Widget? child,
-        }) {
-          return Card(
-            color: isHover ? null : Colors.transparent,
-            elevation: 0,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: child,
           );
         },
       ),
@@ -1056,7 +1185,7 @@ class _ShelfCard extends StatelessWidget {
 class _SkeletonCard extends StatefulWidget {
   final double width;
   final double height;
-  const _SkeletonCard({super.key, required this.width, required this.height});
+  const _SkeletonCard({required this.width, required this.height});
 
   @override
   State<_SkeletonCard> createState() => _SkeletonCardState();

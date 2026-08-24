@@ -486,32 +486,40 @@ class FormatResponse {
 
   static Future<Map> formatHomePageData(Map data) async {
     try {
-      if (data['new_trending'] != null) {
+      if (data['new_trending'] is List) {
         data['new_trending'] =
             await formatSongsInList(data['new_trending'] as List);
       }
-      if (data['new_albums'] != null) {
+      if (data['new_albums'] is List) {
         data['new_albums'] =
             await formatSongsInList(data['new_albums'] as List);
       }
-      if (data['city_mod'] != null) {
+      if (data['city_mod'] is List) {
         data['city_mod'] = await formatSongsInList(data['city_mod'] as List);
       }
       final List promoList = [];
       final List promoListTemp = [];
-      data['modules'].forEach((k, v) {
-        if (k.startsWith('promo') as bool) {
-          if (data[k][0]['type'] == 'song' &&
-              (data[k][0]['mini_obj'] as bool? ?? false)) {
-            promoListTemp.add(k.toString());
-          } else {
-            promoList.add(k.toString());
+      if (data['modules'] is Map) {
+        data['modules'].forEach((k, v) {
+          if (k.toString().startsWith('promo')) {
+            final item = data[k];
+            if (item is List &&
+                item.isNotEmpty &&
+                item[0] is Map &&
+                item[0]['type'] == 'song' &&
+                (item[0]['mini_obj'] as bool? ?? false)) {
+              promoListTemp.add(k.toString());
+            } else {
+              promoList.add(k.toString());
+            }
           }
-        }
-      });
+        });
+      }
       for (int i = 0; i < promoList.length; i++) {
-        data[promoList[i]] =
-            await formatSongsInList(data[promoList[i]] as List);
+        final String key = promoList[i].toString();
+        if (data[key] is List) {
+          data[key] = await formatSongsInList(data[key] as List);
+        }
       }
       data['collections'] = [
         'new_trending',
@@ -533,13 +541,17 @@ class FormatResponse {
 
   static Future<Map> formatPromoLists(Map data) async {
     try {
-      final List promoList = data['collections_temp'] as List;
-      for (int i = 0; i < promoList.length; i++) {
-        data[promoList[i]] =
-            await formatSongsInList(data[promoList[i]] as List);
+      final List? promoList = data['collections_temp'] as List?;
+      if (promoList != null) {
+        for (int i = 0; i < promoList.length; i++) {
+          final String key = promoList[i].toString();
+          if (data[key] is List) {
+            data[key] = await formatSongsInList(data[key] as List);
+          }
+        }
+        data['collections']?.addAll(promoList);
+        data['collections_temp'] = [];
       }
-      data['collections'].addAll(promoList);
-      data['collections_temp'] = [];
     } catch (e) {
       Logger.root.severe('Error inside formatPromoLists: $e');
     }

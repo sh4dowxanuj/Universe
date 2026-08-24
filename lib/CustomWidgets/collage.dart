@@ -63,37 +63,54 @@ class Collage extends StatelessWidget {
                           ]
                         : imageList)
                     .map(
-                      (image) => CachedNetworkImage(
-                        fit: BoxFit.cover,
-                        errorWidget: (context, _, __) => Image(
-                          fit: BoxFit.cover,
-                          image: AssetImage(placeholderImage),
-                        ),
-                        imageUrl: image['image']
-                            .toString()
-                            .replaceAll('http:', 'https:'),
-                        placeholder: (context, _) => Image(
-                          fit: BoxFit.cover,
-                          image: AssetImage(placeholderImage),
-                        ),
-                      ),
+                      (image) {
+                        final String url = image['image']
+                            ?.toString()
+                            .replaceAll('http:', 'https:')
+                            .trim() ??
+                            '';
+                        return url.isNotEmpty
+                            ? CachedNetworkImage(
+                                fit: BoxFit.cover,
+                                errorWidget: (context, _, __) => Image(
+                                  fit: BoxFit.cover,
+                                  image: AssetImage(placeholderImage),
+                                ),
+                                imageUrl: url,
+                                placeholder: (context, _) => Image(
+                                  fit: BoxFit.cover,
+                                  image: AssetImage(placeholderImage),
+                                ),
+                              )
+                            : Image(
+                                fit: BoxFit.cover,
+                                image: AssetImage(placeholderImage),
+                              );
+                      },
                     )
                     .toList(),
               )
-            : CachedNetworkImage(
-                fit: BoxFit.cover,
-                errorWidget: (context, _, __) => Image(
-                  fit: BoxFit.cover,
-                  image: AssetImage(placeholderImage),
-                ),
-                imageUrl: imageList[0]['image']
-                    .toString()
-                    .replaceAll('http:', 'https:'),
-                placeholder: (context, _) => Image(
-                  fit: BoxFit.cover,
-                  image: AssetImage(placeholderImage),
-                ),
-              ),
+            : (imageList.isNotEmpty &&
+                    imageList[0]['image']?.toString().trim().isNotEmpty == true)
+                ? CachedNetworkImage(
+                    fit: BoxFit.cover,
+                    errorWidget: (context, _, __) => Image(
+                      fit: BoxFit.cover,
+                      image: AssetImage(placeholderImage),
+                    ),
+                    imageUrl: imageList[0]['image']
+                        .toString()
+                        .replaceAll('http:', 'https:')
+                        .trim(),
+                    placeholder: (context, _) => Image(
+                      fit: BoxFit.cover,
+                      image: AssetImage(placeholderImage),
+                    ),
+                  )
+                : Image(
+                    fit: BoxFit.cover,
+                    image: AssetImage(placeholderImage),
+                  ),
       ),
     );
   }
