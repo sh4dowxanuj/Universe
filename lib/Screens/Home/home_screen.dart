@@ -57,10 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Hive.box('settings').get('name', defaultValue: 'Guest') as String;
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
-    return SafeArea(
-      child: Stack(
-        children: [
-          NestedScrollView(
+    return Stack(
+      children: [
+        NestedScrollView(
             physics: const BouncingScrollPhysics(),
             controller: _scrollController,
             headerSliverBuilder: (
@@ -272,11 +271,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (!rotated)
             homeDrawer(
-              context: context,
-              padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-            ),
-        ],
-      ),
+            context: context,
+            padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+          ),
+      ],
     );
   }
 }

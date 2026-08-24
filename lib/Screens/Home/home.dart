@@ -381,7 +381,10 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               // MiniPlayer sits directly above bottom navigation
-              miniplayer,
+              SizedBox(
+                height: 64.0,
+                child: miniplayer,
+              ),
               // Bottom Navigation without SafeArea to touch the bottom edge
               if (!rotated)
                 Container(
