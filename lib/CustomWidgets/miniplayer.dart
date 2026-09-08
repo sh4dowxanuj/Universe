@@ -81,7 +81,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
               return Future.value(false);
             },
             child: Container(
-              height: 64,
+              height: 80,
               margin: const EdgeInsets.symmetric(
                 horizontal: 2.0,
                 vertical: 1.0,
@@ -97,7 +97,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     miniplayerTile(
                       context: context,
                       preferredMiniButtons: preferredMiniButtons,
-                      useDense: true,
+                      useDense: false,
                       title: mediaItem?.title ?? '',
                       subtitle: mediaItem?.artist ?? '',
                       imagePath: (isLocal
