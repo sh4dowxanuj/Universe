@@ -50,22 +50,28 @@ android {
     // remove signingConfigs when running debug version
     signingConfigs {
         release {
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            v1SigningEnabled true
-            v2SigningEnabled true
+            if (keystoreProperties['storeFile'] != null) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
         }
     }
 
     buildTypes {
-        // replace release with "debug" when running on debug version
         release {
-            // TODO: Add your own signing config for the release build.
-            // replace with "debug" when running on debug version
-            signingConfig signingConfigs.release
+            if (keystoreProperties['storeFile'] != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             shrinkResources false
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
 

@@ -13,10 +13,7 @@ environment:
 dependencies:
   app_links: ^3.4.5
   audio_service: ^0.18.12
-  audiotagger:
-    git:
-      url: https://github.com/Sangwan5688/Audiotagger
-      ref: 90f2db5
+  audiotagger: ^2.2.1
   # bitsdojo_window: ^0.1.1+1 #For Desktops
   cached_network_image: ^3.3.0
   carousel_slider: ^4.2.1
@@ -52,10 +49,7 @@ dependencies:
   palette_generator: ^0.3.3+3
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
-  persistent_bottom_nav_bar:
-    git:
-      url: https://github.com/Sangwan5688/PersistentBottomNavBar
-      ref: ecdadb0
+  persistent_bottom_nav_bar: ^6.2.1
   receive_sharing_intent: ^1.4.5
   share_plus: ^7.0.2
   sizer: ^2.0.15
@@ -88,3 +82,6 @@ msix_config:
   icons_background_color: transparent
   logo_path: assets/ic_launcher.png
   file_extension: .mp3, .m4a
+
+dependency_overrides:
+  fading_edge_scrollview: ^4.1.1

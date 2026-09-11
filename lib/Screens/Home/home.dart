@@ -46,7 +46,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -275,6 +275,18 @@ class _HomePageState extends State<HomePage> {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
     final miniplayer = MiniPlayer();
+    final routeSettings = RouteAndNavigatorSettings(
+      routes: namedRoutes,
+      onGenerateRoute: (RouteSettings settings) {
+        if (settings.name == '/player') {
+          return PageRouteBuilder(
+            opaque: false,
+            pageBuilder: (_, __, ___) => const PlayScreen(),
+          );
+        }
+        return HandleRoute.handleRoute(settings.name);
+      },
+    );
     return GradientContainer(
       child: Scaffold(
         appBar: AppBar(
@@ -593,25 +605,6 @@ class _HomePageState extends State<HomePage> {
                 context,
                 controller: _controller,
                 itemCount: sectionsToShow.length,
-                navBarHeight: 60 +
-                    (rotated ? 0 : 70) +
-                    (useDense ? 0 : 10) +
-                    (rotated && useDense ? 10 : 0),
-                // confineInSafeArea: false,
-                onItemTapped: onItemTapped,
-                routeAndNavigatorSettings:
-                    CustomWidgetRouteAndNavigatorSettings(
-                  routes: namedRoutes,
-                  onGenerateRoute: (RouteSettings settings) {
-                    if (settings.name == '/player') {
-                      return PageRouteBuilder(
-                        opaque: false,
-                        pageBuilder: (_, __, ___) => const PlayScreen(),
-                      );
-                    }
-                    return HandleRoute.handleRoute(settings.name);
-                  },
-                ),
                 customWidget: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -626,7 +619,10 @@ class _HomePageState extends State<HomePage> {
                         ) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 100),
-                            height: 60,
+                            height: 60 +
+                                (rotated ? 0 : 70) +
+                                (useDense ? 0 : 10) +
+                                (rotated && useDense ? 10 : 0),
                             child: CustomBottomNavBar(
                               currentIndex: indexValue,
                               backgroundColor: Theme.of(context).brightness ==
@@ -646,17 +642,30 @@ class _HomePageState extends State<HomePage> {
                 screens: sectionsToShow.map((e) {
                   switch (e) {
                     case 'Home':
-                      return const HomeScreen();
+                      return CustomNavBarScreen(
+                        screen: const HomeScreen(),
+                        routeAndNavigatorSettings: routeSettings,
+                      );
                     case 'Top Charts':
-                      return TopCharts(
-                        pageController: _pageController,
+                      return CustomNavBarScreen(
+                        screen: TopCharts(pageController: _pageController),
+                        routeAndNavigatorSettings: routeSettings,
                       );
                     case 'YouTube':
-                      return const YouTube();
+                      return CustomNavBarScreen(
+                        screen: const YouTube(),
+                        routeAndNavigatorSettings: routeSettings,
+                      );
                     case 'Library':
-                      return const LibraryPage();
+                      return CustomNavBarScreen(
+                        screen: const LibraryPage(),
+                        routeAndNavigatorSettings: routeSettings,
+                      );
                     default:
-                      return NewSettingsPage(callback: callback);
+                      return CustomNavBarScreen(
+                        screen: NewSettingsPage(callback: callback),
+                        routeAndNavigatorSettings: routeSettings,
+                      );
                   }
                 }).toList(),
               ),
