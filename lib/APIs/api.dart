@@ -57,19 +57,29 @@ class SaavnAPI {
     bool usev4 = true,
     bool useProxy = true,
   }) async {
-    Uri url;
-    if (!usev4) {
-      url = Uri.https(
-        baseUrl,
-        '$apiStr&$params'.replaceAll('&api_version=4', ''),
-      );
-    } else {
-      url = Uri.https(baseUrl, '$apiStr&$params');
-    }
+    final Map<String, String> queryParams = Uri.splitQueryString(params);
+    final Uri url = Uri.https(
+      baseUrl,
+      '/api.php',
+      {
+        '_format': 'json',
+        '_marker': '0',
+        if (usev4) 'api_version': '4',
+        'ctx': 'web6dot0',
+        ...queryParams,
+      },
+    );
     preferredLanguages =
         preferredLanguages.map((lang) => lang.toLowerCase()).toList();
     final String languageHeader = 'L=${preferredLanguages.join('%2C')}';
-    headers = {'cookie': languageHeader, 'Accept': '*/*'};
+    headers = {
+      'cookie': languageHeader,
+      'Accept': '*/*',
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Referer': 'https://www.jiosaavn.com/',
+    };
 
     if (useProxy && settingsBox.get('useProxy', defaultValue: false) as bool) {
       final String proxyIP =
@@ -633,9 +643,11 @@ class SaavnAPI {
       final res = await getResponse(params);
       if (res.statusCode == 200) {
         final Map data = json.decode(res.body) as Map;
-        return await FormatResponse.formatSingleSongResponse(
-          data['songs'][0] as Map,
-        );
+        if (data['songs'] is List && (data['songs'] as List).isNotEmpty) {
+          return await FormatResponse.formatSingleSongResponse(
+            data['songs'][0] as Map,
+          );
+        }
       }
     } catch (e) {
       Logger.root.severe('Error in fetchSongDetails: $e');

@@ -143,7 +143,9 @@ class FormatResponse {
             : response['more_info']['music'],
         'image': getImageUrl(response['image'].toString()),
         'perma_url': response['perma_url'],
-        'url': decode(response['more_info']['encrypted_media_url'].toString()),
+        'url': response['more_info']['encrypted_media_url'] == null
+            ? ''
+            : decode(response['more_info']['encrypted_media_url'].toString()),
       };
       // Hive.box('cache').put(response['id'].toString(), info);
     } catch (e) {
@@ -486,16 +488,20 @@ class FormatResponse {
 
   static Future<Map> formatHomePageData(Map data) async {
     try {
-      if (data['new_trending'] != null) {
-        data['new_trending'] =
-            await formatSongsInList(data['new_trending'] as List);
-      }
-      if (data['new_albums'] != null) {
-        data['new_albums'] =
-            await formatSongsInList(data['new_albums'] as List);
-      }
-      if (data['city_mod'] != null) {
-        data['city_mod'] = await formatSongsInList(data['city_mod'] as List);
+      const mainCollections = [
+        'new_trending',
+        'charts',
+        'new_albums',
+        'tag_mixes',
+        'top_playlists',
+        'radio',
+        'city_mod',
+        'artist_recos',
+      ];
+      for (final String key in mainCollections) {
+        if (data[key] is List) {
+          data[key] = await formatSongsInList(data[key] as List);
+        }
       }
       final List promoList = [];
       final List promoListTemp = [];
@@ -514,14 +520,7 @@ class FormatResponse {
             await formatSongsInList(data[promoList[i]] as List);
       }
       data['collections'] = [
-        'new_trending',
-        'charts',
-        'new_albums',
-        'tag_mixes',
-        'top_playlists',
-        'radio',
-        'city_mod',
-        'artist_recos',
+        ...mainCollections.where((key) => data[key] is List),
         ...promoList,
       ];
       data['collections_temp'] = promoListTemp;
