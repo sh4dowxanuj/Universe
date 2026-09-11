@@ -68,10 +68,6 @@ class _HomePageState extends State<HomePage> {
     defaultValue: ['Home', 'Top Charts', 'YouTube', 'Library'],
   ) as List;
   DateTime? backButtonPressTime;
-  final bool useDense = Hive.box('settings').get(
-    'useDenseMini',
-    defaultValue: false,
-  ) as bool;
 
   void callback() {
     sectionsToShow = Hive.box('settings').get(
@@ -601,73 +597,76 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             Expanded(
-              child: PersistentTabView.custom(
-                context,
-                controller: _controller,
-                itemCount: sectionsToShow.length,
-                customWidget: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    miniplayer,
-                    if (!rotated)
-                      ValueListenableBuilder(
-                        valueListenable: _selectedIndex,
-                        builder: (
-                          BuildContext context,
-                          int indexValue,
-                          Widget? child,
-                        ) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 100),
-                            height: 60 +
-                                (rotated ? 0 : 70) +
-                                (useDense ? 0 : 10) +
-                                (rotated && useDense ? 10 : 0),
-                            child: CustomBottomNavBar(
-                              currentIndex: indexValue,
-                              backgroundColor: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.black.withOpacity(0.9)
-                                  : Colors.white.withOpacity(0.9),
-                              onTap: (index) {
-                                onItemTapped(index);
-                              },
-                              items: _navBarItems(context),
-                            ),
+              child: Stack(
+                children: [
+                  PersistentTabView.custom(
+                    context,
+                    controller: _controller,
+                    itemCount: sectionsToShow.length,
+                    navBarHeight: rotated ? 0 : 80,
+                    backgroundColor: Colors.transparent,
+                    customWidget: rotated
+                        ? const SizedBox.shrink()
+                        : ValueListenableBuilder(
+                            valueListenable: _selectedIndex,
+                            builder: (
+                              BuildContext context,
+                              int indexValue,
+                              Widget? child,
+                            ) {
+                              return CustomBottomNavBar(
+                                currentIndex: indexValue,
+                                backgroundColor:
+                                    Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.black.withOpacity(0.9)
+                                        : Colors.white.withOpacity(0.9),
+                                onTap: (index) {
+                                  onItemTapped(index);
+                                },
+                                items: _navBarItems(context),
+                              );
+                            },
+                          ),
+                    screens: sectionsToShow.map((e) {
+                      switch (e) {
+                        case 'Home':
+                          return CustomNavBarScreen(
+                            screen: const HomeScreen(),
+                            routeAndNavigatorSettings: routeSettings,
                           );
-                        },
-                      ),
-                  ],
-                ),
-                screens: sectionsToShow.map((e) {
-                  switch (e) {
-                    case 'Home':
-                      return CustomNavBarScreen(
-                        screen: const HomeScreen(),
-                        routeAndNavigatorSettings: routeSettings,
-                      );
-                    case 'Top Charts':
-                      return CustomNavBarScreen(
-                        screen: TopCharts(pageController: _pageController),
-                        routeAndNavigatorSettings: routeSettings,
-                      );
-                    case 'YouTube':
-                      return CustomNavBarScreen(
-                        screen: const YouTube(),
-                        routeAndNavigatorSettings: routeSettings,
-                      );
-                    case 'Library':
-                      return CustomNavBarScreen(
-                        screen: const LibraryPage(),
-                        routeAndNavigatorSettings: routeSettings,
-                      );
-                    default:
-                      return CustomNavBarScreen(
-                        screen: NewSettingsPage(callback: callback),
-                        routeAndNavigatorSettings: routeSettings,
-                      );
-                  }
-                }).toList(),
+                        case 'Top Charts':
+                          return CustomNavBarScreen(
+                            screen: TopCharts(pageController: _pageController),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        case 'YouTube':
+                          return CustomNavBarScreen(
+                            screen: const YouTube(),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        case 'Library':
+                          return CustomNavBarScreen(
+                            screen: const LibraryPage(),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        default:
+                          return CustomNavBarScreen(
+                            screen: NewSettingsPage(callback: callback),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                      }
+                    }).toList(),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: rotated
+                        ? 0
+                        : 80,
+                    child: miniplayer,
+                  ),
+                ],
               ),
             ),
           ],
