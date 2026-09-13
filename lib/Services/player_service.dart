@@ -26,9 +26,11 @@ import 'package:blackhole/Services/youtube_services.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:logging/logging.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
+
+// Device-facing diagnostics for the YouTube playback path.
+// ignore_for_file: avoid_print
 
 // ignore: avoid_classes_with_only_static_members
 class PlayerInvoke {
@@ -185,70 +187,30 @@ class PlayerInvoke {
   }
 
   static Future<void> refreshYtLink(Map playItem) async {
-    // final bool cacheSong =
-    // Hive.box('settings').get('cacheSong', defaultValue: true) as bool;
-    final int expiredAt = int.parse((playItem['expire_at'] ?? '0').toString());
-    if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 > expiredAt) {
-      Logger.root.info(
-        'before service | youtube link expired for ${playItem["title"]}',
+    print(
+      '[YouTubePlayback] requesting fresh link for ${playItem["title"]} (${playItem["id"]})',
+    );
+    try {
+      final newData = await YouTubeServices.instance.refreshLink(
+        playItem['id'].toString(),
+        useYTM: false,
       );
-      if (Hive.box('ytlinkcache').containsKey(playItem['id'])) {
-        final cache = await Hive.box('ytlinkcache').get(playItem['id']);
-        if (cache is List) {
-          int minExpiredAt = 0;
-          for (final e in cache) {
-            final int cachedExpiredAt = int.parse(e['expireAt'].toString());
-            if (minExpiredAt == 0 || cachedExpiredAt < minExpiredAt) {
-              minExpiredAt = cachedExpiredAt;
-            }
-          }
-
-          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
-              minExpiredAt) {
-            // cache expired
-            Logger.root
-                .info('youtube link expired in cache for ${playItem["title"]}');
-            final newData = await YouTubeServices.instance
-                .refreshLink(playItem['id'].toString());
-            Logger.root.info(
-              'before service | received new link for ${playItem["title"]}',
-            );
-            if (newData != null) {
-              playItem['url'] = newData['url'];
-              playItem['duration'] = newData['duration'];
-              playItem['expire_at'] = newData['expire_at'];
-            }
-          } else {
-            // giving cache link
-            Logger.root
-                .info('youtube link found in cache for ${playItem["title"]}');
-            playItem['url'] = cache.last['url'];
-            playItem['expire_at'] = cache.last['expireAt'];
-          }
-        } else {
-          final newData = await YouTubeServices.instance
-              .refreshLink(playItem['id'].toString());
-          Logger.root.info(
-            'before service | received new link for ${playItem["title"]}',
-          );
-          if (newData != null) {
-            playItem['url'] = newData['url'];
-            playItem['duration'] = newData['duration'];
-            playItem['expire_at'] = newData['expire_at'];
-          }
-        }
-      } else {
-        final newData = await YouTubeServices.instance
-            .refreshLink(playItem['id'].toString());
-        Logger.root.info(
-          'before service | received new link for ${playItem["title"]}',
+      if (newData != null && newData['url'].toString().isNotEmpty) {
+        playItem['url'] = newData['url'];
+        playItem['allUrls'] = newData['allUrls'];
+        playItem['urlsData'] = newData['urlsData'];
+        playItem['duration'] = newData['duration'];
+        playItem['expire_at'] = newData['expire_at'];
+        final parsedUrl = Uri.tryParse(newData['url'].toString());
+        print(
+          '[YouTubePlayback] fresh link received: host=${parsedUrl?.host}, '
+          'expire=${newData["expire_at"]}',
         );
-        if (newData != null) {
-          playItem['url'] = newData['url'];
-          playItem['duration'] = newData['duration'];
-          playItem['expire_at'] = newData['expire_at'];
-        }
+      } else {
+        print('[YouTubePlayback] no fresh link for ${playItem["id"]}');
       }
+    } catch (e, stackTrace) {
+      print('[YouTubePlayback] refresh failed: $e\n$stackTrace');
     }
   }
 

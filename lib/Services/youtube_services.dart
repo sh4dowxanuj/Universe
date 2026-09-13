@@ -26,6 +26,7 @@ import 'package:html_unescape/html_unescape_small.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:youtube_explode_webview/youtube_explode_webview.dart';
 
 class YouTubeServices {
   static const String searchAuthority = 'www.youtube.com';
@@ -37,9 +38,10 @@ class YouTubeServices {
   };
   static const Map<String, String> headers = {
     'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; rv:96.0) Gecko/20100101 Firefox/96.0',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   };
-  final YoutubeExplode yt = YoutubeExplode();
+  YoutubeExplode yt = YoutubeExplode();
+  bool _initialized = false;
 
   YouTubeServices._privateConstructor();
 
@@ -48,6 +50,17 @@ class YouTubeServices {
 
   static YouTubeServices get instance {
     return _instance;
+  }
+
+  Future<void> init() async {
+    if (_initialized) return;
+    try {
+      final solver = await WebviewEJSSolver.init();
+      yt = YoutubeExplode(jsSolver: solver);
+    } catch (e) {
+      Logger.root.severe('Failed to initialize YouTube Solver', e);
+    }
+    _initialized = true;
   }
 
   Future<List<Video>> getPlaylistSongs(String id) async {
@@ -370,6 +383,10 @@ class YouTubeServices {
     String expireAt = '0';
     if (getUrl) {
       urlsData = await getYtStreamUrls(video.id.value);
+      if (urlsData.isEmpty) {
+        Logger.root.warning('No playable YouTube streams found for ${video.id}');
+        return null;
+      }
       final Map finalUrlData =
           quality == 'High' ? urlsData.last : urlsData.first;
       finalUrl = finalUrlData['url'].toString();
@@ -530,37 +547,10 @@ class YouTubeServices {
 
   Future<List<Map>> getYtStreamUrls(String videoId) async {
     try {
-      List<Map> urlData = [];
-
-      // check cache first
-      if (Hive.box('ytlinkcache').containsKey(videoId)) {
-        final cachedData = Hive.box('ytlinkcache').get(videoId);
-        if (cachedData is List) {
-          int minExpiredAt = 0;
-          for (final e in cachedData) {
-            final int cachedExpiredAt = int.parse(e['expireAt'].toString());
-            if (minExpiredAt == 0 || cachedExpiredAt < minExpiredAt) {
-              minExpiredAt = cachedExpiredAt;
-            }
-          }
-
-          if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
-              minExpiredAt) {
-            // cache expired
-            urlData = await getUri(videoId);
-          } else {
-            // giving cache link
-            Logger.root.info('cache found for $videoId');
-            urlData = cachedData as List<Map>;
-          }
-        } else {
-          // old version cache is present
-          urlData = await getUri(videoId);
-        }
-      } else {
-        //cache not present
-        urlData = await getUri(videoId);
-      }
+      // YouTube can revoke signed URLs before their embedded expiry time.
+      // Always request a fresh URL for playback; Hive remains a diagnostic
+      // cache and is updated below for callers that inspect it.
+      final List<Map> urlData = await getUri(videoId);
 
       try {
         await Hive.box('ytlinkcache')
@@ -610,22 +600,42 @@ class YouTubeServices {
     String videoId, {
     bool onlyMp4 = false,
   }) async {
-    final StreamManifest manifest =
-        await yt.videos.streamsClient.getManifest(VideoId(videoId));
-    final List<AudioOnlyStreamInfo> sortedStreamInfo = manifest.audioOnly
-        .toList()
-      ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
-    if (onlyMp4 || Platform.isIOS || Platform.isMacOS) {
-      final List<AudioOnlyStreamInfo> m4aStreams = sortedStreamInfo
-          .where((element) => element.audioCodec.contains('mp4'))
-          .toList();
+    await init();
+    final clients = [
+      YoutubeApiClient.androidSdkless,
+      YoutubeApiClient.ios,
+      YoutubeApiClient.androidVr,
+      YoutubeApiClient.tv,
+    ];
+    for (final client in clients) {
+      try {
+        final StreamManifest manifest = await yt.videos.streams.getManifest(
+          videoId,
+          ytClients: [client],
+        );
+        final List<AudioOnlyStreamInfo> sortedStreamInfo = manifest.audioOnly
+            .toList()
+          ..sort((a, b) => a.bitrate.compareTo(b.bitrate));
+        if (sortedStreamInfo.isEmpty) continue;
 
-      if (m4aStreams.isNotEmpty) {
-        return m4aStreams;
+        if (onlyMp4 || Platform.isIOS || Platform.isMacOS) {
+          final List<AudioOnlyStreamInfo> m4aStreams = sortedStreamInfo
+              .where((element) => element.audioCodec.contains('mp4'))
+              .toList();
+
+          if (m4aStreams.isNotEmpty) {
+            return m4aStreams;
+          }
+        } else {
+          return sortedStreamInfo;
+        }
+      } catch (e) {
+        Logger.root.warning(
+          'YouTube stream client failed for $videoId: $e',
+        );
       }
     }
-
-    return sortedStreamInfo;
+    return [];
   }
 
   Stream<List<int>> getStreamClient(

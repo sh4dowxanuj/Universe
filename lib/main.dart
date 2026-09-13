@@ -27,6 +27,7 @@ import 'package:blackhole/Helpers/logging.dart';
 import 'package:blackhole/Helpers/route_handler.dart';
 import 'package:blackhole/Screens/Common/routes.dart';
 import 'package:blackhole/Screens/Player/audioplayer.dart';
+import 'package:blackhole/Services/youtube_services.dart';
 import 'package:blackhole/constants/constants.dart';
 import 'package:blackhole/constants/languagecodes.dart';
 import 'package:blackhole/providers/audio_service_provider.dart';
@@ -92,6 +93,7 @@ Future<void> setOptimalDisplayMode() async {
 Future<void> startService() async {
   await initializeLogging();
   MetadataGod.initialize();
+  await YouTubeServices.instance.init();
   final audioHandlerHelper = AudioHandlerHelper();
   final AudioPlayerHandler audioHandler =
       await audioHandlerHelper.getAudioHandler();

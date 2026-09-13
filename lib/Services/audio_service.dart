@@ -28,6 +28,7 @@ import 'package:blackhole/Helpers/mediaitem_converter.dart';
 import 'package:blackhole/Helpers/playlist.dart';
 import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:blackhole/Services/isolate_service.dart';
+import 'package:blackhole/Services/youtube_audio_source.dart';
 import 'package:blackhole/Services/yt_music.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
@@ -36,6 +37,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
+
+// Device-facing diagnostics for the YouTube playback path.
+// ignore_for_file: avoid_print
 
 class AudioPlayerHandlerImpl extends BaseAudioHandler
     with QueueHandler, SeekHandler
@@ -441,6 +445,14 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           );
         } else {
           if (mediaItem.genre == 'YouTube') {
+            final youtubeUrl = Uri.tryParse(
+              mediaItem.extras!['url'].toString(),
+            );
+            print(
+              '[YouTubePlayback] creating direct source: id=${mediaItem.id}, '
+              'host=${youtubeUrl?.host}, expire=${mediaItem.extras!['expire_at']}, '
+              'proxy=false',
+            );
             final int expiredAt =
                 int.parse((mediaItem.extras!['expire_at'] ?? '0').toString());
             if ((DateTime.now().millisecondsSinceEpoch ~/ 1000) + 350 >
@@ -473,17 +485,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                     Logger.root.info(
                       'youtube link found in cache for ${mediaItem.title}',
                     );
-                    if (cacheSong) {
-                      // Change this to handle yt quality
-                      audioSource = LockCachingAudioSource(
-                        Uri.parse(cachedData.last['url'].toString()),
-                      );
-                    } else {
-                      // Change this to handle yt quality
-                      audioSource = AudioSource.uri(
-                        Uri.parse(cachedData.last['url'].toString()),
-                      );
-                    }
+                    audioSource = YouTubeAudioSource(
+                      Uri.parse(cachedData.last['url'].toString()),
+                    );
                     mediaItem.extras!['url'] = cachedData.last['url'];
                     _mediaItemExpando[audioSource] = mediaItem;
                     return audioSource;
@@ -507,15 +511,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                 }
               }
             } else {
-              if (cacheSong) {
-                audioSource = LockCachingAudioSource(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              } else {
-                audioSource = AudioSource.uri(
-                  Uri.parse(mediaItem.extras!['url'].toString()),
-                );
-              }
+              audioSource = YouTubeAudioSource(
+                Uri.parse(mediaItem.extras!['url'].toString()),
+              );
               _mediaItemExpando[audioSource] = mediaItem;
               return audioSource;
             }
