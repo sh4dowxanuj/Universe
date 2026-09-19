@@ -43,85 +43,95 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final List preferredMiniButtons = Hive.box('settings').get(
-      'preferredMiniButtons',
-      defaultValue: ['Like', 'Play/Pause', 'Next'],
-    )?.toList() as List;
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final double screenHeight = MediaQuery.sizeOf(context).height;
+    final bool rotated = screenHeight < screenWidth;
+    return SafeArea(
+      top: false,
+      child: StreamBuilder<MediaItem?>(
+        stream: audioHandler.mediaItem,
+        builder: (context, snapshot) {
+          // if (snapshot.connectionState != ConnectionState.active) {
+          //   return const SizedBox();
+          // }
+          final MediaItem? mediaItem = snapshot.data;
+          // if (mediaItem == null) return const SizedBox();
 
-    return StreamBuilder<MediaItem?>(
-      stream: audioHandler.mediaItem,
-      builder: (context, snapshot) {
-        final MediaItem? mediaItem = snapshot.data;
-        final bool isLocal =
-            mediaItem?.artUri?.toString().startsWith('file:') ?? false;
+          final List preferredMiniButtons = Hive.box('settings').get(
+            'preferredMiniButtons',
+            defaultValue: ['Like', 'Play/Pause', 'Next'],
+          )?.toList() as List;
 
-        return Dismissible(
-          key: const Key('miniplayer'),
-          direction: DismissDirection.vertical,
-          confirmDismiss: (DismissDirection direction) {
-            if (mediaItem != null) {
-              if (direction == DismissDirection.down) {
-                audioHandler.stop();
-              } else {
-                Navigator.pushNamed(context, '/player');
-              }
-            }
-            return Future.value(false);
-          },
-          child: Dismissible(
-            key: Key(mediaItem?.id ?? 'nothingPlaying'),
+          final bool isLocal =
+              mediaItem?.artUri?.toString().startsWith('file:') ?? false;
+
+          final bool useDense = Hive.box('settings').get(
+                'useDenseMini',
+                defaultValue: false,
+              ) as bool ||
+              rotated;
+
+          return Dismissible(
+            key: const Key('miniplayer'),
+            direction: DismissDirection.vertical,
             confirmDismiss: (DismissDirection direction) {
               if (mediaItem != null) {
-                if (direction == DismissDirection.startToEnd) {
-                  audioHandler.skipToPrevious();
+                if (direction == DismissDirection.down) {
+                  audioHandler.stop();
                 } else {
-                  audioHandler.skipToNext();
+                  Navigator.pushNamed(context, '/player');
                 }
               }
               return Future.value(false);
             },
-            child: Container(
-              height: 80,
-              margin: const EdgeInsets.symmetric(
-                horizontal: 2.0,
-                vertical: 1.0,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: GradientContainer(
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    miniplayerTile(
-                      context: context,
-                      preferredMiniButtons: preferredMiniButtons,
-                      useDense: false,
-                      title: mediaItem?.title ?? '',
-                      subtitle: mediaItem?.artist ?? '',
-                      imagePath: (isLocal
-                              ? mediaItem?.artUri?.toFilePath()
-                              : mediaItem?.artUri?.toString()) ??
-                          '',
-                      isLocalImage: isLocal,
-                      isDummy: mediaItem == null,
+            child: Dismissible(
+              key: Key(mediaItem?.id ?? 'nothingPlaying'),
+              confirmDismiss: (DismissDirection direction) {
+                if (mediaItem != null) {
+                  if (direction == DismissDirection.startToEnd) {
+                    audioHandler.skipToPrevious();
+                  } else {
+                    audioHandler.skipToNext();
+                  }
+                }
+                return Future.value(false);
+              },
+              child: Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 2.0,
+                  vertical: 1.0,
+                ),
+                elevation: 0,
+                child: SizedBox(
+                  child: GradientContainer(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        miniplayerTile(
+                          context: context,
+                          preferredMiniButtons: preferredMiniButtons,
+                          useDense: useDense,
+                          title: mediaItem?.title ?? '',
+                          subtitle: mediaItem?.artist ?? '',
+                          imagePath: (isLocal
+                                  ? mediaItem?.artUri?.toFilePath()
+                                  : mediaItem?.artUri?.toString()) ??
+                              '',
+                          isLocalImage: isLocal,
+                          isDummy: mediaItem == null,
+                        ),
+                        positionSlider(
+                          mediaItem?.duration?.inSeconds.toDouble(),
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: positionSlider(
-                        mediaItem?.duration?.inSeconds.toDouble(),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

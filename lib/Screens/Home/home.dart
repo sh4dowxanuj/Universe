@@ -17,6 +17,8 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+import 'dart:io';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -24,6 +26,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'package:universe/CustomWidgets/bottom_nav_bar.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
 import 'package:universe/CustomWidgets/gradient_containers.dart';
 import 'package:universe/CustomWidgets/miniplayer.dart';
@@ -32,16 +36,18 @@ import 'package:universe/Helpers/backup_restore.dart';
 import 'package:universe/Helpers/downloads_checker.dart';
 import 'package:universe/Helpers/github.dart';
 import 'package:universe/Helpers/platform_check.dart';
+import 'package:universe/Helpers/route_handler.dart';
 import 'package:universe/Helpers/update.dart';
+import 'package:universe/Screens/Common/routes.dart';
 import 'package:universe/Screens/Home/home_screen.dart';
 import 'package:universe/Screens/Library/library.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs.dart';
 import 'package:universe/Screens/LocalMusic/downed_songs_desktop.dart';
+import 'package:universe/Screens/Player/audioplayer.dart';
 import 'package:universe/Screens/Settings/new_settings_page.dart';
 import 'package:universe/Screens/Top Charts/top.dart';
 import 'package:universe/Screens/YouTube/youtube_home.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
-// Removed PersistentTabView usage to eliminate reserved blank space
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -63,25 +69,21 @@ class _HomePageState extends State<HomePage> {
     defaultValue: ['Home', 'YouTube', 'Library', 'Settings'],
   ) as List;
   DateTime? backButtonPressTime;
-  final bool useDense = Hive.box('settings').get(
-    'useDenseMini',
-    defaultValue: false,
-  ) as bool;
 
   void callback() {
     sectionsToShow = Hive.box('settings').get(
       'sectionsToShow',
-      defaultValue: ['Home', 'Top Charts', 'YouTube', 'Library'],
+      defaultValue: ['Home', 'YouTube', 'Library', 'Settings'],
     ) as List;
     onItemTapped(0);
     setState(() {});
   }
 
   void onItemTapped(int index) {
-    if (_selectedIndex.value != index) {
-      _selectedIndex.value = index;
-      setState(() {});
-    }
+    _selectedIndex.value = index;
+    _controller.jumpToTab(
+      index,
+    );
   }
 
   // Future<bool> handleWillPop(BuildContext? context) async {
@@ -250,6 +252,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   final PageController _pageController = PageController();
+  final PersistentTabController _controller = PersistentTabController();
 
   @override
   void initState() {
@@ -259,6 +262,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _controller.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -268,433 +272,442 @@ class _HomePageState extends State<HomePage> {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
     final miniplayer = MiniPlayer();
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        bottom: false, // Don't apply SafeArea to bottom to allow navigation bar to touch edge
-        child: GradientContainer(
-          child: Column(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    if (rotated)
-                      ValueListenableBuilder(
-                        valueListenable: _selectedIndex,
-                        builder: (BuildContext context, int indexValue, Widget? child) {
-                          return NavigationRail(
-                            minWidth: 70.0,
-                            groupAlignment: 0.0,
-                            backgroundColor: Theme.of(context).cardColor,
-                            selectedIndex: indexValue,
-                            onDestinationSelected: (int index) {
-                              onItemTapped(index);
-                            },
-                            labelType: screenWidth > 1050
-                                ? NavigationRailLabelType.selected
-                                : NavigationRailLabelType.none,
-                            selectedLabelTextStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.secondary,
-                              fontWeight: FontWeight.w600,
+    final routeSettings = RouteAndNavigatorSettings(
+      routes: namedRoutes,
+      onGenerateRoute: (RouteSettings settings) {
+        if (settings.name == '/player') {
+          return PageRouteBuilder(
+            opaque: false,
+            pageBuilder: (_, __, ___) => const PlayScreen(),
+          );
+        }
+        return HandleRoute.handleRoute(settings.name);
+      },
+    );
+    return GradientContainer(
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 0,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        extendBodyBehindAppBar: true,
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.transparent,
+        drawer: Drawer(
+          child: GradientContainer(
+            child: CustomScrollView(
+              shrinkWrap: true,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: Colors.transparent,
+                  automaticallyImplyLeading: false,
+                  elevation: 0,
+                  stretch: true,
+                  expandedHeight: MediaQuery.sizeOf(context).height * 0.2,
+                  flexibleSpace: FlexibleSpaceBar(
+                    title: RichText(
+                      text: TextSpan(
+                        text: AppLocalizations.of(context)!.appTitle,
+                        style: const TextStyle(
+                          fontSize: 30.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: appVersion == null ? '' : '\nv$appVersion',
+                            style: const TextStyle(
+                              fontSize: 7.0,
                             ),
-                            unselectedLabelTextStyle: TextStyle(
-                              color: Theme.of(context).iconTheme.color,
-                            ),
-                            selectedIconTheme: Theme.of(context).iconTheme.copyWith(
-                                  color: Theme.of(context).colorScheme.secondary,
-                                ),
-                            unselectedIconTheme: Theme.of(context).iconTheme,
-                            useIndicator: screenWidth < 1050,
-                            indicatorColor: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withOpacity(0.2),
-                            leading: homeDrawer(
-                              context: context,
-                              padding: const EdgeInsets.symmetric(vertical: 5.0),
-                            ),
-                            destinations: sectionsToShow.map((e) {
-                              switch (e) {
-                                case 'Home':
-                                  return NavigationRailDestination(
-                                    icon: const Icon(Icons.home_rounded),
-                                    label: Text(AppLocalizations.of(context)!.home),
-                                  );
-                                case 'Top Charts':
-                                  return NavigationRailDestination(
-                                    icon: const Icon(Icons.trending_up_rounded),
-                                    label: Text(
-                                      AppLocalizations.of(context)!.topCharts,
-                                    ),
-                                  );
-                                case 'YouTube':
-                                  return NavigationRailDestination(
-                                    icon: const Icon(MdiIcons.youtube),
-                                    label: Text(AppLocalizations.of(context)!.youTube),
-                                  );
-                                case 'Library':
-                                  return NavigationRailDestination(
-                                    icon: const Icon(Icons.my_library_music_rounded),
-                                    label: Text(AppLocalizations.of(context)!.library),
-                                  );
-                                default:
-                                  return NavigationRailDestination(
-                                    icon: const Icon(Icons.settings_rounded),
-                                    label: Text(
-                                      AppLocalizations.of(context)!.settings,
-                                    ),
-                                  );
-                              }
-                            }).toList(),
-                          );
-                        },
+                          ),
+                        ],
                       ),
-                    Expanded(
-                      child: ValueListenableBuilder(
-                        valueListenable: _selectedIndex,
-                        builder: (context, indexValue, _) {
-                          final screens = sectionsToShow.map((e) {
-                            switch (e) {
-                              case 'Home':
-                                return const HomeScreen();
-                              case 'Top Charts':
-                                return TopCharts(
-                                  pageController: _pageController,
-                                );
-                              case 'YouTube':
-                                return const YouTube();
-                              case 'Library':
-                                return const LibraryPage();
-                              default:
-                                return NewSettingsPage(callback: callback);
-                            }
-                          }).toList();
-                          return IndexedStack(
-                            index: indexValue,
-                            children: screens,
-                          );
-                        },
-                      ),
+                      textAlign: TextAlign.end,
                     ),
-                  ],
-                ),
-              ),
-              // MiniPlayer sits directly above bottom navigation
-              SizedBox(
-                height: 80.0,
-                child: miniplayer,
-              ),
-              // Bottom Navigation without SafeArea to touch the bottom edge
-              if (!rotated)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.black.withOpacity(0.9)
-                        : Colors.white.withOpacity(0.9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: SafeArea(
-                    top: false, // Only apply SafeArea to bottom for navigation gesture area
-                    child: ValueListenableBuilder(
-                      valueListenable: _selectedIndex,
-                      builder: (
-                        BuildContext context,
-                        int indexValue,
-                        Widget? child,
-                      ) {
-                        return BottomNavigationBar(
-                          type: BottomNavigationBarType.fixed,
-                          currentIndex: indexValue,
-                          onTap: onItemTapped,
-                          backgroundColor: Colors.transparent,
-                          elevation: 0,
-                          selectedItemColor: Theme.of(context).colorScheme.secondary,
-                          unselectedItemColor: Theme.of(context).iconTheme.color,
-                          items: _buildBottomNavItems(context),
+                    titlePadding: const EdgeInsets.only(bottom: 40.0),
+                    centerTitle: true,
+                    background: ShaderMask(
+                      shaderCallback: (rect) {
+                        return LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.8),
+                            Colors.black.withOpacity(0.1),
+                          ],
+                        ).createShader(
+                          Rect.fromLTRB(0, 0, rect.width, rect.height),
                         );
                       },
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-      drawer: Drawer(
-        child: GradientContainer(
-          child: CustomScrollView(
-            shrinkWrap: true,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                backgroundColor: Colors.transparent,
-                automaticallyImplyLeading: false,
-                elevation: 0,
-                stretch: true,
-                expandedHeight: MediaQuery.sizeOf(context).height * 0.2,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: RichText(
-                    text: TextSpan(
-                      text: AppLocalizations.of(context)!.appTitle,
-                      style: const TextStyle(
-                        fontSize: 30.0,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: appVersion == null ? '' : '\nv$appVersion',
-                          style: const TextStyle(
-                            fontSize: 7.0,
-                          ),
+                      blendMode: BlendMode.dstIn,
+                      child: Image(
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        image: AssetImage(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? 'assets/header-dark.jpg'
+                              : 'assets/header.jpg',
                         ),
-                      ],
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                  titlePadding: const EdgeInsets.only(bottom: 40.0),
-                  centerTitle: true,
-                  background: ShaderMask(
-                    shaderCallback: (rect) {
-                      return LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.black.withOpacity(0.1),
-                        ],
-                      ).createShader(
-                        Rect.fromLTRB(0, 0, rect.width, rect.height),
-                      );
-                    },
-                    blendMode: BlendMode.dstIn,
-                    child: Image(
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      image: AssetImage(
-                        Theme.of(context).brightness == Brightness.dark
-                            ? 'assets/header-dark.jpg'
-                            : 'assets/header.jpg',
                       ),
                     ),
                   ),
                 ),
-              ),
-              SliverList(
-                delegate: SliverChildListDelegate(
-                  [
-                    ValueListenableBuilder(
-                      valueListenable: _selectedIndex,
-                      builder: (
-                        BuildContext context,
-                        int snapshot,
-                        Widget? child,
-                      ) {
-                        return Column(
-                          children: [
-                            ListTile(
-                              title: Text(
-                                AppLocalizations.of(context)!.home,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                              ),
-                              leading: const Icon(
-                                Icons.home_rounded,
-                              ),
-                              selected: _selectedIndex.value ==
-                                  sectionsToShow.indexOf('Home'),
-                              selectedColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              onTap: () {
-                                Navigator.pop(context);
-                                if (_selectedIndex.value != 0) {
-                                  onItemTapped(0);
-                                }
-                              },
-                            ),
-                            ListTile(
-                              title:
-                                  Text(AppLocalizations.of(context)!.myMusic),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                              ),
-                              leading: Icon(
-                                MdiIcons.folderMusic,
-                                color: Theme.of(context).iconTheme.color,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        PlatformCheck.isDesktop
-                                            ? const DownloadedSongsDesktop()
-                                            : const DownloadedSongs(
-                                                showPlaylists: true,
-                                              ),
-                                  ),
-                                );
-                              },
-                            ),
-                            ListTile(
-                              title:
-                                  Text(AppLocalizations.of(context)!.downs),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                              ),
-                              leading: Icon(
-                                Icons.download_done_rounded,
-                                color: Theme.of(context).iconTheme.color,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.pushNamed(context, '/downloads');
-                              },
-                            ),
-                            ListTile(
-                              title: Text(
-                                AppLocalizations.of(context)!.playlists,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                              ),
-                              leading: Icon(
-                                Icons.playlist_play_rounded,
-                                color: Theme.of(context).iconTheme.color,
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.pushNamed(context, '/playlists');
-                              },
-                            ),
-                            ListTile(
-                              title: Text(
-                                AppLocalizations.of(context)!.settings,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
-                              ),
-                              leading: const Icon(Icons.settings_rounded),
-                              selected: _selectedIndex.value ==
-                                  sectionsToShow.indexOf('Settings'),
-                              selectedColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              onTap: () {
-                                Navigator.pop(context);
-                                final idx =
-                                    sectionsToShow.indexOf('Settings');
-                                if (idx != -1) {
-                                  if (_selectedIndex.value != idx) {
-                                    onItemTapped(idx);
+                SliverList(
+                  delegate: SliverChildListDelegate(
+                    [
+                      ValueListenableBuilder(
+                        valueListenable: _selectedIndex,
+                        builder: (
+                          BuildContext context,
+                          int snapshot,
+                          Widget? child,
+                        ) {
+                          return Column(
+                            children: [
+                              ListTile(
+                                title: Text(
+                                  AppLocalizations.of(context)!.home,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                leading: const Icon(
+                                  Icons.home_rounded,
+                                ),
+                                selected: _selectedIndex.value ==
+                                    sectionsToShow.indexOf('Home'),
+                                selectedColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  if (_selectedIndex.value != 0) {
+                                    onItemTapped(0);
                                   }
-                                } else {
+                                },
+                              ),
+                              ListTile(
+                                title:
+                                    Text(AppLocalizations.of(context)!.myMusic),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                leading: Icon(
+                                  MdiIcons.folderMusic,
+                                  color: Theme.of(context).iconTheme.color,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
-                                          NewSettingsPage(callback: callback),
+                                          (Platform.isWindows ||
+                                                  Platform.isLinux ||
+                                                  Platform.isMacOS)
+                                              ? const DownloadedSongsDesktop()
+                                              : const DownloadedSongs(
+                                                  showPlaylists: true,
+                                                ),
                                     ),
                                   );
-                                }
-                              },
-                            ),
-                            ListTile(
-                              title:
-                                  Text(AppLocalizations.of(context)!.about),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20.0,
+                                },
                               ),
-                              leading: Icon(
-                                Icons.info_outline_rounded,
-                                color: Theme.of(context).iconTheme.color,
+                              ListTile(
+                                title:
+                                    Text(AppLocalizations.of(context)!.downs),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                leading: Icon(
+                                  Icons.download_done_rounded,
+                                  color: Theme.of(context).iconTheme.color,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/downloads');
+                                },
                               ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.pushNamed(context, '/about');
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+                              ListTile(
+                                title: Text(
+                                  AppLocalizations.of(context)!.playlists,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                leading: Icon(
+                                  Icons.playlist_play_rounded,
+                                  color: Theme.of(context).iconTheme.color,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/playlists');
+                                },
+                              ),
+                              ListTile(
+                                title: Text(
+                                  AppLocalizations.of(context)!.settings,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                // miscellaneous_services_rounded,
+                                leading: const Icon(Icons.settings_rounded),
+                                selected: _selectedIndex.value ==
+                                    sectionsToShow.indexOf('Settings'),
+                                selectedColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  final idx =
+                                      sectionsToShow.indexOf('Settings');
+                                  if (idx != -1) {
+                                    if (_selectedIndex.value != idx) {
+                                      onItemTapped(idx);
+                                    }
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            NewSettingsPage(callback: callback),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              ListTile(
+                                title:
+                                    Text(AppLocalizations.of(context)!.about),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                ),
+                                leading: Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Theme.of(context).iconTheme.color,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, '/about');
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Column(
-                  children: <Widget>[
-                    const Spacer(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(5, 30, 5, 20),
-                      child: Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.madeBy,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    children: <Widget>[
+                      const Spacer(),
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(5, 30, 5, 20),
+                          child: Center(
+                            child: Text(
+                              AppLocalizations.of(context)!.madeBy,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+        body: SafeArea(
+          child: Row(
+            children: [
+            if (rotated)
+              ValueListenableBuilder(
+                valueListenable: _selectedIndex,
+                builder: (BuildContext context, int indexValue, Widget? child) {
+                  return NavigationRail(
+                    minWidth: 70.0,
+                    groupAlignment: 0.0,
+                    backgroundColor:
+                        // Colors.transparent,
+                        Theme.of(context).cardColor,
+                    selectedIndex: indexValue,
+                    onDestinationSelected: (int index) {
+                      onItemTapped(index);
+                    },
+                    labelType: screenWidth > 1050
+                        ? NavigationRailLabelType.selected
+                        : NavigationRailLabelType.none,
+                    selectedLabelTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    unselectedLabelTextStyle: TextStyle(
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    selectedIconTheme: Theme.of(context).iconTheme.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                    unselectedIconTheme: Theme.of(context).iconTheme,
+                    useIndicator: screenWidth < 1050,
+                    indicatorColor: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.2),
+                    leading: homeDrawer(
+                      context: context,
+                      padding: const EdgeInsets.symmetric(vertical: 5.0),
+                    ),
+                    destinations: sectionsToShow.map((e) {
+                      switch (e) {
+                        case 'Home':
+                          return NavigationRailDestination(
+                            icon: const Icon(Icons.home_rounded),
+                            label: Text(AppLocalizations.of(context)!.home),
+                          );
+                        case 'Top Charts':
+                          return NavigationRailDestination(
+                            icon: const Icon(Icons.trending_up_rounded),
+                            label: Text(
+                              AppLocalizations.of(context)!.topCharts,
+                            ),
+                          );
+                        case 'YouTube':
+                          return NavigationRailDestination(
+                            icon: const Icon(MdiIcons.youtube),
+                            label: Text(AppLocalizations.of(context)!.youTube),
+                          );
+                        case 'Library':
+                          return NavigationRailDestination(
+                            icon: const Icon(Icons.my_library_music_rounded),
+                            label: Text(AppLocalizations.of(context)!.library),
+                          );
+                        default:
+                          return NavigationRailDestination(
+                            icon: const Icon(Icons.settings_rounded),
+                            label: Text(
+                              AppLocalizations.of(context)!.settings,
+                            ),
+                          );
+                      }
+                    }).toList(),
+                  );
+                },
+              ),
+            Expanded(
+              child: Stack(
+                children: [
+                  PersistentTabView.custom(
+                    context,
+                    controller: _controller,
+                    itemCount: sectionsToShow.length,
+                    navBarHeight: rotated ? 0 : 80,
+                    backgroundColor: Colors.transparent,
+                    customWidget: rotated
+                        ? const SizedBox.shrink()
+                        : ValueListenableBuilder(
+                            valueListenable: _selectedIndex,
+                            builder: (
+                              BuildContext context,
+                              int indexValue,
+                              Widget? child,
+                            ) {
+                              return CustomBottomNavBar(
+                                currentIndex: indexValue,
+                                backgroundColor:
+                                    Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.black.withOpacity(0.9)
+                                        : Colors.white.withOpacity(0.9),
+                                onTap: (index) {
+                                  onItemTapped(index);
+                                },
+                                items: _navBarItems(context),
+                              );
+                            },
+                          ),
+                    screens: sectionsToShow.map((e) {
+                      switch (e) {
+                        case 'Home':
+                          return CustomNavBarScreen(
+                            screen: const HomeScreen(),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        case 'Top Charts':
+                          return CustomNavBarScreen(
+                            screen: TopCharts(pageController: _pageController),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        case 'YouTube':
+                          return CustomNavBarScreen(
+                            screen: const YouTube(),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        case 'Library':
+                          return CustomNavBarScreen(
+                            screen: const LibraryPage(),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                        default:
+                          return CustomNavBarScreen(
+                            screen: NewSettingsPage(callback: callback),
+                            routeAndNavigatorSettings: routeSettings,
+                          );
+                      }
+                    }).toList(),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: rotated ? 0 : 80,
+                    child: miniplayer,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  List<BottomNavigationBarItem> _buildBottomNavItems(BuildContext context) {
+  List<CustomBottomNavBarItem> _navBarItems(BuildContext context) {
     return sectionsToShow.map((section) {
       switch (section) {
         case 'Home':
-          return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.home_rounded),
-            ),
-            label: AppLocalizations.of(context)!.home,
+          return CustomBottomNavBarItem(
+            icon: const Icon(Icons.home_rounded),
+            title: Text(AppLocalizations.of(context)!.home),
+            selectedColor: Theme.of(context).colorScheme.secondary,
           );
         case 'Top Charts':
-          return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.trending_up_rounded),
-            ),
-            label: AppLocalizations.of(context)!.topCharts,
+          return CustomBottomNavBarItem(
+            icon: const Icon(Icons.trending_up_rounded),
+            title: Text(AppLocalizations.of(context)!.topCharts),
+            selectedColor: Theme.of(context).colorScheme.secondary,
           );
         case 'YouTube':
-          return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(MdiIcons.youtube),
-            ),
-            label: AppLocalizations.of(context)!.youTube,
+          return CustomBottomNavBarItem(
+            icon: const Icon(MdiIcons.youtube),
+            title: Text(AppLocalizations.of(context)!.youTube),
+            selectedColor: Theme.of(context).colorScheme.secondary,
           );
         case 'Library':
-          return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.my_library_music_rounded),
-            ),
-            label: AppLocalizations.of(context)!.library,
+          return CustomBottomNavBarItem(
+            icon: const Icon(Icons.my_library_music_rounded),
+            title: Text(AppLocalizations.of(context)!.library),
+            selectedColor: Theme.of(context).colorScheme.secondary,
           );
         default:
-          return BottomNavigationBarItem(
-            icon: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Icon(Icons.settings_rounded),
-            ),
-            label: AppLocalizations.of(context)!.settings,
+          return CustomBottomNavBarItem(
+            icon: const Icon(Icons.settings_rounded),
+            title: Text(AppLocalizations.of(context)!.settings),
+            selectedColor: Theme.of(context).colorScheme.secondary,
           );
       }
     }).toList();

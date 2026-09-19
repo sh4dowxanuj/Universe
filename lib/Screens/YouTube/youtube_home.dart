@@ -678,8 +678,9 @@ class _YouTubeState extends State<YouTube>
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
+      body: SafeArea(
+        child: Stack(
+          children: [
             RefreshIndicator(
               onRefresh: _refreshAllSections,
               displacement: 80,
@@ -782,6 +783,7 @@ class _YouTubeState extends State<YouTube>
             ),
           ],
         ),
+      ),
     );
   }
 }

@@ -51,7 +51,7 @@ dependencies:
   palette_generator: ^0.3.3+3
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
-  persistent_bottom_nav_bar: ^5.0.2
+  persistent_bottom_nav_bar: ^6.2.1
   receive_sharing_intent: ^1.8.1
   rxdart: any
   share_plus: ^7.0.2
