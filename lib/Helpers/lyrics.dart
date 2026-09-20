@@ -24,6 +24,7 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:http/http.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/APIs/spotify_api.dart';
+import 'package:universe/Helpers/extensions.dart';
 import 'package:universe/Helpers/matcher.dart';
 import 'package:universe/Helpers/spotify_helper.dart';
 
@@ -42,7 +43,17 @@ class Lyrics {
       'id': id,
     };
 
-    Logger.root.info('Getting Synced Lyrics');
+    Logger.root.info('Getting Lyrics from LRCLIB');
+    final Map<String, String> lrcLibRes =
+        await getLrcLibLyrics(title, artist);
+    if (lrcLibRes['lyrics'] != '') {
+      result['lyrics'] = lrcLibRes['lyrics']!;
+      result['type'] = lrcLibRes['type']!;
+      result['source'] = lrcLibRes['source']!;
+      return result;
+    }
+
+    Logger.root.info('LRCLIB Lyrics not found. Getting Synced Lyrics from Spotify');
     final res = await getSpotifyLyrics(title, artist);
     result['lyrics'] = res['lyrics']!;
     result['type'] = res['type']!;
@@ -85,6 +96,39 @@ class Lyrics {
     return result;
   }
 
+  static Future<Map<String, String>> getLrcLibLyrics(
+    String title,
+    String artist,
+  ) async {
+    final Map<String, String> result = {
+      'lyrics': '',
+      'type': 'text',
+      'source': 'LRCLIB',
+    };
+    try {
+      final Uri lyricsUrl = Uri.https('lrclib.net', '/api/get', {
+        'artist_name': artist,
+        'track_name': title,
+      });
+      final Response res = await get(lyricsUrl);
+      if (res.statusCode == 200) {
+        final Map lyricsData = json.decode(utf8.decode(res.bodyBytes)) as Map;
+        if (lyricsData['syncedLyrics'] != null &&
+            lyricsData['syncedLyrics'] != '') {
+          result['lyrics'] = lyricsData['syncedLyrics'].toString().unescape();
+          result['type'] = 'lrc';
+        } else if (lyricsData['plainLyrics'] != null &&
+            lyricsData['plainLyrics'] != '') {
+          result['lyrics'] = lyricsData['plainLyrics'].toString().unescape();
+          result['type'] = 'text';
+        }
+      }
+    } catch (e) {
+      Logger.root.severe('Error in getLrcLibLyrics', e);
+    }
+    return result;
+  }
+
   static Future<String> getSaavnLyrics(String id) async {
     try {
       final Uri lyricsUrl = Uri.https(
@@ -94,16 +138,26 @@ class Lyrics {
       final Response res =
           await get(lyricsUrl, headers: {'Accept': 'application/json'});
 
-      final List<String> rawLyrics = res.body.split('-->');
-      Map fetchedLyrics = {};
-      if (rawLyrics.length > 1) {
-        fetchedLyrics = json.decode(rawLyrics[1]) as Map;
-      } else {
-        fetchedLyrics = json.decode(rawLyrics[0]) as Map;
+      if (res.statusCode == 200) {
+        final String decodedBody = utf8.decode(res.bodyBytes);
+        final List<String> rawLyrics = decodedBody.split('-->');
+        Map fetchedLyrics = {};
+        try {
+          if (rawLyrics.length > 1) {
+            fetchedLyrics = json.decode(rawLyrics[1]) as Map;
+          } else {
+            fetchedLyrics = json.decode(rawLyrics[0]) as Map;
+          }
+          if (fetchedLyrics.containsKey('lyrics')) {
+            final String lyrics =
+                fetchedLyrics['lyrics'].toString().replaceAll('<br>', '\n');
+            return lyrics.unescape();
+          }
+        } catch (e) {
+          Logger.root.severe('Error decoding Saavn lyrics JSON', e);
+        }
       }
-      final String lyrics =
-          fetchedLyrics['lyrics'].toString().replaceAll('<br>', '\n');
-      return lyrics;
+      return '';
     } catch (e) {
       Logger.root.severe('Error in getSaavnLyrics', e);
       return '';
@@ -186,17 +240,22 @@ class Lyrics {
           await get(lyricsUrl, headers: {'Accept': 'application/json'});
 
       if (res.statusCode == 200) {
-        final Map lyricsData = await json.decode(res.body) as Map;
+        final Map lyricsData = json.decode(utf8.decode(res.bodyBytes)) as Map;
         if (lyricsData['error'] == false) {
-          final List lines = await lyricsData['lines'] as List;
+          final List lines = lyricsData['lines'] as List;
           if (lyricsData['syncType'] == 'LINE_SYNCED') {
             result['lyrics'] = lines
                 .map((e) => '[${e["timeTag"]}]${e["words"]}')
                 .toList()
-                .join('\n');
+                .join('\n')
+                .unescape();
             result['type'] = 'lrc';
           } else {
-            result['lyrics'] = lines.map((e) => e['words']).toList().join('\n');
+            result['lyrics'] = lines
+                .map((e) => e['words'])
+                .toList()
+                .join('\n')
+                .unescape();
             result['type'] = 'text';
           }
         }
@@ -219,49 +278,35 @@ class Lyrics {
   }) async {
     const String url =
         'https://www.google.com/search?client=safari&rls=en&ie=UTF-8&oe=UTF-8&q=';
-    const String delimiter1 =
-        '</div></div></div></div><div class="hwc"><div class="BNeawe tAd8D AP7Wnd"><div><div class="BNeawe tAd8D AP7Wnd">';
+    const List<String> delimiter1List = [
+      '</div></div></div></div><div class="hwc"><div class="BNeawe tAd8D AP7Wnd"><div><div class="BNeawe tAd8D AP7Wnd">',
+      '</div></div></div></div><div class="hwc"><div class="BNeawe tAd8D AP7Wnd"><div><div class="BNeawe tAd8D AP7Wnd">',
+    ];
     const String delimiter2 =
         '</div></div></div></div></div><div><span class="hwc"><div class="BNeawe uEec3 AP7Wnd">';
-    String lyrics = '';
-    try {
-      lyrics = (await get(
-        Uri.parse(Uri.encodeFull('$url$title by $artist lyrics')),
-      ))
-          .body;
-      lyrics = lyrics.split(delimiter1).last;
-      lyrics = lyrics.split(delimiter2).first;
-      if (lyrics.contains('<meta charset="UTF-8">')) throw Error();
-    } catch (_) {
+
+    for (final String querySuffix in [' lyrics', ' song lyrics']) {
       try {
-        lyrics = (await get(
-          Uri.parse(
-            Uri.encodeFull('$url$title by $artist song lyrics'),
-          ),
-        ))
-            .body;
-        lyrics = lyrics.split(delimiter1).last;
-        lyrics = lyrics.split(delimiter2).first;
-        if (lyrics.contains('<meta charset="UTF-8">')) throw Error();
-      } catch (_) {
-        try {
-          lyrics = (await get(
-            Uri.parse(
-              Uri.encodeFull(
-                '$url${title.split("-").first} by $artist lyrics',
-              ),
-            ),
-          ))
-              .body;
-          lyrics = lyrics.split(delimiter1).last;
-          lyrics = lyrics.split(delimiter2).first;
-          if (lyrics.contains('<meta charset="UTF-8">')) throw Error();
-        } catch (_) {
-          lyrics = '';
+        final String searchUrl = Uri.encodeFull('$url$title by $artist$querySuffix');
+        final Response res = await get(Uri.parse(searchUrl), headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
+        final String body = utf8.decode(res.bodyBytes);
+
+        for (final String d1 in delimiter1List) {
+          if (body.contains(d1)) {
+            String lyrics = body.split(d1).last.split(delimiter2).first;
+            if (lyrics.isNotEmpty && !lyrics.contains('<meta charset="UTF-8">')) {
+              return lyrics.trim().replaceAll('<br>', '\n').unescape();
+            }
+          }
         }
+      } catch (e) {
+        Logger.root.warning('Google lyrics search failed for $querySuffix', e);
       }
     }
-    return lyrics.trim();
+    return '';
   }
 
   static Future<String> getOffLyrics(String path) async {
@@ -276,24 +321,32 @@ class Lyrics {
   static Future<String> getLyricsLink(String song, String artist) async {
     const String authority = 'www.musixmatch.com';
     final String unencodedPath = '/search/$song $artist';
-    final Response res = await get(Uri.https(authority, unencodedPath));
+    final Response res = await get(Uri.https(authority, unencodedPath), headers: {
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    });
     if (res.statusCode != 200) return '';
+    final String body = utf8.decode(res.bodyBytes);
     final RegExpMatch? result =
-        RegExp(r'href=\"(\/lyrics\/.*?)\"').firstMatch(res.body);
+        RegExp(r'href=\"(\/lyrics\/.*?)\"').firstMatch(body);
     return result == null ? '' : result[1]!;
   }
 
   static Future<String> scrapLink(String unencodedPath) async {
     Logger.root.info('Trying to scrap lyrics from $unencodedPath');
     const String authority = 'www.musixmatch.com';
-    final Response res = await get(Uri.https(authority, unencodedPath));
+    final Response res = await get(Uri.https(authority, unencodedPath), headers: {
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    });
     if (res.statusCode != 200) return '';
+    final String body = utf8.decode(res.bodyBytes);
     final List<String?> lyrics = RegExp(
       r'<span class=\"lyrics__content__ok\">(.*?)<\/span>',
       dotAll: true,
-    ).allMatches(res.body).map((m) => m[1]).toList();
+    ).allMatches(body).map((m) => m[1]).toList();
 
-    return lyrics.isEmpty ? '' : lyrics.join('\n');
+    return lyrics.isEmpty ? '' : lyrics.join('\n').unescape();
   }
 
   static Future<String> getMusixMatchLyrics({

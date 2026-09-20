@@ -17,6 +17,8 @@
  * Copyright (c) 2021-2023, SH4DOWXANUJ
  */
 
+import 'package:html_unescape/html_unescape.dart';
+
 extension StringExtension on String {
   String capitalize() {
     if (this != '') {
@@ -27,10 +29,7 @@ extension StringExtension on String {
   }
 
   String unescape() {
-    return replaceAll('&amp;', '&')
-        .replaceAll('&#039;', "'")
-        .replaceAll('&quot;', '"')
-        .trim();
+    return HtmlUnescape().convert(this).trim();
   }
 
   String formatToHHMMSS() {
