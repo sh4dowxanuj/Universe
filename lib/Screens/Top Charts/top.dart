@@ -56,87 +56,88 @@ class _TopChartsState extends State<TopCharts>
   bool get wantKeepAlive => true;
 
   @override
-  Widget build(BuildContext cntxt) {
+  Widget build(BuildContext context) {
     super.build(context);
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: IconButton(
-                icon: const Icon(Icons.my_location_rounded),
-                onPressed: () async {
-                  await SpotifyCountry().changeCountry(context: context);
-                },
-              ),
-            ),
-          ],
-          bottom: TabBar(
-            indicatorSize: TabBarIndicatorSize.label,
-            tabs: [
-              Tab(
-                child: Text(
-                  AppLocalizations.of(context)!.local,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge!.color,
-                  ),
-                ),
-              ),
-              Tab(
-                child: Text(
-                  AppLocalizations.of(context)!.global,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyLarge!.color,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          title: Text(
-            AppLocalizations.of(context)!.spotifyCharts,
-            style: TextStyle(
-              fontSize: 18,
-              color: Theme.of(context).textTheme.bodyLarge!.color,
-            ),
-          ),
-          centerTitle: true,
+    return SafeArea(
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          leading: rotated ? null : homeDrawer(context: context),
-        ),
-        body: NotificationListener(
-          onNotification: (overscroll) {
-            if (overscroll is OverscrollNotification &&
-                overscroll.overscroll != 0 &&
-                overscroll.dragDetails != null) {
-              widget.pageController.animateToPage(
-                overscroll.overscroll < 0 ? 0 : 2,
-                curve: Curves.ease,
-                duration: const Duration(milliseconds: 150),
-              );
-            }
-            return true;
-          },
-          child: TabBarView(
-            physics: const CustomPhysics(),
-            children: [
-              ValueListenableBuilder(
-                valueListenable: Hive.box('settings').listenable(),
-                builder: (BuildContext context, Box box, Widget? widget) {
-                  return TopPage(
-                    type: box.get('region', defaultValue: 'India').toString(),
-                  );
-                },
+          appBar: AppBar(
+            actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: IconButton(
+                  icon: const Icon(Icons.my_location_rounded),
+                  onPressed: () async {
+                    await SpotifyCountry().changeCountry(context: context);
+                  },
+                ),
               ),
-              // TopPage(type: 'local'),
-              const TopPage(type: 'Global'),
             ],
+            bottom: TabBar(
+              indicatorSize: TabBarIndicatorSize.label,
+              tabs: [
+                Tab(
+                  child: Text(
+                    AppLocalizations.of(context)!.local,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge!.color,
+                    ),
+                  ),
+                ),
+                Tab(
+                  child: Text(
+                    AppLocalizations.of(context)!.global,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge!.color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            title: Text(
+              AppLocalizations.of(context)!.spotifyCharts,
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).textTheme.bodyLarge!.color,
+              ),
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            leading: rotated ? null : homeDrawer(context: context),
+          ),
+          body: NotificationListener(
+            onNotification: (overscroll) {
+              if (overscroll is OverscrollNotification &&
+                  overscroll.overscroll != 0 &&
+                  overscroll.dragDetails != null) {
+                widget.pageController.animateToPage(
+                  overscroll.overscroll < 0 ? 0 : 2,
+                  curve: Curves.ease,
+                  duration: const Duration(milliseconds: 150),
+                );
+              }
+              return true;
+            },
+            child: TabBarView(
+              physics: const CustomPhysics(),
+              children: [
+                ValueListenableBuilder(
+                  valueListenable: Hive.box('settings').listenable(),
+                  builder: (BuildContext context, Box box, Widget? widget) {
+                    return TopPage(
+                      type: box.get('region', defaultValue: 'India').toString(),
+                    );
+                  },
+                ),
+                const TopPage(type: 'Global'),
+              ],
+            ),
           ),
         ),
       ),

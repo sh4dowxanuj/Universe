@@ -38,9 +38,10 @@ class _LibraryPageState extends State<LibraryPage> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool rotated = MediaQuery.sizeOf(context).height < screenWidth;
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      children: [
+    return SafeArea(
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        children: [
         AppBar(
           title: Text(
             AppLocalizations.of(context)!.library,
@@ -122,8 +123,9 @@ class _LibraryPageState extends State<LibraryPage> {
           },
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 }
 
 class LibraryTile extends StatelessWidget {

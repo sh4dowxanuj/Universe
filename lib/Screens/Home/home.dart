@@ -86,26 +86,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Future<bool> handleWillPop(BuildContext? context) async {
-  //   if (context == null) return false;
-  //   final now = DateTime.now();
-  //   final backButtonHasNotBeenPressedOrSnackBarHasBeenClosed =
-  //       backButtonPressTime == null ||
-  //           now.difference(backButtonPressTime!) > const Duration(seconds: 3);
-
-  //   if (backButtonHasNotBeenPressedOrSnackBarHasBeenClosed) {
-  //     backButtonPressTime = now;
-  //     ShowSnackBar().showSnackBar(
-  //       context,
-  //       AppLocalizations.of(context)!.exitConfirm,
-  //       duration: const Duration(seconds: 2),
-  //       noAction: true,
-  //     );
-  //     return false;
-  //   }
-  //   return true;
-  // }
-
   void checkVersion() {
     PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
       appVersion = packageInfo.version;
@@ -522,9 +502,8 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-        body: SafeArea(
-          child: Row(
-            children: [
+        body: Row(
+          children: [
             if (rotated)
               ValueListenableBuilder(
                 valueListenable: _selectedIndex,
@@ -672,9 +651,8 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   List<CustomBottomNavBarItem> _navBarItems(BuildContext context) {
     return sectionsToShow.map((section) {

@@ -125,6 +125,7 @@ class YouTubeServices {
         final result = {
           'id': id,
           'url': ytdlpData['url'],
+          'headers': ytdlpData['headers'],
           'expire_at': ytdlpData['expire_at']?.toString() ?? '0',
           'genre': 'YouTube',
           'language': 'YouTube',
@@ -388,6 +389,7 @@ class YouTubeServices {
       List<Map> urlsData = [];
       String finalUrl = '';
       String expireAt = '0';
+      Map? ytdlpHeaders;
       
       if (getUrl) {
         try {
@@ -397,6 +399,7 @@ class YouTubeServices {
           if (ytdlpData != null && ytdlpData['url'] != null) {
             // yt-dlp success - use its URL
             finalUrl = ytdlpData['url'] as String;
+            ytdlpHeaders = ytdlpData['headers'] as Map?;
             expireAt = ytdlpData['expire_at']?.toString() ?? '0';
             
             // Create urlsData in expected format for compatibility
@@ -457,6 +460,7 @@ class YouTubeServices {
         'genre': 'YouTube',
         'expire_at': expireAt,
         'url': finalUrl,
+        'headers': ytdlpHeaders,
         'allUrls': allUrls,
         'urlsData': urlsData,
         'year': '',

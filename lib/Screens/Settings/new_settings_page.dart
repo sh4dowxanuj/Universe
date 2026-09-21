@@ -67,11 +67,13 @@ class _NewSettingsPageState extends State<NewSettingsPage>
             color: Theme.of(context).iconTheme.color,
           ),
         ),
-        body: Column(
-          children: [
-            _searchBar(context),
-            Expanded(child: _settingsItem(context)),
-          ],
+        body: SafeArea(
+          child: Column(
+            children: [
+              _searchBar(context),
+              Expanded(child: _settingsItem(context)),
+            ],
+          ),
         ),
       ),
     );

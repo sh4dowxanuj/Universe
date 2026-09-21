@@ -446,6 +446,18 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
           );
         } else {
           if (mediaItem.genre == 'YouTube') {
+            final Map<String, String> itemHeaders = {
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*',
+              'Referer': 'https://www.youtube.com/',
+            };
+            if (mediaItem.extras!['headers'] != null) {
+              (mediaItem.extras!['headers'] as Map).forEach((key, value) {
+                itemHeaders[key.toString()] = value.toString();
+              });
+            }
+
             // LAZY MODE: Use existing URL first (will be refreshed on actual playback)
             if (lazy &&
                 mediaItem.extras!['url'] != null &&
@@ -454,12 +466,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
               final url = mediaItem.extras!['url'].toString();
               audioSource = AudioSource.uri(
                 Uri.parse(url),
-                headers: {
-                  'User-Agent':
-                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  'Accept': '*/*',
-                  'Referer': 'https://www.youtube.com/',
-                },
+                headers: itemHeaders,
                 tag: mediaItem.id,
               );
               _mediaItemExpando[audioSource] = mediaItem;
@@ -475,19 +482,28 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                   .getAudioStream(mediaItem.id, quality: ytQuality);
               if (ytdlpData != null && ytdlpData['url'] != null) {
                 final streamUrl = ytdlpData['url'] as String;
+                final Map<String, String> headers = {
+                  'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Accept': '*/*',
+                  'Referer': 'https://www.youtube.com/',
+                };
+
+                if (ytdlpData['headers'] != null) {
+                  (ytdlpData['headers'] as Map).forEach((key, value) {
+                    headers[key.toString()] = value.toString();
+                  });
+                }
 
                 audioSource = AudioSource.uri(
                   Uri.parse(streamUrl),
-                  headers: {
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': '*/*',
-                  },
+                  headers: headers,
                   tag: mediaItem.id,
                 );
                 _mediaItemExpando[audioSource] = mediaItem;
                 return audioSource;
-              } else {
+              }
+else {
               }
             } catch (e) {
               Logger.root.warning('yt-dlp failed for ${mediaItem.id}: $e');
@@ -508,11 +524,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
                 if (now + 300 < expireAt) {
                   audioSource = AudioSource.uri(
                     Uri.parse(cachedUrl),
-                    headers: {
-                      'User-Agent':
-                          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept': '*/*',
-                    },
+                    headers: itemHeaders,
                     tag: mediaItem.id,
                   );
                   _mediaItemExpando[audioSource] = mediaItem;
@@ -529,12 +541,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
               final url = mediaItem.extras!['url'].toString();
               audioSource = AudioSource.uri(
                 Uri.parse(url),
-                headers: {
-                  'User-Agent':
-                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  'Accept': '*/*',
-                  'Referer': 'https://www.youtube.com/',
-                },
+                headers: itemHeaders,
                 tag: mediaItem.id,
               );
               _mediaItemExpando[audioSource] = mediaItem;
@@ -1084,10 +1091,19 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   }
 
   void _playbackError(err) {
-    if (err is PlatformException) {
+    final bool isYoutube = mediaItem.value?.genre == 'YouTube';
+    final String errString = err.toString();
+    
+    Logger.root.severe('AudioService Error: $errString (isYoutube: $isYoutube)');
 
-      // Check if this is a 403 error (expired YouTube URL)
-      if (err.message != null && err.message!.contains('403')) {
+    if (err is PlatformException) {
+      // Check if this is a 403 error (expired YouTube URL) or a generic source error for YouTube
+      if (errString.contains('403') ||
+          (isYoutube &&
+              (err.code == '0' ||
+                  err.message == 'Source error' ||
+                  errString.contains('Source error')))) {
+        Logger.root.info('Attempting to recover from 403/Source error for YouTube');
         _handle403Error();
         return; // Don't call _onError, we're handling this
       }
@@ -1103,31 +1119,43 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     try {
       final currentItem = mediaItem.value;
       if (currentItem == null) {
+        Logger.root.warning('Cannot handle 403: current mediaItem is null');
         return;
       }
 
       if (currentItem.genre != 'YouTube') {
+        Logger.root.warning('Cannot handle 403: current item is not a YouTube stream');
         return;
       }
 
-      final currentIndex = _player!.currentIndex;
+      int? currentIndex = _player!.currentIndex;
+      
+      // Fallback: search for item in queue if player index is null
       if (currentIndex == null) {
+        currentIndex = queue.value.indexWhere((item) => item.id == currentItem.id);
+        if (currentIndex == -1) currentIndex = null;
+      }
+
+      if (currentIndex == null) {
+        Logger.root.warning('Cannot handle 403: could not determine current index');
         return;
       }
 
+      Logger.root.info('Refreshing YouTube URL for ${currentItem.title} at index $currentIndex');
 
       // Fetch fresh URL using active mode (lazy=false)
       final newSource = await _itemToSource(currentItem);
       if (newSource == null) {
+        Logger.root.severe('Failed to refresh YouTube URL');
         _onError(Exception('Failed to refresh YouTube URL'), null);
         return;
       }
-
 
       // Remove old source and insert new one
       await _playlist.removeAt(currentIndex);
       await _playlist.insert(currentIndex, newSource);
 
+      Logger.root.info('Successfully updated playlist with fresh URL');
 
       // Seek back to the same index to reload the source
       await _player!.seek(Duration.zero, index: currentIndex);

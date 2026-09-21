@@ -336,10 +336,14 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         val thumbnail = infoMap["thumbnail"]?.toString() ?: ""
         val uploader = infoMap["uploader"]?.toString() ?: ""
         val bitrate = (bestFormat!!["abr"] as? Number)?.toInt() ?: (bestFormat!!["tbr"] as? Number)?.toInt() ?: 128
+        
+        // Extract headers - check format first, then top level info
+        val headers = bestFormat!!["http_headers"] ?: infoMap["http_headers"]
 
         Log.d(TAG, "Selected format: ${bitrate}kbps for quality: $quality")
         return mapOf(
             "url" to bestFormat!!["url"],
+            "headers" to headers,
             "title" to title,
             "duration" to duration,
             "thumbnail" to thumbnail,
