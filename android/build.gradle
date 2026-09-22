@@ -7,7 +7,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.chaquo.python:gradle:14.0.2"
     }
@@ -30,6 +30,16 @@ subprojects {
             project.android {
                 // Enforce SDK 34 for all plugins
                 compileSdkVersion 34
+                //Ndk
+                ndkVersion "27.0.12077973"
+
+                defaultConfig {
+                    minSdkVersion 21
+                }
+
+                buildFeatures {
+                    buildConfig true
+                }
 
                 // Fallback namespace injection for legacy packages
                 if (namespace == null) {

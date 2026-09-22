@@ -23,3 +23,7 @@
 -keepclasseswithmembernames class * {
     native <methods>;
 }
+
+# Keep notification icons
+-keep class com.shadow.universe.R$drawable { *; }
+-keep class com.ryanheise.audioservice.R$drawable { *; }
