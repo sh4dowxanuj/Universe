@@ -1,0 +1,29 @@
+[versions]
+agp = "9.4.1"
+dev = "1.0.0"
+devFlutterFlutterGradlePlugin = "+"
+featureDelivery = "2.1.0"
+gradle = "9.4.1"
+gradleToolchainsFoojayResolverConvention = "1.0.0"
+gson = "2.14.0"
+kotlin = "2.4.20"
+kotlinVersion = "2.4.20"
+kotlinxCoroutinesAndroid = "1.11.0"
+python = "17.0.0"
+
+[libraries]
+feature-delivery = { group = "com.google.android.play", name = "feature-delivery", version.ref = "featureDelivery" }
+gradle = { group = "com.android.tools.build", name = "gradle", version.ref = "gradle" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlinVersion" }
+kotlin-stdlib-jdk7 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk7", version.ref = "kotlinVersion" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+python-gradle = { group = "com.chaquo.python", name = "gradle", version.ref = "python" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+chaquo-python = { id = "com.chaquo.python", version.ref = "python" }
+dev = { id = "dev.flutter.flutter-gradle-plugin", version.ref = "devFlutterFlutterGradlePlugin" }
+dev-flutter-flutter-plugin-loader = { id = "dev.flutter.flutter-plugin-loader", version.ref = "dev" }
+gradle-toolchains-foojay-resolver-convention = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "gradleToolchainsFoojayResolverConvention" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
