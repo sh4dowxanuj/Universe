@@ -9,7 +9,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "com.chaquo.python:gradle:14.0.2"
+        classpath "com.chaquo.python:gradle:17.0.0"
     }
 }
 
@@ -34,7 +34,7 @@ subprojects {
                 ndkVersion "27.0.12077973"
 
                 defaultConfig {
-                    minSdkVersion 21
+                    minSdkVersion 24
                 }
 
                 buildFeatures {
