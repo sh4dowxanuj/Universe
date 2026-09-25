@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id "com.android.application"
     id "kotlin-android"
     id "com.chaquo.python"
     id "dev.flutter.flutter-gradle-plugin"
@@ -40,7 +40,7 @@ android {
     namespace "com.shadow.universe"
 
     compileSdkVersion 37
-    ndkVersion "28.2.13676358"
+    ndkVersion "27.0.12077973"
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
@@ -48,7 +48,7 @@ android {
 
     defaultConfig {
         applicationId "com.shadow.universe"
-        minSdkVersion 24
+        minSdkVersion 21
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -121,12 +121,10 @@ flutter {
 }
 
 dependencies {
-    implementation libs.kotlin.stdlib.jdk7
-    implementation libs.gson
-    implementation libs.kotlinx.coroutines.android
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
     
     // Fixes missing R8 references for Play Core & deferred components
-    implementation libs.feature.delivery
-
-    testImplementation 'junit:junit:4.13.2'
+    implementation 'com.google.android.play:feature-delivery:2.1.0'
 }
