@@ -1,6 +1,5 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
     id "com.chaquo.python"
     id "dev.flutter.flutter-gradle-plugin"
 }
@@ -99,7 +98,7 @@ android {
         }
     }
 
-    packagingOptions {
+    packaging {
         resources {
             excludes += ['META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/*.kotlin_module']
         }

@@ -137,7 +137,7 @@ class DownloadPlatformHelper {
             genre: data['language'].toString(),
             year: int.parse(data['year'].toString()),
             durationMs: int.parse(data['duration'].toString()) * 1000,
-            fileSize: file.lengthSync(),
+            fileSize: BigInt.from(file.lengthSync()),
             picture: Picture(
               data: Uint8List.fromList(imageBytes),
               mimeType: 'image/jpeg',

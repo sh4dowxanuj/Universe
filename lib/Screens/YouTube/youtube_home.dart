@@ -22,7 +22,6 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:universe/CustomWidgets/drawer.dart';
@@ -33,6 +32,7 @@ import 'package:universe/Services/error_service.dart';
 import 'package:universe/Services/player_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/Services/yt_music.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/main.dart';
 
 // Refactor: local per-section state replaces globals and app-wide flags.
@@ -806,7 +806,7 @@ class _QuickAccessCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.4),
+          color: Theme.of(context).cardColor.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(6),
         ),
         clipBehavior: Clip.antiAlias,
@@ -877,7 +877,7 @@ class _CarouselCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -1018,8 +1018,8 @@ class _TopSearchBar extends StatelessWidget {
             end: Alignment.bottomCenter,
             colors: [
               Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
-              Theme.of(context).scaffoldBackgroundColor.withOpacity(0),
+              Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+              Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0),
             ],
           ),
         ),
@@ -1043,7 +1043,7 @@ class _TopSearchBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -1057,7 +1057,7 @@ class _TopSearchBar extends StatelessWidget {
                   AppLocalizations.of(context)!.searchYt,
                   style: TextStyle(
                     fontSize: 15,
-                    color: Theme.of(context).textTheme.bodySmall!.color!.withOpacity(0.7),
+                    color: Theme.of(context).textTheme.bodySmall!.color!.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -1114,8 +1114,8 @@ class _ShelfCard extends StatelessWidget {
                       boxShadow: [
                         BoxShadow(
                           color: isHover
-                              ? Colors.black.withOpacity(0.4)
-                              : Colors.black.withOpacity(0.2),
+                              ? Colors.black.withValues(alpha: 0.4)
+                              : Colors.black.withValues(alpha: 0.2),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -1168,7 +1168,7 @@ class _ShelfCard extends StatelessWidget {
                             .textTheme
                             .bodySmall!
                             .color!
-                            .withOpacity(0.7),
+                            .withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -1212,8 +1212,8 @@ class _SkeletonCardState extends State<_SkeletonCard>
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).cardColor.withOpacity(0.10);
-    final highlightColor = Theme.of(context).cardColor.withOpacity(0.20);
+    final baseColor = Theme.of(context).cardColor.withValues(alpha: 0.10);
+    final highlightColor = Theme.of(context).cardColor.withValues(alpha: 0.20);
     return SizedBox(
       width: widget.width,
       height: widget.height,

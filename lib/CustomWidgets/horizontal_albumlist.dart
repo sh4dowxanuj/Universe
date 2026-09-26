@@ -18,7 +18,6 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:universe/APIs/api.dart';
 import 'package:universe/CustomWidgets/image_card.dart';
 import 'package:universe/CustomWidgets/like_button.dart';
@@ -27,6 +26,7 @@ import 'package:universe/CustomWidgets/snackbar.dart';
 import 'package:universe/CustomWidgets/song_tile_trailing_menu.dart';
 import 'package:universe/Models/image_quality.dart';
 import 'package:universe/Services/player_service.dart';
+import 'package:universe/localization/app_localizations.dart';
 
 class HorizontalAlbumsList extends StatelessWidget {
   final List songsList;
