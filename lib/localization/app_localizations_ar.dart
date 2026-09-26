@@ -692,7 +692,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get playRadio => 'تشغيل الراديو';
 
   @override
-  String get playSomething => 'الذهاب والتشغيل لشيئ ‪ما';
+  String get playSomething => 'الذهاب والتشغيل لشيئ ما';
 
   @override
   String get playing => 'التشغيل';
