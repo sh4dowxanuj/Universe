@@ -23,7 +23,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -48,6 +47,7 @@ import 'package:universe/Services/network_service.dart';
 import 'package:universe/Services/youtube_services.dart';
 import 'package:universe/constants/constants.dart';
 import 'package:universe/constants/languagecodes.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:universe/providers/audio_service_provider.dart';
 import 'package:universe/theme/app_theme.dart';
 
@@ -62,7 +62,11 @@ Future<void> initializeServices() async {
 
   // Initialize metadata handling
   if (!PlatformCheck.isWeb) {
-    MetadataGod.initialize();
+    try {
+      await MetadataGod.initialize();
+    } catch (e) {
+      Logger.root.severe('MetadataGod initialize error: $e');
+    }
   }
 
   // Register core services
@@ -97,12 +101,14 @@ Future<void> main() async {
   } else {
     await Hive.initFlutter();
   }
-  for (final box in hiveBoxes) {
-    await openHiveBox(
-      box['name'].toString(),
-      limit: box['limit'] as bool? ?? false,
-    );
-  }
+  await Future.wait(
+    hiveBoxes.map(
+      (box) => openHiveBox(
+        box['name'].toString(),
+        limit: box['limit'] as bool? ?? false,
+      ),
+    ),
+  );
   if (PlatformCheck.isAndroid) {
     setOptimalDisplayMode();
   }

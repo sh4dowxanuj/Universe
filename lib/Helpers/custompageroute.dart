@@ -69,8 +69,6 @@ class SlideTransitionPageRoute extends PageRouteBuilder {
         return const Offset(-1, 0);
       case AxisDirection.right:
         return const Offset(1, 0);
-      default:
-        return const Offset(1, 0);
     }
   }
 
