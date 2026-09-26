@@ -288,15 +288,18 @@ class Lyrics {
     for (final String querySuffix in [' lyrics', ' song lyrics']) {
       try {
         final String searchUrl = Uri.encodeFull('$url$title by $artist$querySuffix');
-        final Response res = await get(Uri.parse(searchUrl), headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        });
+        final Response res = await get(
+          Uri.parse(searchUrl),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          },
+        );
         final String body = utf8.decode(res.bodyBytes);
 
         for (final String d1 in delimiter1List) {
           if (body.contains(d1)) {
-            String lyrics = body.split(d1).last.split(delimiter2).first;
+            final String lyrics = body.split(d1).last.split(delimiter2).first;
             if (lyrics.isNotEmpty && !lyrics.contains('<meta charset="UTF-8">')) {
               return lyrics.trim().replaceAll('<br>', '\n').unescape();
             }
@@ -321,10 +324,13 @@ class Lyrics {
   static Future<String> getLyricsLink(String song, String artist) async {
     const String authority = 'www.musixmatch.com';
     final String unencodedPath = '/search/$song $artist';
-    final Response res = await get(Uri.https(authority, unencodedPath), headers: {
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    });
+    final Response res = await get(
+      Uri.https(authority, unencodedPath),
+      headers: {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    );
     if (res.statusCode != 200) return '';
     final String body = utf8.decode(res.bodyBytes);
     final RegExpMatch? result =
@@ -335,10 +341,13 @@ class Lyrics {
   static Future<String> scrapLink(String unencodedPath) async {
     Logger.root.info('Trying to scrap lyrics from $unencodedPath');
     const String authority = 'www.musixmatch.com';
-    final Response res = await get(Uri.https(authority, unencodedPath), headers: {
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    });
+    final Response res = await get(
+      Uri.https(authority, unencodedPath),
+      headers: {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    );
     if (res.statusCode != 200) return '';
     final String body = utf8.decode(res.bodyBytes);
     final List<String?> lyrics = RegExp(
