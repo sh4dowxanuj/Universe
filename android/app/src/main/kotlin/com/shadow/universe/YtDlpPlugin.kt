@@ -136,20 +136,15 @@ class YtDlpPlugin : FlutterPlugin, MethodCallHandler {
         return Gson().fromJson(jsonStr, Map::class.java) as Map<String, Any?>
     }
 
-    companion object {
-        @JvmStatic
-        fun registerWith(registrar: io.flutter.plugin.common.PluginRegistry.Registrar) {
-            val channel = MethodChannel(registrar.messenger(), "ytdlp_channel")
-            val plugin = YtDlpPlugin()
-            channel.setMethodCallHandler(plugin)
-            plugin.ensurePythonStarted(registrar.context())
-        }
-    }
+
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "ytdlp_channel")
         channel.setMethodCallHandler(this)
-        ensurePythonStarted(flutterPluginBinding.applicationContext)
+        val context = flutterPluginBinding.applicationContext
+        scope.launch(Dispatchers.IO) {
+            ensurePythonStarted(context)
+        }
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {

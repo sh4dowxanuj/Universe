@@ -155,7 +155,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
     Logger.root.info('checking connectivity & setting quality');
 
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       if (result == ConnectivityResult.mobile) {
         connectionType = 'mobile';
         Logger.root.info(
@@ -554,6 +555,7 @@ else {
             return null;
           } else {
             if (cacheSong) {
+              // ignore: experimental_member_use
               audioSource = LockCachingAudioSource(
                 Uri.parse(
                   mediaItem.extras!['url'].toString().replaceAll(
@@ -1111,7 +1113,9 @@ else {
     Logger.root.severe('Error from audioservice: ${err.code}', err);
     if (err is PlatformException &&
         err.code == 'abort' &&
-        err.message == 'Connection aborted') return;
+        err.message == 'Connection aborted') {
+      return;
+    }
     _onError(err, null);
   }
 

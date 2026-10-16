@@ -21,10 +21,8 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:universe/CustomWidgets/bottom_nav_bar.dart';
@@ -48,6 +46,7 @@ import 'package:universe/Screens/Settings/new_settings_page.dart';
 import 'package:universe/Screens/Top Charts/top.dart';
 import 'package:universe/Screens/YouTube/youtube_home.dart';
 import 'package:universe/Services/ext_storage_provider.dart';
+import 'package:universe/localization/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -313,8 +312,8 @@ class _HomePageState extends State<HomePage> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.8),
-                            Colors.black.withOpacity(0.1),
+                            Colors.black.withValues(alpha: 0.8),
+                            Colors.black.withValues(alpha: 0.1),
                           ],
                         ).createShader(
                           Rect.fromLTRB(0, 0, rect.width, rect.height),
@@ -373,7 +372,7 @@ class _HomePageState extends State<HomePage> {
                                   horizontal: 20.0,
                                 ),
                                 leading: Icon(
-                                  MdiIcons.folderMusic,
+                                  Icons.folder_special,
                                   color: Theme.of(context).iconTheme.color,
                                 ),
                                 onTap: () {
@@ -536,7 +535,7 @@ class _HomePageState extends State<HomePage> {
                     indicatorColor: Theme.of(context)
                         .colorScheme
                         .secondary
-                        .withOpacity(0.2),
+                        .withValues(alpha: 0.2),
                     leading: homeDrawer(
                       context: context,
                       padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -557,7 +556,7 @@ class _HomePageState extends State<HomePage> {
                           );
                         case 'YouTube':
                           return NavigationRailDestination(
-                            icon: const Icon(MdiIcons.youtube),
+                            icon: const Icon(Icons.video_library),
                             label: Text(AppLocalizations.of(context)!.youTube),
                           );
                         case 'Library':
@@ -600,8 +599,8 @@ class _HomePageState extends State<HomePage> {
                                 backgroundColor:
                                     Theme.of(context).brightness ==
                                             Brightness.dark
-                                        ? Colors.black.withOpacity(0.9)
-                                        : Colors.white.withOpacity(0.9),
+                                        ? Colors.black.withValues(alpha: 0.9)
+                                        : Colors.white.withValues(alpha: 0.9),
                                 onTap: (index) {
                                   onItemTapped(index);
                                 },
@@ -671,7 +670,7 @@ class _HomePageState extends State<HomePage> {
           );
         case 'YouTube':
           return CustomBottomNavBarItem(
-            icon: const Icon(MdiIcons.youtube),
+            icon: const Icon(Icons.video_library),
             title: Text(AppLocalizations.of(context)!.youTube),
             selectedColor: Theme.of(context).colorScheme.secondary,
           );

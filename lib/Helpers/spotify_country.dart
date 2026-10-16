@@ -58,9 +58,12 @@ class SpotifyCountry {
                   title: Text(
                     countries[idx],
                   ),
+                  // ignore: deprecated_member_use
                   leading: Radio(
                     value: countries[idx],
+                    // ignore: deprecated_member_use
                     groupValue: region,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       top_screen.localSongs = [];
                       region = countries[idx];

@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.8.22'
+    ext.kotlin_version = '2.3.20'
     repositories {
         google()
         mavenCentral()
@@ -7,9 +7,15 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'com.android.tools.build:gradle:9.1.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.chaquo.python:gradle:17.0.0"
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            force 'com.android.tools.build:gradle:9.1.0'
+        }
     }
 }
 
@@ -17,6 +23,14 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+
+    buildscript {
+        configurations.all {
+            resolutionStrategy {
+                force 'com.android.tools.build:gradle:9.1.0'
+            }
+        }
     }
 }
 

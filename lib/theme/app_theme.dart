@@ -54,7 +54,7 @@ class AppTheme {
         foregroundColor: Colors.black,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         clipBehavior: Clip.antiAlias,
         elevation: 5,
         shape: RoundedRectangleBorder(
@@ -63,7 +63,7 @@ class AppTheme {
       ),
       disabledColor: Colors.grey[600],
       brightness: Brightness.light,
-      indicatorColor: currentTheme.currentColor(),
+      tabBarTheme: TabBarThemeData(indicatorColor: currentTheme.currentColor()),
       progressIndicatorTheme: const ProgressIndicatorThemeData()
           .copyWith(color: currentTheme.currentColor()),
       iconTheme: IconThemeData(
@@ -110,20 +110,20 @@ class AppTheme {
       visualDensity: VisualDensity.adaptivePlatformDensity,
       brightness: Brightness.dark,
       appBarTheme: AppBarTheme(
-        color: currentTheme.getCanvasColor(),
+        backgroundColor: currentTheme.getCanvasColor(),
         foregroundColor: Colors.white,
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       canvasColor: currentTheme.getCanvasColor(),
       cardColor: currentTheme.getCardColor(),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         clipBehavior: Clip.antiAlias,
         elevation: 5,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(7.0),
         ),
       ),
-      dialogBackgroundColor: currentTheme.getCardColor(),
+      dialogTheme: DialogThemeData(backgroundColor: currentTheme.getCardColor()),
       progressIndicatorTheme: const ProgressIndicatorThemeData()
           .copyWith(color: currentTheme.currentColor()),
       iconTheme: const IconThemeData(
@@ -131,7 +131,7 @@ class AppTheme {
         opacity: 1.0,
         size: 24.0,
       ),
-      indicatorColor: currentTheme.currentColor(),
+      tabBarTheme: TabBarThemeData(indicatorColor: currentTheme.currentColor()),
       colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: Colors.white,
             secondary: currentTheme.currentColor(),

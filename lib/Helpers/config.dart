@@ -109,27 +109,27 @@ class MyTheme with ChangeNotifier {
 
   final List<List<Color>> _transOpt = [
     [
-      Colors.grey[850]!.withOpacity(0.8),
-      Colors.grey[900]!.withOpacity(0.9),
-      Colors.black.withOpacity(1),
+      Colors.grey[850]!.withValues(alpha: 0.8),
+      Colors.grey[900]!.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 1),
     ],
     [
-      Colors.grey[900]!.withOpacity(0.8),
-      Colors.grey[900]!.withOpacity(0.9),
-      Colors.black.withOpacity(1),
+      Colors.grey[900]!.withValues(alpha: 0.8),
+      Colors.grey[900]!.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 1),
     ],
     [
-      Colors.grey[900]!.withOpacity(0.9),
-      Colors.black.withOpacity(1),
+      Colors.grey[900]!.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 1),
     ],
     [
-      Colors.grey[900]!.withOpacity(0.9),
-      Colors.black.withOpacity(0.9),
-      Colors.black.withOpacity(1),
+      Colors.grey[900]!.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 1),
     ],
     [
-      Colors.black.withOpacity(0.9),
-      Colors.black.withOpacity(1),
+      Colors.black.withValues(alpha: 0.9),
+      Colors.black.withValues(alpha: 1),
     ]
   ];
 
